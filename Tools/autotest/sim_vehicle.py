@@ -1273,6 +1273,10 @@ group_sim.add_option("", "--sim-address",
                      type=str,
                      default="127.0.0.1",
                      help="IP address of the simulator. Defaults to localhost")
+group_sim.add_option("--enable-xrce-dds", action='store_true',
+                     default=True,
+                     help="Enable the xrce client to connect with ROS2/DDS")
+                     
 parser.add_option_group(group_sim)
 
 
