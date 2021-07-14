@@ -59,6 +59,7 @@
 #include <AC_Fence/AC_Fence.h>
 #include <AP_CheckFirmware/AP_CheckFirmware.h>
 #include <Filter/LowPassFilter.h>
+#include <AP_XRCE_Client/AP_XRCE_Client.h>
 
 class AP_Vehicle : public AP_HAL::HAL::Callbacks {
 
@@ -391,6 +392,13 @@ protected:
 
 #if AP_SIM_ENABLED
     SITL::SIM sitl;
+#endif
+
+#if AP_XRCE_ENABLED
+    // Declare the xrce client for communication with ROS2 and DDS(common for all vehicles)
+    AP_XRCE_Client xrce_client;
+    void init_xrce_client();
+    void update_topics();
 #endif
 
 private:
