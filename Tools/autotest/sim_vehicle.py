@@ -405,6 +405,9 @@ def do_build(opts, frame_options):
     for nv in opts.define:
         cmd_configure.append("--define=%s" % nv)
 
+    if opts.enable_xrce_dds:
+        cmd_configure.append("--enable-xrce-dds")
+        
     pieces = [shlex.split(x) for x in opts.waf_configure_args]
     for piece in pieces:
         cmd_configure.extend(piece)
