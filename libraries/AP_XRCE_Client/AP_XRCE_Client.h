@@ -3,8 +3,7 @@
 #include "uxr/client/client.h"
 #include "ucdr/microcdr.h"
 
-#include "Num.h"
-#include "AP_INS.h"
+#include "AP_XRCE_ROS2_Std_Topics.h"
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/Scheduler.h>
@@ -13,6 +12,7 @@
 
 #include "fcntl.h"
 
+#include <AP_Param/AP_Param.h>
 #define STREAM_HISTORY 8
 #define BUFFER_SIZE_SERIAL UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY
 
@@ -51,6 +51,7 @@ private:
     
     // Topic
     
+    XRCE_Generic_Topic* xrce_topic;
     uxrObjectId topic_id; 
     uint16_t topic_req;
     
@@ -67,14 +68,13 @@ private:
     //Status requests
     uint8_t status[4];
 
-    // Write
-    Num topic;  // simple int topic for testing
-    AP_INS ins_topic; // INS topics
-
     HAL_Semaphore csem;
 
     // connection parametrics
     bool connected;
+
+    AP_Int8 xrce_type;
+    AP_Int16 xrce_topic_key;    
 
 public:
     // Constructor
@@ -83,7 +83,8 @@ public:
     bool init();
     bool create();
     void write();
-    void updateINSTopic(AP_InertialSensor& ins); 
+    void update();
+    static const struct AP_Param::GroupInfo var_info[];
 };
 
 #endif // AP_XRCE_ENABLED

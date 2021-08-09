@@ -4,21 +4,32 @@
 
 AP_HAL::UARTDriver *xrce_port;
 
+
+const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
+    // @Param: _TYPE
+    // @DisplayName: XRCE_TYPE
+    // @Description: Type of XRCE protocol to use
+    // @Values: 0:DDS,1:uROS(micro-ROS)
+    // @User: Standard
+    AP_GROUPINFO("_TYPE", 1, AP_XRCE_Client, xrce_type, 0),
+
+    // @Param: _TOPIC
+    // @DisplayName: XRCE_TOPIC
+    // @Description: Type of XRCE topic to use
+    // @Values: 0:DDS,1:uROS(micro-ROS)
+    // @User: Standard
+    AP_GROUPINFO("_TOPIC", 2, AP_XRCE_Client, xrce_topic_key, 0),
+
+    AP_GROUPEND
+};
+
 // Constructor (takes maximum number of topics as argument,by default it is 1)
 AP_XRCE_Client::AP_XRCE_Client(uint32_t maxtopics)
     : max_topics(maxtopics)
 {
-    relativeSerialClientAddr=0;
-    relativeSerialAgentAddr=1;
+    relativeSerialClientAddr=1;
+    relativeSerialAgentAddr=0;
     connected=true;
-    ins_topic.accel_count=0;
-    ins_topic.gyro_count=0;
-
-    for(uint8_t i=0;i<3;i++) {
-        ins_topic.accel_scale[i]=0.0;
-        ins_topic.accel_offsets[i]=0.0;
-        ins_topic.gyro_offsets[i]=0.0;
-    }
 }
 
 bool AP_XRCE_Client::init()
@@ -28,7 +39,7 @@ bool AP_XRCE_Client::init()
         return false;
     }
 
-    if (!uxr_init_serial_transport(&serial_transport,0,relativeSerialAgentAddr,relativeSerialClientAddr)) {
+    if (!uxr_init_serial_transport(&serial_transport,fd,relativeSerialAgentAddr,relativeSerialClientAddr)) {
         return false;
     }
     uxr_init_session(&session, &serial_transport.comm, 0xAAAABBBB);
@@ -40,44 +51,59 @@ bool AP_XRCE_Client::init()
     reliable_in=uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out=uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     
+    xrce_topic = set_topic_instance(xrce_topic_key.get());
+
+    if(xrce_topic == nullptr) {
+        return false;
+    }
+
+    xrce_topic->topic_initialize(xrce_type.get());
+
     return true;
 }
 bool AP_XRCE_Client::create()
 {
     WITH_SEMAPHORE(csem);
     participant_id=uxr_object_id(0x01,UXR_PARTICIPANT_ID);
-    const char* participant_xml = "<dds>"
-                                    "<participant>"
-                                        "<rtps>"
-                                        "<name>AP_XRCE_Client</name>"
-                                        "</rtps>"
-                                    "</participant>"
-                                "</dds>";
+    std::string temp_xml = "<dds>"
+                                "<participant>"
+                                    "<rtps>"
+                                        "<name>"+xrce_topic->get_participant_name()+"</name>"
+                                    "</rtps>"
+                                "</participant>"
+                            "</dds>";
+
+    const char* participant_xml = &temp_xml[0];
     participant_req=uxr_buffer_create_participant_xml(&session,reliable_out,participant_id,0,participant_xml,UXR_REPLACE);
 
     topic_id=uxr_object_id(0x01,UXR_TOPIC_ID);
-    const char* topic_xml = "<dds>"
-                                "<topic>"
-                                    "<name>AP_INSTopic</name>"
-                                    "<dataType>AP_INS</dataType>"
-                                "</topic>"
-                            "</dds>";
+
+    temp_xml = "<dds>"
+                    "<topic>"
+                            "<name>"+xrce_topic->get_topic_name()+"</name>"
+                            "<dataType>"+xrce_topic->get_datatype_name()+"</dataType>"
+                    "</topic>"
+                "</dds>";
+
+    const char* topic_xml = &temp_xml[0];
     topic_req=uxr_buffer_create_topic_xml(&session,reliable_out,topic_id,participant_id,topic_xml,UXR_REPLACE);
-    
+
     pub_id=uxr_object_id(0x01,UXR_PUBLISHER_ID);
     const char* pub_xml = "";
     pub_req = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
 
     dwriter_id = uxr_object_id(0x01,UXR_DATAWRITER_ID);
-    const char* dwriter_xml = "<dds>"
-                                "<data_writer>"
-                                    "<topic>"
-                                        "<kind>NO_KEY</kind>"
-                                        "<name>AP_INSTopic</name>"
-                                        "<dataType>AP_INS</dataType>"
-                                    "</topic>"
-                                "</data_writer>"
-                            "</dds>";
+    temp_xml = "<dds>"
+                    "<data_writer>"
+                        "<topic>"
+                            "<kind>NO_KEY</kind>"
+                            "<name>"+xrce_topic->get_topic_name()+"</name>"
+                            "<dataType>"+xrce_topic->get_datatype_name()+"</dataType>"
+                        "</topic>"
+                    "</data_writer>"
+                  "</dds>";
+
+    const char* dwriter_xml = &temp_xml[0];
     dwriter_req = uxr_buffer_create_datawriter_xml(&session,reliable_out,dwriter_id,pub_id,dwriter_xml,UXR_REPLACE);
 
     uint16_t requests[4] = {participant_req,topic_req,pub_req,dwriter_req};
@@ -95,23 +121,21 @@ void AP_XRCE_Client::write()
     if(connected)
     {
         ucdrBuffer ub;
-        uint32_t topic_size = AP_INS_size_of_topic(&ins_topic,0);
+        uint32_t topic_size = xrce_topic->size_of_topic(0);
         uxr_prepare_output_stream(&session,reliable_out,dwriter_id,&ub,topic_size);
-        AP_INS_serialize_topic(&ub,&ins_topic);
+        xrce_topic->serialize_topic(&ub);
     }
     
 }
 
-void AP_XRCE_Client::updateINSTopic(AP_InertialSensor &ins)
+void AP_XRCE_Client::update()
 {
     if (xrce_port == nullptr) {
         return;
     }
     WITH_SEMAPHORE(csem);
-    ins_topic.accel_count=ins.get_accel_count();
-    ins_topic.gyro_count=ins.get_gyro_count();
+    xrce_topic->update_topic();
     connected = uxr_run_session_time(&session,1000);
-        
 }
 
 /*
@@ -160,7 +184,6 @@ size_t uxr_read_serial_data_platform(void* args, uint8_t* buf, size_t len, int t
     *errcode = 0;
     return bytes_read;
 }
-
 #endif // AP_XRCE_ENABLED
 
 
