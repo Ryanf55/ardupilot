@@ -6,19 +6,19 @@ AP_HAL::UARTDriver *xrce_port;
 
 
 const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
-    // @Param: _TYPE
+    // @Param: TYPE
     // @DisplayName: XRCE_TYPE
     // @Description: Type of XRCE protocol to use
     // @Values: 0:DDS,1:uROS(micro-ROS)
     // @User: Standard
-    AP_GROUPINFO("_TYPE", 1, AP_XRCE_Client, xrce_type, 0),
+    AP_GROUPINFO("TYPE", 1, AP_XRCE_Client, xrce_type, 0),
 
-    // @Param: _TOPIC
+    // @Param: TOPIC
     // @DisplayName: XRCE_TOPIC
     // @Description: Type of XRCE topic to use
-    // @Values: 0:DDS,1:uROS(micro-ROS)
+    // @Values: 0:AP_DDS_NUM,1:AP_DDS_BARO,2:AP_DDS_GPS,3:AP_DDS_COMPASS,4:AP_DDS_INS,5:AP_ROS2_Bool,6:AP_ROS2_Byte,7:AP_ROS2_8Int,8:AP_ROS2_8UInt,9:AP_ROS2_Char,10:AP_ROS2_16Int,11:AP_ROS2_16UInt,12:AP_ROS2_32Int,13:AP_ROS2_32UInt,14:AP_ROS2_64Int,15:AP_ROS2_64UInt,16:AP_ROS2_32Float,17:AP_ROS2_64Float,18:AP_ROS2_String,19:AP_ROS2_ColorRGBA,20:AP_ROS2_Header
     // @User: Standard
-    AP_GROUPINFO("_TOPIC", 2, AP_XRCE_Client, xrce_topic_key, 0),
+    AP_GROUPINFO("TOPIC", 2, AP_XRCE_Client, xrce_topic_key, 0),
 
     AP_GROUPEND
 };
