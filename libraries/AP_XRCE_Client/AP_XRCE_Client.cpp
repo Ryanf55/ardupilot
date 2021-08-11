@@ -130,7 +130,7 @@ void AP_XRCE_Client::write()
 
 void AP_XRCE_Client::update()
 {
-    if (xrce_port == nullptr) {
+    if (xrce_topic == nullptr) {
         return;
     }
     WITH_SEMAPHORE(csem);
@@ -175,6 +175,10 @@ size_t uxr_read_serial_data_platform(void* args, uint8_t* buf, size_t len, int t
     if (xrce_port == nullptr) {
         *errcode = 1;
         return 0;
+    }
+    while (timeout > 0 && xrce_port->available() < len) {
+        hal.scheduler->delay(1);
+        timeout--;
     }
     size_t bytes_read = xrce_port->read(buf, (size_t)len);
     if (bytes_read <= 0) {
