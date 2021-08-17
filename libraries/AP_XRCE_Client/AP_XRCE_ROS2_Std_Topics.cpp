@@ -4,17 +4,18 @@
 ROS2_Bool_Topic::ROS2_Bool_Topic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_ROS2_Bool";
-    datatype_name = "Bool";
+    topic_name = (char *)"AP_ROS2_Bool";
+    datatype_name = (char *)"Bool";
 }
 
-void ROS2_Bool_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_Bool_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = false;
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_Bool_Topic::serialize_topic(ucdrBuffer* writer)
@@ -46,18 +47,18 @@ ROS2_8Bit_Topic::ROS2_8Bit_Topic(uint8_t type8bit)
 {
     type_8bit = type8bit;
     if(type_8bit == XRCE_TOPIC::AP_ROS2_Byte) {
-        topic_name = "AP_ROS2_Byte";
-        datatype_name = "Byte";
+        topic_name = (char *)"AP_ROS2_Byte";
+        datatype_name = (char *)"Byte";
     } else if (type_8bit == XRCE_TOPIC::AP_ROS2_8Int) {
-        topic_name = "AP_ROS2_Int8";
-        datatype_name = "Int8";
+        topic_name = (char *)"AP_ROS2_Int8";
+        datatype_name = (char *)"Int8";
     } else {
-        topic_name = "AP_ROS2_UInt8";
-        datatype_name = "UInt8";
+        topic_name = (char *)"AP_ROS2_UInt8";
+        datatype_name = (char *)"UInt8";
     }
 }
 
-void ROS2_8Bit_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_8Bit_Topic::topic_initialize(uint8_t xrcetype)
 {
     if ((type_8bit == XRCE_TOPIC::AP_ROS2_Byte) || (type_8bit == XRCE_TOPIC::AP_ROS2_8UInt)) {
         u_data=0;
@@ -65,9 +66,10 @@ void ROS2_8Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_8Bit_Topic::serialize_topic(ucdrBuffer* writer)
@@ -113,17 +115,18 @@ void ROS2_8Bit_Topic::update_topic()
 ROS2_Char_Topic::ROS2_Char_Topic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_ROS2_Char";
-    datatype_name = "Char";
+    topic_name = (char *)"AP_ROS2_Char";
+    datatype_name = (char *)"Char";
 }
 
-void ROS2_Char_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_Char_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = 'a';
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_Char_Topic::serialize_topic(ucdrBuffer* writer)
@@ -155,15 +158,15 @@ ROS2_16Bit_Topic::ROS2_16Bit_Topic(uint8_t type16bit)
 {
     type_16bit = type16bit;
     if(type_16bit == XRCE_TOPIC::AP_ROS2_16Int) {
-        topic_name = "AP_ROS2_Int16";
-        datatype_name = "Int16";
+        topic_name = (char *)"AP_ROS2_Int16";
+        datatype_name = (char *)"Int16";
     } else {
-        topic_name = "AP_ROS2_UInt16";
-        datatype_name = "UInt16";
+        topic_name = (char *)"AP_ROS2_UInt16";
+        datatype_name = (char *)"UInt16";
     }
 }
 
-void ROS2_16Bit_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_16Bit_Topic::topic_initialize(uint8_t xrcetype)
 {
     if (type_16bit == XRCE_TOPIC::AP_ROS2_16UInt) {
         u_data=0;
@@ -171,9 +174,10 @@ void ROS2_16Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_16Bit_Topic::serialize_topic(ucdrBuffer* writer)
@@ -221,15 +225,15 @@ ROS2_32Bit_Topic::ROS2_32Bit_Topic(uint8_t type32bit)
 {
     type_32bit = type32bit;
     if(type_32bit == XRCE_TOPIC::AP_ROS2_32Int) {
-        topic_name = "AP_ROS2_Int32";
-        datatype_name = "Int32";
+        topic_name = (char *)"AP_ROS2_Int32";
+        datatype_name = (char *)"Int32";
     } else {
-        topic_name = "AP_ROS2_UInt32";
-        datatype_name = "UInt32";
+        topic_name = (char *)"AP_ROS2_UInt32";
+        datatype_name = (char *)"UInt32";
     }
 }
 
-void ROS2_32Bit_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_32Bit_Topic::topic_initialize(uint8_t xrcetype)
 {
     if (type_32bit == XRCE_TOPIC::AP_ROS2_32UInt) {
         u_data=0;
@@ -237,9 +241,10 @@ void ROS2_32Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_32Bit_Topic::serialize_topic(ucdrBuffer* writer)
@@ -287,15 +292,15 @@ ROS2_64Bit_Topic::ROS2_64Bit_Topic(uint8_t type64bit)
 {
     type_64bit = type64bit;
     if(type_64bit == XRCE_TOPIC::AP_ROS2_64Int) {
-        topic_name = "AP_ROS2_Int64";
-        datatype_name = "Int64";
+        topic_name = (char *)"AP_ROS2_Int64";
+        datatype_name = (char *)"Int64";
     } else {
-        topic_name = "AP_ROS2_UInt64";
-        datatype_name = "UInt64";
+        topic_name = (char *)"AP_ROS2_UInt64";
+        datatype_name = (char *)"UInt64";
     }
 }
 
-void ROS2_64Bit_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_64Bit_Topic::topic_initialize(uint8_t xrcetype)
 {
     if (type_64bit == XRCE_TOPIC::AP_ROS2_64UInt) {
         u_data=0;
@@ -303,9 +308,10 @@ void ROS2_64Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_64Bit_Topic::serialize_topic(ucdrBuffer* writer)
@@ -351,17 +357,18 @@ void ROS2_64Bit_Topic::update_topic()
 ROS2_Float32_Topic::ROS2_Float32_Topic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_ROS2_Float32";
-    datatype_name = "Float32";
+    topic_name = (char *)"AP_ROS2_Float32";
+    datatype_name = (char *)"Float32";
 }
 
-void ROS2_Float32_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_Float32_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = 0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_Float32_Topic::serialize_topic(ucdrBuffer* writer)
@@ -391,17 +398,18 @@ void ROS2_Float32_Topic::update_topic()
 ROS2_Float64_Topic::ROS2_Float64_Topic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_ROS2_Float64";
-    datatype_name = "Float64";
+    topic_name = (char *)"AP_ROS2_Float64";
+    datatype_name = (char *)"Float64";
 }
 
-void ROS2_Float64_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_Float64_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = 0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_Float64_Topic::serialize_topic(ucdrBuffer* writer)
@@ -431,62 +439,63 @@ void ROS2_Float64_Topic::update_topic()
 ROS2_String_Topic::ROS2_String_Topic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_ROS2_String";
-    datatype_name = "String";
+    topic_name = (char *)"AP_ROS2_String";
+    datatype_name = (char *)"String";
 }
 
-void ROS2_String_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_String_Topic::topic_initialize(uint8_t xrcetype)
 {
-    data = "Hello from Ardupilot";
+    data = (char *)"Hello from Ardupilot";
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return(uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_String_Topic::serialize_topic(ucdrBuffer* writer)
 {
-    dataPointer = &data[0];
-    (void) ucdr_serialize_string(writer,dataPointer);
+    (void) ucdr_serialize_string(writer,data);
     return !writer->error;
 }
 
 bool ROS2_String_Topic::deserialize_topic(ucdrBuffer* reader)
 {
-    dataPointer = &data[0];
-    (void) ucdr_deserialize_string(reader,dataPointer,data.length());
+
+    (void) ucdr_deserialize_string(reader,data,strlen(data));
     return !reader->error;
 }
 
 uint32_t ROS2_String_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
-    size += ucdr_alignment(size,4) + sizeof(data);
+    size += ucdr_alignment(size,4) + (strlen(data)+1)*sizeof(char);
     return (size-prevSize);
 }
 
 void ROS2_String_Topic::update_topic()
 {
-    data = "Hello from Ardupilot";
+    data = (char *)"Hello from Ardupilot";
 }
 
 ROS2_ColorRGBA_Topic::ROS2_ColorRGBA_Topic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_ROS2_ColorRGBA";
-    datatype_name = "ColorRGBA";
+    topic_name = (char *)"AP_ROS2_ColorRGBA";
+    datatype_name = (char *)"ColorRGBA";
 }
 
-void ROS2_ColorRGBA_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_ColorRGBA_Topic::topic_initialize(uint8_t xrcetype)
 {
     r = 0.0;
     g = 0.0;
     b = 0.0;
     a = 0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_ColorRGBA_Topic::serialize_topic(ucdrBuffer* writer)
@@ -529,36 +538,35 @@ void ROS2_ColorRGBA_Topic::update_topic()
 ROS2_Header_Topic::ROS2_Header_Topic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_ROS2_Header";
-    datatype_name = "Header";
+    topic_name = (char *)"AP_ROS2_Header";
+    datatype_name = (char *)"Header";
 }
 
-void ROS2_Header_Topic::topic_initialize(uint8_t xrcetype)
+bool ROS2_Header_Topic::topic_initialize(uint8_t xrcetype)
 {
     sec = 0;
     nanosec = 0;
-    frame_id = "Ardupilot";
+    frame_id = (char *)"Ardupilot";
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "std_msgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool ROS2_Header_Topic::serialize_topic(ucdrBuffer* writer)
 {
-    framePointer = &frame_id[0];
     (void) ucdr_serialize_int32_t(writer,sec);
     (void) ucdr_serialize_int32_t(writer,nanosec);
-    (void) ucdr_serialize_string(writer,framePointer);
+    (void) ucdr_serialize_string(writer,frame_id);
     return !writer->error;
 }
 
 bool ROS2_Header_Topic::deserialize_topic(ucdrBuffer* reader)
 {
-    framePointer = &frame_id[0];
     (void) ucdr_deserialize_int32_t(reader,&sec);
     (void) ucdr_deserialize_int32_t(reader,&nanosec);
-    (void) ucdr_deserialize_string(reader,framePointer,frame_id.length());
+    (void) ucdr_deserialize_string(reader,frame_id,strlen(frame_id));
     return !reader->error;
 }
 
@@ -567,7 +575,7 @@ uint32_t ROS2_Header_Topic::size_of_topic(uint32_t size)
     uint32_t prevSize = size;
     size += ucdr_alignment(size,4) + sizeof(sec);
     size += ucdr_alignment(size,4) + sizeof(nanosec);
-    size += ucdr_alignment(size,4) + sizeof(frame_id);
+    size += ucdr_alignment(size,4) + (strlen(frame_id)+1)*sizeof(char);
     return (size-prevSize);
 }
 

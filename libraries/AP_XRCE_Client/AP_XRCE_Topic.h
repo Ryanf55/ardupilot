@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include <string>
+#include <string.h>
+#include <AP_Common/ExpandingString.h>
 
 enum XRCE_TYPE{
     DDS=0,
@@ -42,20 +43,21 @@ class XRCE_Generic_Topic {
 public:
 
     XRCE_Generic_Topic();
-    virtual void topic_initialize(uint8_t xrce_type) = 0;
+    virtual bool topic_initialize(uint8_t xrce_type) = 0;
     virtual bool serialize_topic(ucdrBuffer *writer) = 0;
     virtual bool deserialize_topic(ucdrBuffer *reader) = 0;
     virtual uint32_t size_of_topic(uint32_t size) = 0;
     virtual void update_topic() = 0;
-    std::string get_participant_name();
-    std::string get_topic_name();
-    std::string get_datatype_name();
+    char* get_participant_name();
+    char* get_topic_name();
+    char* get_datatype_name();
 
 protected:
 
-    std::string particpant_name;
-    std::string topic_name;
-    std::string datatype_name;
+    char* particpant_name;
+    char* topic_name;
+    char* datatype_name;
+    bool uros_initialize();
 };
 
 XRCE_Generic_Topic* set_topic_instance(uint16_t topic_key);

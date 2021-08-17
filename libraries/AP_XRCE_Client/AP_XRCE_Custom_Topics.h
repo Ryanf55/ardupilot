@@ -5,7 +5,7 @@ class AP_NumTopic:public XRCE_Generic_Topic {
 public:
 
     AP_NumTopic();
-    void topic_initialize(uint8_t xrcetype) override;
+    bool topic_initialize(uint8_t xrcetype) override;
     bool serialize_topic(ucdrBuffer *writer) override;
     bool deserialize_topic(ucdrBuffer *reader) override;
     uint32_t size_of_topic(uint32_t size) override;
@@ -21,7 +21,7 @@ class AP_BaroTopic:public XRCE_Generic_Topic {
 public:
 
     AP_BaroTopic();
-    void topic_initialize(uint8_t xrcetype) override;
+    bool topic_initialize(uint8_t xrcetype) override;
     bool serialize_topic(ucdrBuffer *writer) override;
     bool deserialize_topic(ucdrBuffer *reader) override;
     uint32_t size_of_topic(uint32_t size) override;
@@ -41,7 +41,7 @@ class AP_GPSTopic:public XRCE_Generic_Topic {
 public:
 
     AP_GPSTopic();
-    void topic_initialize(uint8_t xrcetype) override;
+    bool topic_initialize(uint8_t xrcetype) override;
     bool serialize_topic(ucdrBuffer *writer) override;
     bool deserialize_topic(ucdrBuffer *reader) override;
     uint32_t size_of_topic(uint32_t size) override;
@@ -76,7 +76,7 @@ class AP_CompassTopic:public XRCE_Generic_Topic {
 public:
 
     AP_CompassTopic();
-    void topic_initialize(uint8_t xrcetype) override;
+    bool topic_initialize(uint8_t xrcetype) override;
     bool serialize_topic(ucdrBuffer *writer) override;
     bool deserialize_topic(ucdrBuffer *reader) override;
     uint32_t size_of_topic(uint32_t size) override;
@@ -96,7 +96,7 @@ class AP_INSTopic:public XRCE_Generic_Topic {
 public:
 
     AP_INSTopic();
-    void topic_initialize(uint8_t xrcetype) override;
+    bool topic_initialize(uint8_t xrcetype) override;
     bool serialize_topic(ucdrBuffer *writer) override;
     bool deserialize_topic(ucdrBuffer *reader) override;
     uint32_t size_of_topic(uint32_t size) override;

@@ -8,17 +8,17 @@
 AP_NumTopic::AP_NumTopic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_NumTopic";
-    datatype_name = "APNum";
+    topic_name = (char *)"AP_NumTopic";
+    datatype_name = (char *)"APNum";
 }
 
-void AP_NumTopic::topic_initialize(uint8_t xrcetype)
+bool AP_NumTopic::topic_initialize(uint8_t xrcetype)
 {
     num = 0;
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "ardupilotmsgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+    return true;
 }
 
 bool AP_NumTopic::serialize_topic(ucdrBuffer *writer)
@@ -48,11 +48,11 @@ void AP_NumTopic::update_topic()
 AP_BaroTopic::AP_BaroTopic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_BaroTopic";
-    datatype_name = "APBaro";
+    topic_name = (char *)"AP_BaroTopic";
+    datatype_name = (char *)"APBaro";
 }
 
-void AP_BaroTopic::topic_initialize(uint8_t xrcetype)
+bool AP_BaroTopic::topic_initialize(uint8_t xrcetype)
 {
     healthy=false;
     pressure=0.0;
@@ -60,9 +60,9 @@ void AP_BaroTopic::topic_initialize(uint8_t xrcetype)
     temperature=0.0;
     altitude=0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "ardupilotmsgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+    return true;
 }
 
 bool AP_BaroTopic::serialize_topic(ucdrBuffer *writer)
@@ -108,11 +108,11 @@ void AP_BaroTopic::update_topic()
 AP_GPSTopic::AP_GPSTopic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_GPSTopic";
-    datatype_name = "APGPS";
+    topic_name = (char *)"AP_GPSTopic";
+    datatype_name = (char *)"APGPS";
 }
 
-void AP_GPSTopic::topic_initialize(uint8_t xrcetype)
+bool AP_GPSTopic::topic_initialize(uint8_t xrcetype)
 {
     healthy=false;
     locationLat=0;
@@ -130,9 +130,10 @@ void AP_GPSTopic::topic_initialize(uint8_t xrcetype)
     verticalDOP=0;
 
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "ardupilotmsgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+
+    return true;
 }
 
 bool AP_GPSTopic::serialize_topic(ucdrBuffer *writer)
@@ -239,20 +240,20 @@ void AP_GPSTopic::update_topic()
 AP_CompassTopic::AP_CompassTopic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_CompassTopic";
-    datatype_name = "APCompass";
+    topic_name = (char *)"AP_CompassTopic";
+    datatype_name = (char *)"APCompass";
 }
 
-void AP_CompassTopic::topic_initialize(uint8_t xrcetype)
+bool AP_CompassTopic::topic_initialize(uint8_t xrcetype)
 {
     healthy=false;
     magfieldX=0.0;
     magfieldY=0.0;
     magfieldZ=0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "ardupilotmsgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+    return true;
 }
 
 bool AP_CompassTopic::serialize_topic(ucdrBuffer *writer)
@@ -295,11 +296,11 @@ void AP_CompassTopic::update_topic()
 AP_INSTopic::AP_INSTopic()
 :XRCE_Generic_Topic()
 {
-    topic_name = "AP_INSTopic";
-    datatype_name = "APINS";
+    topic_name = (char *)"AP_INSTopic";
+    datatype_name = (char *)"APINS";
 }
 
-void AP_INSTopic::topic_initialize(uint8_t xrcetype)
+bool AP_INSTopic::topic_initialize(uint8_t xrcetype)
 {
     gyroHealthy = false;
     gyroCount = 0;
@@ -314,9 +315,10 @@ void AP_INSTopic::topic_initialize(uint8_t xrcetype)
     accelZ = 0.0;
 
     if(xrcetype == XRCE_TYPE::uROS){
-        topic_name = "rt/"+topic_name;
-        datatype_name = "ardupilotmsgs::msg::dds_::"+datatype_name+"_";
+        return (uros_initialize());
     }
+    
+    return true;
 }
 
 bool AP_INSTopic::serialize_topic(ucdrBuffer *writer)

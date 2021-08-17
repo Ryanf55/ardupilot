@@ -57,7 +57,9 @@ bool AP_XRCE_Client::init()
         return false;
     }
 
-    xrce_topic->topic_initialize(xrce_type.get());
+    if( !xrce_topic->topic_initialize(xrce_type.get())) {
+        return false; 
+    }
 
     return true;
 }
@@ -65,46 +67,73 @@ bool AP_XRCE_Client::create()
 {
     WITH_SEMAPHORE(csem);
     participant_id=uxr_object_id(0x01,UXR_PARTICIPANT_ID);
-    std::string temp_xml = "<dds>"
-                                "<participant>"
-                                    "<rtps>"
-                                        "<name>"+xrce_topic->get_participant_name()+"</name>"
-                                    "</rtps>"
-                                "</participant>"
-                            "</dds>";
+    ExpandingString* temp = new ExpandingString();
+    temp->printf("<dds>"
+                    "<participant>"
+                        "<rtps>"
+                            "<name>"
+                                "%s"
+                            "</name>"
+                        "</rtps>"
+                    "</participant>"
+                "</dds>",xrce_topic->get_participant_name());
 
-    const char* participant_xml = &temp_xml[0];
-    participant_req=uxr_buffer_create_participant_xml(&session,reliable_out,participant_id,0,participant_xml,UXR_REPLACE);
+    if(temp->has_failed_allocation()){
+        return false;
+    }
 
+    participant_req=uxr_buffer_create_participant_xml(&session,reliable_out,participant_id,0,temp->get_string(),UXR_REPLACE);
+
+    temp->~ExpandingString();
+    temp = new ExpandingString();
     topic_id=uxr_object_id(0x01,UXR_TOPIC_ID);
 
-    temp_xml = "<dds>"
+    temp->printf("<dds>"
                     "<topic>"
-                            "<name>"+xrce_topic->get_topic_name()+"</name>"
-                            "<dataType>"+xrce_topic->get_datatype_name()+"</dataType>"
+                            "<name>"
+                                "%s"
+                            "</name>"
+                            "<dataType>"
+                                "%s"
+                            "</dataType>"
                     "</topic>"
-                "</dds>";
+                "</dds>",xrce_topic->get_topic_name(),xrce_topic->get_datatype_name());
 
-    const char* topic_xml = &temp_xml[0];
-    topic_req=uxr_buffer_create_topic_xml(&session,reliable_out,topic_id,participant_id,topic_xml,UXR_REPLACE);
+    if(temp->has_failed_allocation()){
+        return false;
+    }
+
+    topic_req=uxr_buffer_create_topic_xml(&session,reliable_out,topic_id,participant_id,temp->get_string(),UXR_REPLACE);
 
     pub_id=uxr_object_id(0x01,UXR_PUBLISHER_ID);
     const char* pub_xml = "";
     pub_req = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
 
+    temp->~ExpandingString();
+    temp = new ExpandingString();
     dwriter_id = uxr_object_id(0x01,UXR_DATAWRITER_ID);
-    temp_xml = "<dds>"
+    
+    temp->printf("<dds>"
                     "<data_writer>"
                         "<topic>"
                             "<kind>NO_KEY</kind>"
-                            "<name>"+xrce_topic->get_topic_name()+"</name>"
-                            "<dataType>"+xrce_topic->get_datatype_name()+"</dataType>"
+                            "<name>"
+                                "%s"
+                            "</name>"
+                            "<dataType>"
+                                "%s"
+                            "</dataType>"
                         "</topic>"
                     "</data_writer>"
-                  "</dds>";
+                  "</dds>",xrce_topic->get_topic_name(),xrce_topic->get_datatype_name());
 
-    const char* dwriter_xml = &temp_xml[0];
-    dwriter_req = uxr_buffer_create_datawriter_xml(&session,reliable_out,dwriter_id,pub_id,dwriter_xml,UXR_REPLACE);
+    if(temp->has_failed_allocation()){
+        return false;
+    }
+
+    dwriter_req = uxr_buffer_create_datawriter_xml(&session,reliable_out,dwriter_id,pub_id,temp->get_string(),UXR_REPLACE);
+
+    temp->~ExpandingString();
 
     uint16_t requests[4] = {participant_req,topic_req,pub_req,dwriter_req};
     

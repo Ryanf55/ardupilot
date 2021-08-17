@@ -5,7 +5,7 @@ class ROS2_Bool_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_Bool_Topic();
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -21,7 +21,7 @@ class ROS2_8Bit_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_8Bit_Topic(uint8_t type8bit);
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -39,7 +39,7 @@ class ROS2_Char_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_Char_Topic();
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -55,7 +55,7 @@ class ROS2_16Bit_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_16Bit_Topic(uint8_t type16bit);
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -73,7 +73,7 @@ class ROS2_32Bit_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_32Bit_Topic(uint8_t type32bit);
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -91,7 +91,7 @@ class ROS2_64Bit_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_64Bit_Topic(uint8_t type64bit);
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -109,7 +109,7 @@ class ROS2_Float32_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_Float32_Topic();
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -125,7 +125,7 @@ class ROS2_Float64_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_Float64_Topic();
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -141,7 +141,7 @@ class ROS2_String_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_String_Topic();
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -149,8 +149,7 @@ class ROS2_String_Topic:public XRCE_Generic_Topic {
 
     private:
 
-        std::string data;
-        char* dataPointer;
+        char* data;
 };
 
 class ROS2_ColorRGBA_Topic:public XRCE_Generic_Topic {
@@ -158,7 +157,7 @@ class ROS2_ColorRGBA_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_ColorRGBA_Topic();
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -177,7 +176,7 @@ class ROS2_Header_Topic:public XRCE_Generic_Topic {
     public:
 
         ROS2_Header_Topic();
-        void topic_initialize(uint8_t xrcetype) override;
+        bool topic_initialize(uint8_t xrcetype) override;
         bool serialize_topic(ucdrBuffer *writer) override;
         bool deserialize_topic(ucdrBuffer *reader) override;
         uint32_t size_of_topic(uint32_t size) override;
@@ -185,8 +184,7 @@ class ROS2_Header_Topic:public XRCE_Generic_Topic {
  
     private:
 
-        std::string frame_id;
-        char* framePointer;
+        char* frame_id;
         int32_t sec;
         int32_t nanosec;
 };
