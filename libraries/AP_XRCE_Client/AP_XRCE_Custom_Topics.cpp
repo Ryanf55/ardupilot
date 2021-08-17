@@ -18,7 +18,7 @@ bool AP_NumTopic::topic_initialize(uint8_t xrcetype)
 {
     num = 0;
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(false));
     }
     return true;
 }
@@ -62,7 +62,7 @@ bool AP_BaroTopic::topic_initialize(uint8_t xrcetype)
     temperature=0.0;
     altitude=0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(false));
     }
     return true;
 }
@@ -132,7 +132,7 @@ bool AP_GPSTopic::topic_initialize(uint8_t xrcetype)
     verticalDOP=0;
 
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(false));
     }
 
     return true;
@@ -253,7 +253,7 @@ bool AP_CompassTopic::topic_initialize(uint8_t xrcetype)
     magfieldY=0.0;
     magfieldZ=0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(false));
     }
     return true;
 }
@@ -317,7 +317,7 @@ bool AP_INSTopic::topic_initialize(uint8_t xrcetype)
     accelZ = 0.0;
 
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(false));
     }
     
     return true;

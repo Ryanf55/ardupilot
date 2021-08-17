@@ -14,7 +14,7 @@ bool ROS2_Bool_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = false;
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -68,7 +68,7 @@ bool ROS2_8Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -125,7 +125,7 @@ bool ROS2_Char_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = 'a';
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -176,7 +176,7 @@ bool ROS2_16Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -243,7 +243,7 @@ bool ROS2_32Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -310,7 +310,7 @@ bool ROS2_64Bit_Topic::topic_initialize(uint8_t xrcetype)
         data=0;
     }
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -367,7 +367,7 @@ bool ROS2_Float32_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = 0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -408,7 +408,7 @@ bool ROS2_Float64_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = 0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -449,7 +449,7 @@ bool ROS2_String_Topic::topic_initialize(uint8_t xrcetype)
 {
     data = (char *)"Hello from Ardupilot";
     if(xrcetype == XRCE_TYPE::uROS){
-        return(uros_initialize());
+        return(uros_initialize(true));
     }
 
     return true;
@@ -494,7 +494,7 @@ bool ROS2_ColorRGBA_Topic::topic_initialize(uint8_t xrcetype)
     b = 0.0;
     a = 0.0;
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;
@@ -550,7 +550,7 @@ bool ROS2_Header_Topic::topic_initialize(uint8_t xrcetype)
     nanosec = 0;
     frame_id = (char *)"Ardupilot";
     if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize());
+        return (uros_initialize(true));
     }
 
     return true;

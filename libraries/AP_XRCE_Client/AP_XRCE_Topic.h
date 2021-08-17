@@ -59,7 +59,7 @@ protected:
     char* particpant_name;
     char* topic_name;
     char* datatype_name;
-    bool uros_initialize();
+    bool uros_initialize(bool isStdMsg);
 };
 
 XRCE_Generic_Topic* set_topic_instance(uint16_t topic_key);

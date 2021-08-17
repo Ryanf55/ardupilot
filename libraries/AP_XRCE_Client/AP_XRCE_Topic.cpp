@@ -23,7 +23,7 @@ char* XRCE_Generic_Topic::get_datatype_name()
     return datatype_name;
 }
 
-bool XRCE_Generic_Topic::uros_initialize()
+bool XRCE_Generic_Topic::uros_initialize(bool isStdMsg)
 {
     ExpandingString *temptopic = new ExpandingString();
     temptopic->printf("rt/");
@@ -37,7 +37,11 @@ bool XRCE_Generic_Topic::uros_initialize()
         return false;
     }
     ExpandingString *tempdtype = new ExpandingString();
-    tempdtype->printf("std_msgs::msg::dds_::");
+    if (!isStdMsg) {
+        tempdtype->printf("ap_custom_interfaces::msg::dds_::");
+    } else {
+        tempdtype->printf("std_msgs::msg::dds_::");
+    }
     if(datatype_name != nullptr && !tempdtype->has_failed_allocation()){
         if(tempdtype->append(datatype_name,strlen(datatype_name))){
             if(tempdtype->append("_",(uint32_t)strlen("_"))){
