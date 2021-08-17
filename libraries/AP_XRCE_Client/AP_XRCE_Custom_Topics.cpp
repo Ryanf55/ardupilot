@@ -1,3 +1,5 @@
+#if AP_XRCE_ENABLED
+
 #include "AP_XRCE_Custom_Topics.h"
 #include "ucdr/microcdr.h"
 #include <AP_Baro/AP_Baro.h>
@@ -386,3 +388,5 @@ void AP_INSTopic::update_topic()
     accelY = tempAccel.y;
     accelZ = tempAccel.z;
 }
+
+#endif // AP_XRCE_ENABLED

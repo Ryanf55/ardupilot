@@ -1,3 +1,5 @@
+#if AP_XRCE_ENABLED
+
 #include "AP_XRCE_ROS2_Std_Topics.h"
 #include "ucdr/microcdr.h"
 
@@ -656,3 +658,5 @@ XRCE_Generic_Topic* set_topic_instance(uint16_t topic_key)
     }
     return topic;
 }
+
+#endif // AP_XRCE_ENABLED

@@ -1,3 +1,5 @@
+#if AP_XRCE_ENABLED
+
 #include "AP_XRCE_Custom_Topics.h"
 
 class ROS2_Bool_Topic:public XRCE_Generic_Topic {
@@ -188,3 +190,5 @@ class ROS2_Header_Topic:public XRCE_Generic_Topic {
         int32_t sec;
         int32_t nanosec;
 };
+
+#endif // AP_XRCE_ENABLED

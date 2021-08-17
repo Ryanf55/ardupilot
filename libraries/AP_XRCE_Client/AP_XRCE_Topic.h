@@ -1,3 +1,5 @@
+#if AP_XRCE_ENABLED
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -61,3 +63,5 @@ protected:
 };
 
 XRCE_Generic_Topic* set_topic_instance(uint16_t topic_key);
+
+#endif // AP_XRCE_ENABLED

@@ -1,3 +1,5 @@
+#if AP_XRCE_ENABLED
+
 #include "AP_XRCE_Topic.h"
 
 class AP_NumTopic:public XRCE_Generic_Topic {
@@ -116,3 +118,5 @@ private:
     float accelY;
     float accelZ;
 };
+
+#endif // AP_XRCE_ENABLED

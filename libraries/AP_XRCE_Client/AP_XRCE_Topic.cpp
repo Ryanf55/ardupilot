@@ -1,3 +1,5 @@
+#if AP_XRCE_ENABLED
+
 #include "AP_XRCE_Topic.h"
 #include <stdio.h>
 
@@ -51,3 +53,5 @@ bool XRCE_Generic_Topic::uros_initialize()
         return false;
     }
 }
+
+#endif // AP_XRCE_ENABLED
