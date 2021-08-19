@@ -35,7 +35,7 @@ bool ROS2_Bool_Topic::deserialize_topic(ucdrBuffer* reader)
 uint32_t ROS2_Bool_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
-    size += ucdr_alignment(size,4) + sizeof(data);
+    size += ucdr_alignment(size,1) + sizeof(data);
     return (size-prevSize);
 }
 
@@ -98,9 +98,9 @@ uint32_t ROS2_8Bit_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
     if ((type_8bit == XRCE_TOPIC::AP_ROS2_Byte) || (type_8bit == XRCE_TOPIC::AP_ROS2_8UInt)) {
-        size += ucdr_alignment(size,4) + sizeof(u_data);
+        size += ucdr_alignment(size,1) + sizeof(u_data);
     } else {
-        size += ucdr_alignment(size,4) + sizeof(data);
+        size += ucdr_alignment(size,1) + sizeof(data);
     }
     return (size-prevSize);
 }
@@ -146,7 +146,7 @@ bool ROS2_Char_Topic::deserialize_topic(ucdrBuffer* reader)
 uint32_t ROS2_Char_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
-    size += ucdr_alignment(size,4) + sizeof(data);
+    size += ucdr_alignment(size,1) + sizeof(data);
     return (size-prevSize);
 }
 
@@ -206,9 +206,9 @@ uint32_t ROS2_16Bit_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
     if (type_16bit == XRCE_TOPIC::AP_ROS2_16UInt) {
-        size += ucdr_alignment(size,4) + sizeof(u_data);
+        size += ucdr_alignment(size,2) + sizeof(u_data);
     } else {
-        size += ucdr_alignment(size,4) + sizeof(data);
+        size += ucdr_alignment(size,2) + sizeof(data);
     }
     return (size-prevSize);
 }
@@ -340,9 +340,9 @@ uint32_t ROS2_64Bit_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
     if (type_64bit == XRCE_TOPIC::AP_ROS2_64UInt) {
-        size += ucdr_alignment(size,4) + sizeof(u_data);
+        size += ucdr_alignment(size,8) + sizeof(u_data);
     } else {
-        size += ucdr_alignment(size,4) + sizeof(data);
+        size += ucdr_alignment(size,8) + sizeof(data);
     }
     return (size-prevSize);
 }
@@ -429,7 +429,7 @@ bool ROS2_Float64_Topic::deserialize_topic(ucdrBuffer* reader)
 uint32_t ROS2_Float64_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
-    size += ucdr_alignment(size,4) + sizeof(data);
+    size += ucdr_alignment(size,8) + sizeof(data);
     return (size-prevSize);
 }
 
@@ -471,7 +471,7 @@ bool ROS2_String_Topic::deserialize_topic(ucdrBuffer* reader)
 uint32_t ROS2_String_Topic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
-    size += ucdr_alignment(size,4) + (strlen(data)+1)*sizeof(char);
+    size += ucdr_alignment(size,4) + (strlen(data)+1)*sizeof(char) + 4;
     return (size-prevSize);
 }
 
@@ -577,7 +577,7 @@ uint32_t ROS2_Header_Topic::size_of_topic(uint32_t size)
     uint32_t prevSize = size;
     size += ucdr_alignment(size,4) + sizeof(sec);
     size += ucdr_alignment(size,4) + sizeof(nanosec);
-    size += ucdr_alignment(size,4) + (strlen(frame_id)+1)*sizeof(char);
+    size += ucdr_alignment(size,4) + (strlen(frame_id)+1)*sizeof(char) + 4;
     return (size-prevSize);
 }
 
@@ -601,10 +601,10 @@ XRCE_Generic_Topic* set_topic_instance(uint16_t topic_key)
             topic = new ROS2_String_Topic();
             break;
         case XRCE_TOPIC::AP_ROS2_64Float:
-            topic = new ROS2_Float32_Topic();
+            topic = new ROS2_Float64_Topic();
             break;
         case XRCE_TOPIC::AP_ROS2_32Float:
-            topic = new ROS2_Float64_Topic();
+            topic = new ROS2_Float32_Topic();
             break;
         case XRCE_TOPIC::AP_ROS2_64UInt:
             topic = new ROS2_64Bit_Topic(XRCE_TOPIC::AP_ROS2_64UInt);

@@ -190,7 +190,7 @@ bool AP_GPSTopic::deserialize_topic(ucdrBuffer *reader)
 uint32_t AP_GPSTopic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
-    size += ucdr_alignment(size,4)+sizeof(healthy);
+    size += ucdr_alignment(size,1)+sizeof(healthy);
 
     size += ucdr_alignment(size,4)+sizeof(locationAlt);
     size += ucdr_alignment(size,4)+sizeof(locationLat);
@@ -202,13 +202,13 @@ uint32_t AP_GPSTopic::size_of_topic(uint32_t size)
     size += ucdr_alignment(size,4)+sizeof(groundSpeed);
     size += ucdr_alignment(size,4)+sizeof(groundCourse);
 
-    size += ucdr_alignment(size,4)+sizeof(numSat);
+    size += ucdr_alignment(size,1)+sizeof(numSat);
 
-    size += ucdr_alignment(size,4)+sizeof(timeWeek);
+    size += ucdr_alignment(size,2)+sizeof(timeWeek);
     size += ucdr_alignment(size,4)+sizeof(timeOfWeek);
     
-    size += ucdr_alignment(size,4)+sizeof(hortizontalDOP);
-    size += ucdr_alignment(size,4)+sizeof(verticalDOP);
+    size += ucdr_alignment(size,2)+sizeof(hortizontalDOP);
+    size += ucdr_alignment(size,2)+sizeof(verticalDOP);
 
     return (size-prevSize);
 }
@@ -358,14 +358,14 @@ bool AP_INSTopic::deserialize_topic(ucdrBuffer *reader)
 uint32_t AP_INSTopic::size_of_topic(uint32_t size)
 {
     uint32_t prevSize = size;
-    size += ucdr_alignment(size,4)+sizeof(gyroHealthy);
-    size += ucdr_alignment(size,4)+sizeof(gyroCount);
+    size += ucdr_alignment(size,1)+sizeof(gyroHealthy);
+    size += ucdr_alignment(size,1)+sizeof(gyroCount);
     size += ucdr_alignment(size,4)+sizeof(gyroX);
     size += ucdr_alignment(size,4)+sizeof(gyroY);
     size += ucdr_alignment(size,4)+sizeof(gyroZ);
 
-    size += ucdr_alignment(size,4)+sizeof(accelHealthy);
-    size += ucdr_alignment(size,4)+sizeof(accelCount);
+    size += ucdr_alignment(size,1)+sizeof(accelHealthy);
+    size += ucdr_alignment(size,1)+sizeof(accelCount);
     size += ucdr_alignment(size,4)+sizeof(accelX);
     size += ucdr_alignment(size,4)+sizeof(accelY);
     size += ucdr_alignment(size,4)+sizeof(accelZ);
