@@ -409,6 +409,9 @@ const AP_Scheduler::Task AP_Vehicle::scheduler_tasks[] = {
 #if OSD_ENABLED
     SCHED_TASK(publish_osd_info, 1, 10, 240),
 #endif
+#if AP_XRCE_ENABLED
+    SCHED_TASK(update_topics, 1, 75, 241),
+#endif
 #if AP_TEMPERATURE_SENSOR_ENABLED
     SCHED_TASK_CLASS(AP_TemperatureSensor, &vehicle.temperature_sensor, update,        5, 50, 242),
 #endif

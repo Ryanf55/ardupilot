@@ -34,7 +34,8 @@ AP_XRCE_Client::AP_XRCE_Client(uint32_t maxtopics)
 
 bool AP_XRCE_Client::init()
 {
-    xrce_port = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_ROS2, 0);
+    AP_SerialManager *serial_manager = AP_SerialManager::get_singleton();
+    xrce_port = serial_manager->find_serial(AP_SerialManager::SerialProtocol_ROS2, 0);
     if (xrce_port == nullptr) {
         return false;
     }

@@ -6,6 +6,7 @@
 #include "AP_XRCE_ROS2_Std_Topics.h"
 
 #include <AP_HAL/AP_HAL.h>
+#include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_HAL/Scheduler.h>
 #include <AP_HAL/Semaphores.h>
 #include <AP_AHRS/AP_AHRS.h>
