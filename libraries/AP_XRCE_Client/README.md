@@ -1,14 +1,73 @@
 # Testing with DDS/micro-Ros
 
+## Architecture
+
+Ardupilot contains the XRCE Client library, which can run as SITL. Then, the DDS application runs a ROS2 node, an EProsima Integration Service, and the MicroXRCE Agent. The two systems communicate over serial, which is the only supported protocol in Ardupilot MicroXCE DDS at this time.
+
+```mermaid
+---
+title: Hardware Serial Port Loopback
+---
+graph LR
+
+  subgraph Linux Computer
+
+    subgraph Ardupilot SITL
+      veh[sim_vehicle.py] <--> xrceClient[EProsima XRCE Client]
+      xrceClient <--> port1[devUSB1]
+    end
+
+    subgraph DDS Application
+      ros[ROS2 Node] <--> is[EProsima Integration Service]
+      is <--> xrceAgent[MicroXRCE Agent]
+      xrceAgent <--> port2[devUSB2]
+    end
+
+    port1 <--> port2
+
+  end
+```
+
 ## Testing with a UART
 
-Run the simulator with the following command (assuming we are using ttyUSB0 for Ardupilot):
-```sim_vehicle.py -D  --console --enable-xrce-dds -A "--uartC=uart:/dev/ttyUSB0"``` 
+On Linux, first create a virtual serial port for use with SITL like [this](https://stackoverflow.com/questions/52187/virtual-serial-port-for-linux)
 
-Then set the following parameters : 
+```
+sudo apt-get update
+sudo apt-get install socat
+```
+
+Then, start a virtual serial port with socat. Take note of the two `/dev/pts/*` ports. If yours are different, substitute as needed.
+```
+socat -d -d pty,raw,echo=0 pty,raw,echo=0
+>>> 2023/02/21 05:26:06 socat[334] N PTY is /dev/pts/1
+>>> 2023/02/21 05:26:06 socat[334] N PTY is /dev/pts/2
+>>> 2023/02/21 05:26:06 socat[334] N starting data transfer loop with FDs [5,5] and [7,7]
+``` 
+
+Set up your [SITL](https://ardupilot.org/dev/docs/setting-up-sitl-on-linux.html). 
+Run the simulator with the following command (assuming we are using tty/pts/1 for Ardupilot SITL):
+```
+# Select your favorite vehicle type
+cd ArduCopter
+# Wipe params till you see "AP: ArduPilot Ready"
+sim_vehicle.py -w
+# Set params
+param set SERIAL1_BAUD 115
+
+# See libraries/AP_SerialManager/AP_SerialManager.h AP_SerialManager SerialProtocol_ROS2
+param set SERIAL1_PROTOCOL 45
+```
+
+# Start the sim
+```
+sim_vehicle.py -D  --console --enable-xrce-dds -A "--uartC=uart:/dev/tty/pts/1"
+```
+
+Then set the following parameters :
 
 - set **SERIAL1_BAUD = 115**
-- set **SERIAL1_PROTOCOL = 41** 
+- set **SERIAL1_PROTOCOL = 44**
 
 Now set the XRCE parameters:
 
@@ -21,7 +80,7 @@ Now set the XRCE parameters:
 
 Follow the steps to use the DDS agent
 
-- Install DDS Agent (as described here)
+- Install DDS Agent (as described here), using the stable `master` branch
 
   - https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-agent-standalone
 
@@ -31,16 +90,17 @@ Follow the steps to use the DDS agent
 or,
   - ```cd /usr/local/bin && MicroXRCEAgent tcp4 -p 2019``` (assuming we are using the port 2019)
 
-For more information ,one can take a look here - https://micro-xrce-dds.docs.eprosima.com/en/latest/agent.html#agent-cli 
+For more information ,one can take a look here - https://micro-xrce-dds.docs.eprosima.com/en/latest/agent.html#agent-cli
+
 ## Starting with microROS Agent
 
 Follow the steps to use the microROS Agent
 
-- Install ROS Foxy (as described here)
+- Install ROS Humble (as described here)
 
-  - https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html
+  - https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html
 
-- Install and run the microROS agent (as descibed here)
+- Install and run the microROS agent (as descibed here). Make sure to use the `humble` branch.
 
   - https://micro.ros.org/docs/tutorials/core/first_application_linux/
 
@@ -50,11 +110,12 @@ Follow the steps to use the microROS Agent
 
 ## Tutorial
 
-### Setting the ROS2-workspace 
-If you have installed the microROS agent and ROS-2 Foxy
+### Setting the ROS2-workspace
+
+If you have installed the microROS agent and ROS-2 Humble
 
 - Source the ros2 installation
-  - ```source /opt/ros/foxy/setup.bash```
+  - ```source /opt/ros/humble/setup.bash```
 
 - Create a ros2 workspace
 
@@ -67,6 +128,7 @@ If you have installed the microROS agent and ROS-2 Foxy
 - Build the package
   - In the root of dev_ws, run:
    ```colcon build --packages-select AP_Ros2_Int```
+
 ### Run the microROS agent
 
 - Run the microROS agent as described above
@@ -87,14 +149,15 @@ If you have installed the microROS agent and ROS-2 Foxy
   - ```sim_vehicle.py --enable-xrce-dds -A "--uartC=uart:/dev/ttyUSB2:115200" --console```
 
 If everything has been setup correctly , you will see the session established message on the agent.
+
 ### Reading ROS2 data
 
 - Open a new terminal
 - Source ROS2 installation
-  - ```source /opt/ros/foxy/setup.bash```
+  - ```source /opt/ros/humble/setup.bash```
 - Go to the ROS2 workspace created earlier
 - Source the package installation (make sure you are in the root of the dev_ws folder)
-  - ```. install/setup.bash```
+  - ```source install/setup.bash```
 
 - Then run the following commands
   - ```ros2 node list```
