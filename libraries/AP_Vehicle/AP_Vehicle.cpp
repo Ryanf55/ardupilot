@@ -127,7 +127,7 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
 #if AP_XRCE_ENABLED
     // @Group: XRCE
     // @Path: ../AP_XRCE_Client/AP_XRCE_Client.cpp
-    AP_SUBGROUPINFO(xrce_client, "XRCE_", 9, AP_Vehicle, AP_XRCE_Client),
+    AP_SUBGROUPINFO(xrce_client, "XRCE_", 18, AP_Vehicle, AP_XRCE_Client),
 #endif
 
     AP_GROUPEND
