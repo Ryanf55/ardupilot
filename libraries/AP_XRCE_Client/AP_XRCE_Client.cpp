@@ -18,8 +18,7 @@ const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
 };
 
 // Constructor (takes maximum number of topics as argument,by default it is 1)
-AP_XRCE_Client::AP_XRCE_Client(uint32_t maxtopics)
-    : max_topics(maxtopics)
+AP_XRCE_Client::AP_XRCE_Client()
 {
     relativeSerialClientAddr=1;
     relativeSerialAgentAddr=0;
@@ -43,10 +42,10 @@ bool AP_XRCE_Client::init()
     if (!uxr_create_session(&session)) {
         return false;
     }
-    
+
     reliable_in=uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out=uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
-    
+
     xrce_topic = set_topic_instance(XRCE_TOPIC::AP_ROS2_Time);
 
     if(xrce_topic == nullptr) {
@@ -54,7 +53,7 @@ bool AP_XRCE_Client::init()
     }
 
     if( !xrce_topic->topic_initialize(xrce_type.get())) {
-        return false; 
+        return false;
     }
 
     return true;
@@ -108,7 +107,7 @@ bool AP_XRCE_Client::create()
     temp->~ExpandingString();
     temp = new ExpandingString();
     dwriter_id = uxr_object_id(0x01,UXR_DATAWRITER_ID);
-    
+
     temp->printf("<dds>"
                     "<data_writer>"
                         "<topic>"
@@ -132,7 +131,7 @@ bool AP_XRCE_Client::create()
     temp->~ExpandingString();
 
     uint16_t requests[4] = {participant_req,topic_req,pub_req,dwriter_req};
-    
+
     if (!uxr_run_session_until_all_status(&session,1000,requests,status,4)) {
         return false;
     }
@@ -155,7 +154,7 @@ void AP_XRCE_Client::write()
         }
 
     }
-    
+
 }
 
 void AP_XRCE_Client::update()
