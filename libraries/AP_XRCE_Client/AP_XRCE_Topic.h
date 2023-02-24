@@ -1,3 +1,5 @@
+#pragma once
+
 #if AP_XRCE_ENABLED
 
 #include <stdint.h>
@@ -11,27 +13,8 @@ enum XRCE_TYPE{
 };
 
 enum XRCE_TOPIC{
-    AP_DDS_NUM=0,
-    AP_DDS_BARO=1,
-    AP_DDS_GPS=2,
-    AP_DDS_COMPASS=3,
-    AP_DDS_INS=4,
-    AP_ROS2_Bool=5,
-    AP_ROS2_Byte=6,
-    AP_ROS2_8Int=7,
-    AP_ROS2_8UInt=8,
-    AP_ROS2_Char=9,
-    AP_ROS2_16Int=10,
-    AP_ROS2_16UInt=11,
-    AP_ROS2_32Int=12,
-    AP_ROS2_32UInt=13,
-    AP_ROS2_64Int=14,
-    AP_ROS2_64UInt=15,
-    AP_ROS2_32Float=16,
-    AP_ROS2_64Float=17,
-    AP_ROS2_String=18,
-    AP_ROS2_ColorRGBA=19,
-    AP_ROS2_Header=20,
+    AP_ROS2_Time=0,
+    // AP_ROS2_BatteryState=1,
 };
 
 struct ucdrBuffer;
@@ -59,7 +42,7 @@ protected:
     char* particpant_name;
     char* topic_name;
     char* datatype_name;
-    bool uros_initialize(bool isStdMsg);
+    bool uros_initialize(const char* packageName);
 };
 
 XRCE_Generic_Topic* set_topic_instance(uint16_t topic_key);

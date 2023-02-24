@@ -1,4 +1,5 @@
 #include "AP_XRCE_Client.h"
+#include <AP_HAL/AP_HAL.h>
 
 #if AP_XRCE_ENABLED
 
@@ -12,13 +13,6 @@ const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
     // @Values: 0:DDS,1:uROS(micro-ROS)
     // @User: Standard
     AP_GROUPINFO("TYPE", 1, AP_XRCE_Client, xrce_type, 0),
-
-    // @Param: TOPIC
-    // @DisplayName: XRCE_TOPIC
-    // @Description: Type of XRCE topic to use
-    // @Values: 0:AP_DDS_NUM,1:AP_DDS_BARO,2:AP_DDS_GPS,3:AP_DDS_COMPASS,4:AP_DDS_INS,5:AP_ROS2_Bool,6:AP_ROS2_Byte,7:AP_ROS2_8Int,8:AP_ROS2_8UInt,9:AP_ROS2_Char,10:AP_ROS2_16Int,11:AP_ROS2_16UInt,12:AP_ROS2_32Int,13:AP_ROS2_32UInt,14:AP_ROS2_64Int,15:AP_ROS2_64UInt,16:AP_ROS2_32Float,17:AP_ROS2_64Float,18:AP_ROS2_String,19:AP_ROS2_ColorRGBA,20:AP_ROS2_Header
-    // @User: Standard
-    AP_GROUPINFO("TOPIC", 2, AP_XRCE_Client, xrce_topic_key, 0),
 
     AP_GROUPEND
 };
@@ -52,7 +46,7 @@ bool AP_XRCE_Client::init()
     reliable_in=uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out=uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     
-    xrce_topic = set_topic_instance(xrce_topic_key.get());
+    xrce_topic = set_topic_instance(XRCE_TOPIC::AP_ROS2_Time);
 
     if(xrce_topic == nullptr) {
         return false;
@@ -153,7 +147,12 @@ void AP_XRCE_Client::write()
         ucdrBuffer ub;
         uint32_t topic_size = xrce_topic->size_of_topic(0);
         uxr_prepare_output_stream(&session,reliable_out,dwriter_id,&ub,topic_size);
-        xrce_topic->serialize_topic(&ub);
+        const bool success = xrce_topic->serialize_topic(&ub);
+        if (!success) {
+            // AP_HAL::panic("FATAL: XRCE_Client failed to serialize %s\n",
+            //     xrce_topic->get_datatype_name());
+        }
+
     }
     
 }

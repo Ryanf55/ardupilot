@@ -1,12 +1,15 @@
+#pragma once
+
 #if AP_XRCE_ENABLED
 
 #include "uxr/client/client.h"
 #include "ucdr/microcdr.h"
 
-#include "AP_XRCE_ROS2_Std_Topics.h"
+// #include "AP_XRCE_ROS2_Sensor_Msgs_Topics.h"
+#include "AP_XRCE_Topic.h"
 
 #include <AP_HAL/AP_HAL.h>
-#include <AP_SerialManager/AP_SerialManager.h>
+// #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_HAL/Scheduler.h>
 #include <AP_HAL/Semaphores.h>
 #include <AP_AHRS/AP_AHRS.h>
@@ -75,7 +78,6 @@ private:
     bool connected;
 
     AP_Int8 xrce_type;
-    AP_Int16 xrce_topic_key;    
 
 public:
     // Constructor

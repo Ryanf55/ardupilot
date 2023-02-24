@@ -1,6 +1,8 @@
 #if AP_XRCE_ENABLED
 
 #include "AP_XRCE_Topic.h"
+#include "AP_XRCE_ROS2_Sensor_Msgs_Topics.h"
+#include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
 #include <stdio.h>
 
 XRCE_Generic_Topic::XRCE_Generic_Topic() 
@@ -23,7 +25,7 @@ char* XRCE_Generic_Topic::get_datatype_name()
     return datatype_name;
 }
 
-bool XRCE_Generic_Topic::uros_initialize(bool isStdMsg)
+bool XRCE_Generic_Topic::uros_initialize(const char* packageName)
 {
     ExpandingString *temptopic = new ExpandingString();
     temptopic->printf("rt/");
@@ -37,11 +39,7 @@ bool XRCE_Generic_Topic::uros_initialize(bool isStdMsg)
         return false;
     }
     ExpandingString *tempdtype = new ExpandingString();
-    if (!isStdMsg) {
-        tempdtype->printf("ap_custom_interfaces::msg::dds_::");
-    } else {
-        tempdtype->printf("std_msgs::msg::dds_::");
-    }
+    tempdtype->printf("%s::msg::dds_::", packageName);
     if(datatype_name != nullptr && !tempdtype->has_failed_allocation()){
         if(tempdtype->append(datatype_name,strlen(datatype_name))){
             if(tempdtype->append("_",(uint32_t)strlen("_"))){
@@ -56,6 +54,23 @@ bool XRCE_Generic_Topic::uros_initialize(bool isStdMsg)
     } else {
         return false;
     }
+}
+
+XRCE_Generic_Topic* set_topic_instance(uint16_t topic_key)
+{
+    XRCE_Generic_Topic* topic = nullptr;
+    switch(topic_key){
+        // case XRCE_TOPIC::AP_ROS2_BatteryState:
+        //     topic = new ROS2_SensorMsgsBatteryStateTopic();
+        //     break;
+        case XRCE_TOPIC::AP_ROS2_Time:
+            topic = new ROS2_BuiltinInterfacesTimeTopic();
+            break;
+        default:
+            // TODO handle unsupported parameter error
+            break;
+    }
+    return topic;
 }
 
 #endif // AP_XRCE_ENABLED
