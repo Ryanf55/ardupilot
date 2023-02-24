@@ -61,78 +61,32 @@ bool AP_XRCE_Client::init()
 bool AP_XRCE_Client::create()
 {
     WITH_SEMAPHORE(csem);
+
+    // Participant
     participant_id=uxr_object_id(0x01,UXR_PARTICIPANT_ID);
-    ExpandingString* temp = new ExpandingString();
-    temp->printf("<dds>"
-                    "<participant>"
-                        "<rtps>"
-                            "<name>"
-                                "%s"
-                            "</name>"
-                        "</rtps>"
-                    "</participant>"
-                "</dds>",xrce_topic->get_participant_name());
+    const char* participant_ref = "participant_profile";
+    participant_req=uxr_buffer_create_participant_ref(&session, reliable_out, participant_id,0,participant_ref,UXR_REPLACE);
 
-    if(temp->has_failed_allocation()){
-        return false;
-    }
-
-    participant_req=uxr_buffer_create_participant_xml(&session,reliable_out,participant_id,0,temp->get_string(),UXR_REPLACE);
-
-    temp->~ExpandingString();
-    temp = new ExpandingString();
+    // Topic
     topic_id=uxr_object_id(0x01,UXR_TOPIC_ID);
+    const char* topic_ref = "my_qos_label__t";
+    topic_req=uxr_buffer_create_topic_ref(&session,reliable_out,topic_id,participant_id,topic_ref,UXR_REPLACE);
 
-    temp->printf("<dds>"
-                    "<topic>"
-                            "<name>"
-                                "%s"
-                            "</name>"
-                            "<dataType>"
-                                "%s"
-                            "</dataType>"
-                    "</topic>"
-                "</dds>",xrce_topic->get_topic_name(),xrce_topic->get_datatype_name());
-
-    if(temp->has_failed_allocation()){
-        return false;
-    }
-
-    topic_req=uxr_buffer_create_topic_xml(&session,reliable_out,topic_id,participant_id,temp->get_string(),UXR_REPLACE);
-
+    // Publisher
     pub_id=uxr_object_id(0x01,UXR_PUBLISHER_ID);
     const char* pub_xml = "";
     pub_req = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
 
-    temp->~ExpandingString();
-    temp = new ExpandingString();
+    // Data Writer
     dwriter_id = uxr_object_id(0x01,UXR_DATAWRITER_ID);
+    const char* data_writer_ref = "my_qos_label__dw";
+    dwriter_req = uxr_buffer_create_datawriter_ref(&session,reliable_out,dwriter_id,pub_id,data_writer_ref,UXR_REPLACE);
+    
 
-    temp->printf("<dds>"
-                    "<data_writer>"
-                        "<topic>"
-                            "<kind>NO_KEY</kind>"
-                            "<name>"
-                                "%s"
-                            "</name>"
-                            "<dataType>"
-                                "%s"
-                            "</dataType>"
-                        "</topic>"
-                    "</data_writer>"
-                  "</dds>",xrce_topic->get_topic_name(),xrce_topic->get_datatype_name());
+    constexpr uint8_t nRequests = 4;
+    uint16_t requests[nRequests] = {participant_req,topic_req,pub_req,dwriter_req};
 
-    if(temp->has_failed_allocation()){
-        return false;
-    }
-
-    dwriter_req = uxr_buffer_create_datawriter_xml(&session,reliable_out,dwriter_id,pub_id,temp->get_string(),UXR_REPLACE);
-
-    temp->~ExpandingString();
-
-    uint16_t requests[4] = {participant_req,topic_req,pub_req,dwriter_req};
-
-    if (!uxr_run_session_until_all_status(&session,1000,requests,status,4)) {
+    if (!uxr_run_session_until_all_status(&session,1000,requests,status,nRequests)) {
         return false;
     }
 

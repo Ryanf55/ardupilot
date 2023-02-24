@@ -132,10 +132,14 @@ Follow the instructions for the following:
 * Skip "Creating a new firmware workspace"
 * Skip "Building the firmware"
 * Do "Creating the micro-ROS agent"
+* Source your ROS workspace
 
 - Run microROS agent with the following command
 
-  - ```ros2 run micro_ros_agent micro_ros_agent serial -b 115200 -D /dev/pts/2 # (assuming we are using tty/pts/2 for Ardupilot)```
+```bash
+cd ardupilot/libraries/AP_XRCE_Client
+ros2 run micro_ros_agent micro_ros_agent serial -b 115200 -D /dev/pts/2  -r custom_qos.refs # (assuming we are using tty/pts/2 for Ardupilot)
+```
 
 ## Tutorial
 
@@ -242,3 +246,8 @@ If everything has been setup correctly , you will see the session established me
   - ```ros2 run AP_Ros2_Int listener```
 
     - you should see the ROS2 subscriber listening to the 8bit Int being sent from Ardupilot
+
+## TODO List
+
+* Handle agent connection regardless of boot order and handle restarts of either side
+* Determine why the publisher queus up a few messages and the update() is not updated

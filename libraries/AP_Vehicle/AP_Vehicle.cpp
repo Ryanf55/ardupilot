@@ -743,6 +743,27 @@ void AP_Vehicle::get_osd_roll_pitch_rad(float &roll, float &pitch) const
 #define HAL_CAL_ALWAYS_REBOOT 0
 #endif
 
+#if AP_XRCE_ENABLED
+void AP_Vehicle::init_xrce_client()
+{
+    if(xrce_client.init()){
+        if(xrce_client.create()){
+            hal.scheduler->register_io_process(FUNCTOR_BIND(&xrce_client,&AP_XRCE_Client::write,void));
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization passed");
+        } else {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client:: Creation Requests failed");
+        }
+    } else {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client:: Initialization failed");
+    }
+} 
+
+void AP_Vehicle::update_topics()
+{
+    xrce_client.update();
+}
+#endif // AP_XRCE_ENABLED
+
 /*
   update accel cal
  */
