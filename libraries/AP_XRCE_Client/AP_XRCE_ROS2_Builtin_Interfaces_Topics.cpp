@@ -1,6 +1,7 @@
 #if AP_XRCE_ENABLED
 
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
+#include <AP_HAL/AP_HAL.h>
 #include "ucdr/microcdr.h"
 
 constexpr char packageName[] = "builtin_interfaces";
@@ -26,9 +27,9 @@ bool ROS2_BuiltinInterfacesTimeTopic::serialize_topic(ucdrBuffer* writer)
     bool success = true;
 
     //sec
-    ucdr_serialize_int32_t(writer, 0);
+    ucdr_serialize_int32_t(writer, sec);
     //nanosec
-    ucdr_serialize_uint32_t(writer, 1);
+    ucdr_serialize_uint32_t(writer, nanosec);
     
     return success & !writer->error;
 }
@@ -50,7 +51,8 @@ uint32_t ROS2_BuiltinInterfacesTimeTopic::size_of_topic(uint32_t size)
 
 void ROS2_BuiltinInterfacesTimeTopic::update_topic()
 {
-    // TODO
+    // TODO to be ROS REP 103 compliant, this should use Unix Epoch time, not boot time
+    sec = AP_HAL::millis() / 1000;
 }
 
 #endif // AP_XRCE_ENABLED

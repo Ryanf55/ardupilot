@@ -35,7 +35,6 @@ graph LR
 | SERIAL1_BAUD | The serial baud rate for XRCE DDS |
 | SERIAL1_PROTOCOL | Set this to 45 to use XRCE DDS on the serial port |
 | XRCE+TYPE | Set this to 0 to connect to the native XRCE Agent and 1 for MicroROS |
-| XRCE_TOPIC | TBD |
 
 
 ## Testing with a UART
@@ -79,7 +78,6 @@ If desired, set the XRCE parameters:
 - set **XRCE_TYPE = 0** (default) for a DDS Agent
 - set **XRCE_TYPE = 1** for a micro-ROS Agent
 
-- set **XRCE_TOPIC**( based on the topic you want Ardupilot to publish)
 
 For example:
 ```
@@ -141,27 +139,36 @@ Follow the instructions for the following:
 
 ## Tutorial
 
-### Setting the ROS2-workspace to use CLI
+### Using the ROS2 CLI to Read Ardupilot Data
 
 If you have installed the microROS agent and ROS-2 Humble
 
 - Source the ros2 installation
   - ```source /opt/ros/humble/setup.bash```
 
-- If SITL is running alongise MicroROS Agent, you should be able to see the agent here.
+- If SITL is running alongise MicroROS Agent, you should be able to see the agent here and view the data output.
 
-TODO change this to a standard ROS message
+
 ```
 $ ros2 node list
-/Ardupilot_XRCE_Client
+/Ardupilot_DDS_XRCE_Client
 
 $ ros2 topic list  -v
 Published topics:
- * /AP_NumTopic [ap_custom_interfaces/msg/APNum] 1 publisher
+ * /ROS2_Time [builtin_interfaces/msg/Time] 1 publisher
  * /parameter_events [rcl_interfaces/msg/ParameterEvent] 1 publisher
  * /rosout [rcl_interfaces/msg/Log] 1 publisher
 
 Subscribed topics:
+
+$ ros2 topic hz /ROS2_Time
+average rate: 4.484
+        min: 0.000s max: 2.659s std dev: 0.73445s window: 12
+
+$ ros2 topic echo /ROS2_Time 
+sec: 152
+nanosec: 0
+---
 ```
 
 ### Writing a minimal ROS2 application

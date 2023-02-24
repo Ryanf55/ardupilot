@@ -12,4 +12,8 @@ public:
     bool deserialize_topic(ucdrBuffer *reader) override;
     uint32_t size_of_topic(uint32_t size) override;
     void update_topic() override;
+
+protected: 
+    int32_t sec;
+    uint32_t nanosec;
 };

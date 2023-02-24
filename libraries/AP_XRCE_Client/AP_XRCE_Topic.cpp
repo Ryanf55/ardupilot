@@ -7,7 +7,7 @@
 
 XRCE_Generic_Topic::XRCE_Generic_Topic() 
 {
-    particpant_name = (char*)"Ardupilot_XRCE_Client";
+    particpant_name = (char*)"Ardupilot_DDS_XRCE_Client";
 }
 
 char* XRCE_Generic_Topic::get_participant_name()
