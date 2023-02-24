@@ -64,7 +64,7 @@ sim_vehicle.py -w
 
 # Set params
 param set SERIAL1_BAUD 115
-# See libraries/AP_SerialManager/AP_SerialManager.h AP_SerialManager SerialProtocol_ROS2
+# See libraries/AP_SerialManager/AP_SerialManager.h AP_SerialManager SerialProtocol_DDS_XRCE
 param set SERIAL1_PROTOCOL 45
 ```
 
