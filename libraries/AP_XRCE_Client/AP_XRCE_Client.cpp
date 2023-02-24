@@ -37,7 +37,8 @@ bool AP_XRCE_Client::init()
     if (!uxr_init_serial_transport(&serial_transport,fd,relativeSerialAgentAddr,relativeSerialClientAddr)) {
         return false;
     }
-    uxr_init_session(&session, &serial_transport.comm, 0xAAAABBBB);
+    constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
+    uxr_init_session(&session, &serial_transport.comm, uniqueClientKey);
 
     if (!uxr_create_session(&session)) {
         return false;
