@@ -1,5 +1,6 @@
 #include "AP_XRCE_Client.h"
 #include <AP_HAL/AP_HAL.h>
+#include <AP_SerialManager/AP_SerialManager.h>
 
 #if AP_XRCE_ENABLED
 
