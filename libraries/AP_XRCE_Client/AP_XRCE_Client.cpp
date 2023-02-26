@@ -1,5 +1,6 @@
 #include "AP_XRCE_Client.h"
 #include <AP_HAL/AP_HAL.h>
+#include <AP_RTC/AP_RTC.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 
 #if AP_XRCE_ENABLED
@@ -172,6 +173,24 @@ size_t uxr_read_serial_data_platform(void* args, uint8_t* buf, size_t len, int t
     *errcode = 0;
     return bytes_read;
 }
+
+#if CONFIG_HAL_BOARD != HAL_BOARD_SITL
+extern "C" {
+    int clock_gettime(clockid_t clockid, struct timespec *ts);
+}
+
+int clock_gettime(clockid_t clockid, struct timespec *ts)
+{
+    uint64_t utc_usec;
+    if (!AP::rtc().get_utc_usec(utc_usec)) {
+        return -1;
+    }
+    ts->tv_sec = utc_usec / 1000000ULL;
+    ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;
+    return 0;
+}
+#endif // CONFIG_HAL_BOARD
+
 #endif // AP_XRCE_ENABLED
 
 
