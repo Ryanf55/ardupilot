@@ -54,10 +54,6 @@ bool AP_XRCE_Client::init()
         return false;
     }
 
-    if( !xrce_topic->topic_initialize(xrce_type.get())) {
-        return false;
-    }
-
     return true;
 }
 bool AP_XRCE_Client::create()

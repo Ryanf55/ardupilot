@@ -11,17 +11,6 @@ constexpr char packageName[] = "sensor_msgs";
 ROS2_SensorMsgsBatteryStateTopic::ROS2_SensorMsgsBatteryStateTopic()
 :XRCE_Generic_Topic()
 {
-    topic_name = (char *)"ROS2_Battery_State";
-    datatype_name = (char *)"BatteryState";
-}
-
-bool ROS2_SensorMsgsBatteryStateTopic::topic_initialize(uint8_t xrcetype)
-{
-    if(xrcetype == XRCE_TYPE::uROS){
-        return (uros_initialize(packageName));
-    }
-
-    return true;
 }
 
 bool ROS2_SensorMsgsBatteryStateTopic::serialize_topic(ucdrBuffer* writer)
