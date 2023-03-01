@@ -24,14 +24,6 @@ const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
 
 #include "AP_XRCE_Topic_Table.h"
 
-// Constructor (takes maximum number of topics as argument,by default it is 1)
-AP_XRCE_Client::AP_XRCE_Client()
-{
-    relativeSerialClientAddr=1;
-    relativeSerialAgentAddr=0;
-    connected=true;
-}
-
 bool AP_XRCE_Client::init()
 {
     AP_SerialManager *serial_manager = AP_SerialManager::get_singleton();
@@ -40,18 +32,21 @@ bool AP_XRCE_Client::init()
         return false;
     }
 
+    constexpr uint8_t fd = 0;
+    constexpr uint8_t relativeSerialAgentAddr = 0;
+    constexpr uint8_t relativeSerialClientAddr = 1;
     if (!uxr_init_serial_transport(&serial_transport,fd,relativeSerialAgentAddr,relativeSerialClientAddr)) {
         return false;
     }
+
     constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
     uxr_init_session(&session, &serial_transport.comm, uniqueClientKey);
-
     if (!uxr_create_session(&session)) {
         return false;
     }
 
-    reliable_in=uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
-    reliable_out=uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
+    reliable_in = uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
+    reliable_out = uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
 
     // Duplicate check for xrce_port, could simplify
     if (xrce_port != nullptr) {
@@ -59,42 +54,54 @@ bool AP_XRCE_Client::init()
         xrce_topic = new ROS2_BuiltinInterfacesTimeTopic();
     }
 
-
     if(xrce_topic == nullptr) {
         return false;
     }
 
     return true;
 }
+
 bool AP_XRCE_Client::create()
 {
     WITH_SEMAPHORE(csem);
 
     // Participant
-    participant_id=uxr_object_id(0x01,UXR_PARTICIPANT_ID);
+    const uxrObjectId participant_id = {
+        .id = 0x01,
+        .type = UXR_PARTICIPANT_ID
+    };
     const char* participant_ref = "participant_profile";
-    participant_req=uxr_buffer_create_participant_ref(&session, reliable_out, participant_id,0,participant_ref,UXR_REPLACE);
+    const auto participant_req_id = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id,0,participant_ref,UXR_REPLACE);
 
     // Topic
-    topic_id=uxr_object_id(0x01,UXR_TOPIC_ID);
+    const uxrObjectId topic_id = {
+        .id = 0x01,
+        .type = UXR_TOPIC_ID
+    };
     const char* topic_ref = "my_qos_label__t";
-    topic_req=uxr_buffer_create_topic_ref(&session,reliable_out,topic_id,participant_id,topic_ref,UXR_REPLACE);
+    const auto topic_req_id = uxr_buffer_create_topic_ref(&session,reliable_out,topic_id,participant_id,topic_ref,UXR_REPLACE);
 
     // Publisher
-    pub_id=uxr_object_id(0x01,UXR_PUBLISHER_ID);
+    const uxrObjectId pub_id = {
+        .id = 0x01,
+        .type = UXR_PUBLISHER_ID
+    };
     const char* pub_xml = "";
-    pub_req = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
+    const auto pub_req_id = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
 
     // Data Writer
-    dwriter_id = uxr_object_id(0x01,UXR_DATAWRITER_ID);
     const char* data_writer_ref = "my_qos_label__dw";
-    dwriter_req = uxr_buffer_create_datawriter_ref(&session,reliable_out,dwriter_id,pub_id,data_writer_ref,UXR_REPLACE);
+    const auto dwriter_req_id = uxr_buffer_create_datawriter_ref(&session,reliable_out,dwriter_id,pub_id,data_writer_ref,UXR_REPLACE);
     
-
+    //Status requests
     constexpr uint8_t nRequests = 4;
-    uint16_t requests[nRequests] = {participant_req,topic_req,pub_req,dwriter_req};
+    const uint16_t requests[nRequests] = {participant_req_id, topic_req_id, pub_req_id, dwriter_req_id};
 
-    if (!uxr_run_session_until_all_status(&session,1000,requests,status,nRequests)) {
+    constexpr int maxTimeMsPerRequestMs = 250;
+    constexpr int requestTimeoutMs = nRequests * maxTimeMsPerRequestMs;
+    uint8_t status[nRequests];
+    if (!uxr_run_session_until_all_status(&session, requestTimeoutMs, requests, status, nRequests)) {
+        // TODO add a failure log message sharing the status results
         return false;
     }
 

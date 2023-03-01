@@ -23,11 +23,8 @@ extern const AP_HAL::HAL& hal;
 class AP_XRCE_Client {
 
 private:
-    // Serial Device
-    uint8_t fd;
-    uint8_t relativeSerialAgentAddr;
-    uint8_t relativeSerialClientAddr;
 
+    // Serial Allocation
     uxrSerialTransport serial_transport; // client uxr serial transport
     uxrSession session; //Session
 
@@ -39,46 +36,33 @@ private:
     uint8_t output_reliable_stream[BUFFER_SIZE_SERIAL];
     uxrStreamId reliable_out;
 
-    // Create Participant
-    uxrObjectId participant_id;
-    uint16_t participant_req;
-
     // Topic
-    uxrObjectId topic_id;
-    uint16_t topic_req;
-
     ROS2_BuiltinInterfacesTimeTopic* xrce_topic;
 
-    // Publisher
-    uxrObjectId pub_id;
-    uint16_t pub_req;
-
-    // DataWriter
-    uxrObjectId dwriter_id;
-    uint16_t dwriter_req;
-
-    //Status requests
-    uint8_t status[4];
-
+    // Data Writer
+    const uxrObjectId dwriter_id = {
+        .id = 0x01,
+        .type = UXR_DATAWRITER_ID
+    };
+    
     HAL_Semaphore csem;
 
     // connection parametrics
-    bool connected;
+    bool connected = true;
 
     AP_Int8 xrce_type;
 public:
     // Constructor
-    AP_XRCE_Client();
+    AP_XRCE_Client(){};
 
-
+    // 
     bool init();
 
 
 
-    // lookup serial amanger to find the port
+    // lookup serial manager to find the port
     // then call all the new 
     // if it works, then call init to set up the thread
-    // 
     static void doAllocation();
     
     bool create();
