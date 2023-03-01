@@ -1,7 +1,9 @@
 #include "AP_XRCE_Client.h"
+#include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
 #include <AP_HAL/AP_HAL.h>
 #include <AP_RTC/AP_RTC.h>
 #include <AP_SerialManager/AP_SerialManager.h>
+
 
 #if AP_XRCE_ENABLED
 
@@ -48,7 +50,7 @@ bool AP_XRCE_Client::init()
     reliable_in=uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out=uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
 
-    xrce_topic = set_topic_instance(XRCE_TOPIC::AP_ROS2_Time);
+    xrce_topic = new ROS2_BuiltinInterfacesTimeTopic();
 
     if(xrce_topic == nullptr) {
         return false;

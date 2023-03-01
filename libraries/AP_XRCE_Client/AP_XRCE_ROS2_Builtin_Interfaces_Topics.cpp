@@ -7,7 +7,6 @@
 constexpr char packageName[] = "builtin_interfaces";
 
 ROS2_BuiltinInterfacesTimeTopic::ROS2_BuiltinInterfacesTimeTopic()
-:XRCE_Generic_Topic()
 {
 }
 

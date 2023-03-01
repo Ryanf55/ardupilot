@@ -4,12 +4,9 @@
 
 #include "uxr/client/client.h"
 #include "ucdr/microcdr.h"
-
-// #include "AP_XRCE_ROS2_Sensor_Msgs_Topics.h"
-#include "AP_XRCE_Topic.h"
+#include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
 
 #include <AP_HAL/AP_HAL.h>
-// #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_HAL/Scheduler.h>
 #include <AP_HAL/Semaphores.h>
 #include <AP_AHRS/AP_AHRS.h>
@@ -34,34 +31,28 @@ private:
     uxrSession session; //Session
 
     // Input Stream
-
     uint8_t input_reliable_stream[BUFFER_SIZE_SERIAL];
     uxrStreamId reliable_in;
 
     // Output Stream
-
     uint8_t output_reliable_stream[BUFFER_SIZE_SERIAL];
     uxrStreamId reliable_out;
 
-    // Create
-    // Participant
-
+    // Create Participant
     uxrObjectId participant_id;
     uint16_t participant_req;
 
     // Topic
-
-    XRCE_Generic_Topic* xrce_topic;
     uxrObjectId topic_id;
     uint16_t topic_req;
 
-    // Publisher
+    ROS2_BuiltinInterfacesTimeTopic* xrce_topic;
 
+    // Publisher
     uxrObjectId pub_id;
     uint16_t pub_req;
 
     // DataWriter
-
     uxrObjectId dwriter_id;
     uint16_t dwriter_req;
 

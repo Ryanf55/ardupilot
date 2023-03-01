@@ -9,7 +9,6 @@
 constexpr char packageName[] = "sensor_msgs";
 
 ROS2_SensorMsgsBatteryStateTopic::ROS2_SensorMsgsBatteryStateTopic()
-:XRCE_Generic_Topic()
 {
 }
 
