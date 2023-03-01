@@ -251,3 +251,11 @@ If everything has been setup correctly , you will see the session established me
 
 * Handle agent connection regardless of boot order and handle restarts of either side
 * Determine why the publisher queus up a few messages and the update() is not updated
+* Fix runtime crash
+
+## Adding DDS messages to Ardupilot
+
+Unlike the use of ROS 2 `.msg` files, since Ardupilot supports native DDS, the message files follow [OMG IDL DDS v4.2](https://www.omg.org/spec/IDL/4.2/PDF).
+This package is intended to work with any `.idl` file complying with those extensions, with some limitations. 
+
+1. IDL files from ROS 2 will need all `module` keywords stripped out. 
