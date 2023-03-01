@@ -435,7 +435,7 @@ const AP_Scheduler::Task AP_Vehicle::scheduler_tasks[] = {
 #endif
     SCHED_TASK(update_arming,          1,     50, 253),
 #if AP_XRCE_ENABLED
-    SCHED_TASK(update_topics,          1,     75, 250),
+    SCHED_TASK(update_topics,          1,     75, 254),
 #endif
 };
 
@@ -839,12 +839,12 @@ void AP_Vehicle::init_xrce_client()
     if(xrce_client.init()){
         if(xrce_client.create()){
             hal.scheduler->register_io_process(FUNCTOR_BIND(&xrce_client,&AP_XRCE_Client::write,void));
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Client: Initialization passed");
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization passed");
         } else {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Client: Creation Requests failed");
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Creation Requests failed");
         }
     } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Client: Initialization failed");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization failed");
     }
 } 
 
