@@ -5,6 +5,7 @@
 #include "uxr/client/client.h"
 #include "ucdr/microcdr.h"
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
+#include "AP_XRCE_Generic_Fn_T.h"
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/Scheduler.h>
@@ -65,16 +66,36 @@ private:
     bool connected;
 
     AP_Int8 xrce_type;
-
 public:
     // Constructor
     AP_XRCE_Client();
 
+
     bool init();
+
+
+
+    // lookup serial amanger to find the port
+    // then call all the new 
+    // if it works, then call init to set up the thread
+    // 
+    static void doAllocation();
+    
     bool create();
     void write();
     void update();
     static const struct AP_Param::GroupInfo var_info[];
+
+
+    struct Topic_table {
+        const char* label;
+        Generic_serialize_topic_fn_t serialize;
+        Generic_deserialize_topic_fn_t deserialize;
+        Generic_size_of_topic_fn_t size_of;
+    };
+    static const struct Topic_table topics[];
+
+
 };
 
 #endif // AP_XRCE_ENABLED

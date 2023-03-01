@@ -3,6 +3,8 @@
  process a *.h.in file to produce a *.h file
 '''
 
+# TODO move to AP_XRCE_Client/tools
+
 import sys
 import re
 

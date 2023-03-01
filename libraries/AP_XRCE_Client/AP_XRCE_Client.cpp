@@ -1,5 +1,6 @@
 #include "AP_XRCE_Client.h"
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
+
 #include <AP_HAL/AP_HAL.h>
 #include <AP_RTC/AP_RTC.h>
 #include <AP_SerialManager/AP_SerialManager.h>
@@ -20,6 +21,8 @@ const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
 
     AP_GROUPEND
 };
+
+#include "AP_XRCE_Topic_Table.cpp"
 
 // Constructor (takes maximum number of topics as argument,by default it is 1)
 AP_XRCE_Client::AP_XRCE_Client()
@@ -50,7 +53,12 @@ bool AP_XRCE_Client::init()
     reliable_in=uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out=uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
 
-    xrce_topic = new ROS2_BuiltinInterfacesTimeTopic();
+    // Duplicate check for xrce_port, could simplify
+    if (enabled && xrce_port != nullptr) {
+         // do allocations
+        xrce_topic = new ROS2_BuiltinInterfacesTimeTopic();
+    }
+
 
     if(xrce_topic == nullptr) {
         return false;
@@ -160,7 +168,7 @@ size_t uxr_read_serial_data_platform(void* args, uint8_t* buf, size_t len, int t
         return 0;
     }
     while (timeout > 0 && xrce_port->available() < len) {
-        hal.scheduler->delay(1);
+        hal.scheduler->delay(1); // TODO select or poll this is limiting speed (1mS)
         timeout--;
     }
     size_t bytes_read = xrce_port->read(buf, (size_t)len);

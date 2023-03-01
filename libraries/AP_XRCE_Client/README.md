@@ -250,8 +250,16 @@ If everything has been setup correctly , you will see the session established me
 ## TODO List
 
 * Handle agent connection regardless of boot order and handle restarts of either side
-* Determine why the publisher queus up a few messages and the update() is not updated
-* Fix runtime crash
+* Determine why the publisher queus up a few messages and the update() is not updated 
+  * Tridge suspects it's from the pts, here's some debug steps we tried
+  * ```
+    strace -ttT -o trace.out -p $(pidof arducopter)
+    lsof -n | grep "pts/8"
+    cat trace.out | grep "11" | less
+    ```
+  * If we can reproduce on hardware, then we can drill down
+  * Instead of pts, can do two serial ports
+* Do ping pong test, get time optimzed over variable length, then do larger packet
 
 ## Adding DDS messages to Ardupilot
 
