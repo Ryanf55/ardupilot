@@ -22,7 +22,7 @@ const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
     AP_GROUPEND
 };
 
-#include "AP_XRCE_Topic_Table.cpp"
+#include "AP_XRCE_Topic_Table.h"
 
 // Constructor (takes maximum number of topics as argument,by default it is 1)
 AP_XRCE_Client::AP_XRCE_Client()
@@ -54,7 +54,7 @@ bool AP_XRCE_Client::init()
     reliable_out=uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
 
     // Duplicate check for xrce_port, could simplify
-    if (enabled && xrce_port != nullptr) {
+    if (xrce_port != nullptr) {
          // do allocations
         xrce_topic = new ROS2_BuiltinInterfacesTimeTopic();
     }
