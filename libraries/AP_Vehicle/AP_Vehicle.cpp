@@ -838,12 +838,12 @@ void AP_Vehicle::init_xrce_client()
             hal.scheduler->register_io_process(FUNCTOR_BIND(&xrce_client,&AP_XRCE_Client::write,void));
             GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization passed");
         } else {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Creation Requests failed");
+            GCS_SEND_TEXT(MAV_SEVERITY_ALERT,"XRCE Client: Creation Requests failed");
         }
     } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization failed");
+        GCS_SEND_TEXT(MAV_SEVERITY_ALERT,"XRCE Client: Initialization failed");
     }
-} 
+}
 
 void AP_Vehicle::update_topics()
 {
