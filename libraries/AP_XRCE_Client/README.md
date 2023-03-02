@@ -138,7 +138,7 @@ Follow the instructions for the following:
 
 ```bash
 cd ardupilot/libraries/AP_XRCE_Client
-ros2 run micro_ros_agent micro_ros_agent serial -b 115200 -D /dev/pts/2  -r custom_qos.refs # (assuming we are using tty/pts/2 for Ardupilot)
+ros2 run micro_ros_agent micro_ros_agent serial -b 115200 -D /dev/pts/2  -r dds_xrce_profile.xml # (assuming we are using tty/pts/2 for Ardupilot)
 ```
 
 ## Tutorial
