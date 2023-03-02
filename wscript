@@ -743,18 +743,12 @@ def _build_recursion(bld):
     if bld.env.ENABLE_ONVIF:
         dirs_to_recurse.append('libraries/AP_ONVIF')
 
-    if bld.env.ENABLE_XRCE_DDS:
-        dirs_to_recurse.append('libraries/AP_XRCE_Client')
-
     for p in hal_dirs_patterns:
         dirs_to_recurse += collect_dirs_to_recurse(
             bld,
             [p % l for l in bld.env.AP_LIBRARIES],
         )
 
-    if bld.env.ENABLE_XRCE_DDS:
-        dirs_to_recurse.append('libraries/AP_XRCE_Client')
-        
     # NOTE: we need to sort to ensure the repeated sources get the
     # same index, and random ordering of the filesystem doesn't cause
     # recompilation.
