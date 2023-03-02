@@ -27,13 +27,18 @@ def configure(cfg):
 
     # auto update submodules
     cfg.env.append_value('GIT_SUBMODULES', 'Micro-XRCE-DDS-Client')
-    cfg.env.append_value('GIT_SUBMODULES','Micro-CDR')
+    cfg.env.append_value('GIT_SUBMODULES', 'Micro-CDR')
 
 def build(bld):
     config_h_in = [ 'modules/Micro-XRCE-DDS-Client/include/uxr/client/config.h.in',
                     'modules/Micro-CDR/include/ucdr/config.h.in' ]
     config_h_in_nodes = [ bld.srcnode.make_node(h) for h in config_h_in ]
     config_h_nodes = [ bld.bldnode.find_or_declare(h[:-3]) for h in config_h_in ]
+
+    extra_bld_inc =  ['modules/Micro-CDR/include',
+                      'modules/Micro-XRCE-DDS-Client/include']
+    for inc in extra_bld_inc:
+        bld.env.INCLUDES += [ bld.bldnode.find_or_declare(inc).abspath() ]
 
     for i in range(len(config_h_nodes)):
         print("building %s" % config_h_nodes[i].abspath())
