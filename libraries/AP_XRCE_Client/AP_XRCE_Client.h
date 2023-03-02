@@ -37,14 +37,14 @@ private:
     uxrStreamId reliable_out;
 
     // Topic
-    ROS2_BuiltinInterfacesTimeTopic* xrce_topic;
+    ROS2_BuiltinInterfacesTimeTopic* time_topic;
 
     // Data Writer
     const uxrObjectId dwriter_id = {
         .id = 0x01,
         .type = UXR_DATAWRITER_ID
     };
-    
+
     HAL_Semaphore csem;
 
     // connection parametrics

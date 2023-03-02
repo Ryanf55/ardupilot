@@ -1,7 +1,7 @@
 #if AP_XRCE_ENABLED
 
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
-#include <AP_HAL/AP_HAL.h>
+
 #include "ucdr/microcdr.h"
 
 constexpr char packageName[] = "builtin_interfaces";
@@ -35,12 +35,6 @@ uint32_t ROS2_BuiltinInterfacesTimeTopic::size_of_topic(uint32_t size)
     size += ucdr_alignment(size, 4) + 4;
 
     return size - previousSize;
-}
-
-void ROS2_BuiltinInterfacesTimeTopic::update_topic()
-{
-    // TODO to be ROS REP 103 compliant, this should use Unix Epoch time, not boot time
-    sec = AP_HAL::millis() / 1000;
 }
 
 #endif // AP_XRCE_ENABLED
