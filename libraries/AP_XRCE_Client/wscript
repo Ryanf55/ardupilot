@@ -2,27 +2,28 @@
 # encoding: utf-8
 
 def configure(cfg):
-    cfg.env.XRCE_DEPENDENCIES = []
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/core/session/stream/*.c'))]
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/core/session/*.c'))]
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/core/serialization/*.c'))]
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/util/*.c'))]
-    #cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/profile/transport/ip/ip_posix.c'))]
-    #cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/profile/transport/ip/udp/udp_transport_posix.c'))]
-    #cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/profile/transport/ip/udp/udp_transport.c'))]
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/profile/transport/serial/serial_transport.c'))]
-    #cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/profile/transport/serial/serial_transport_posix.c'))]
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-XRCE-DDS-Client/src/c/profile/transport/stream_framing/stream_framing_protocol.c'))]
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-CDR/src/c/types/*.c'))]
-    cfg.env.XRCE_DEPENDENCIES+=[str(source) for source in (cfg.srcnode.ant_glob('modules/Micro-CDR/src/c/common.c'))]
-    bldnode = cfg.bldnode.make_node(cfg.variant)
-    cfg.env.INCLUDES+=[bldnode.find_or_declare('modules/Micro-XRCE-DDS-Client/include').abspath(),
-                       bldnode.find_or_declare('modules/Micro-CDR/include').abspath(),
-                       cfg.srcnode.make_node('modules/Micro-XRCE-DDS-Client/include/').abspath(),
-                       cfg.srcnode.make_node('modules/Micro-XRCE-DDS-Client/include/uxr/client/').abspath(),
-                       cfg.srcnode.make_node('modules/Micro-CDR/src/c/').abspath(),
-                       cfg.srcnode.make_node('modules/Micro-CDR/include/').abspath(),
-                       cfg.srcnode.make_node('modules/Micro-CDR/include/ucdr/').abspath()]
+    extra_src = ['modules/Micro-XRCE-DDS-Client/src/c/core/session/stream/*.c',
+                 'modules/Micro-XRCE-DDS-Client/src/c/core/session/*.c',
+                  'modules/Micro-XRCE-DDS-Client/src/c/core/serialization/*.c',
+                  'modules/Micro-XRCE-DDS-Client/src/c/util/*.c',
+                  'modules/Micro-XRCE-DDS-Client/src/c/profile/transport/serial/serial_transport.c',
+                  'modules/Micro-XRCE-DDS-Client/src/c/profile/transport/stream_framing/stream_framing_protocol.c',
+                  'modules/Micro-CDR/src/c/types/*.c',
+                  'modules/Micro-CDR/src/c/common.c']
+
+    cfg.env.AP_LIB_EXTRA_SOURCES['AP_XRCE_Client'] = []
+    for pattern in extra_src:
+        s = cfg.srcnode.ant_glob(pattern, dir=False, src=True)
+        for x in s:
+            cfg.env.AP_LIB_EXTRA_SOURCES['AP_XRCE_Client'].append(str(x))
+
+    extra_src_inc =  ['modules/Micro-XRCE-DDS-Client/include',
+                      'modules/Micro-XRCE-DDS-Client/include/uxr/client',
+                      'modules/Micro-CDR/src/c',
+                      'modules/Micro-CDR/include',
+                      'modules/Micro-CDR/include/ucdr']
+    for inc in extra_src_inc:
+        cfg.env.INCLUDES += [str(cfg.srcnode.make_node(inc))]
 
     # auto update submodules
     cfg.env.append_value('GIT_SUBMODULES', 'Micro-XRCE-DDS-Client')
