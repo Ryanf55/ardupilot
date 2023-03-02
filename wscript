@@ -668,6 +668,9 @@ def _build_dynamic_sources(bld):
             ]
         )
 
+    if bld.env.ENABLE_XRCE_DDS:
+        bld.recurse("libraries/AP_XRCE_Client")
+
     def write_version_header(tsk):
         bld = tsk.generator.bld
         return bld.write_version_header(tsk.outputs[0].abspath())
