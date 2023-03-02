@@ -28,13 +28,34 @@ graph LR
   end
 ```
 
+## Installing Build Dependencies
+
+While DDS support in Ardupilot is mostly through git submodules, another tool needs to be available on your system: Micro XRCE DDS Gen.
+
+1. Go to a directory on your system to clone the repo (perhaps next to `ardupilot`)
+1. Install java
+  ```console
+  sudo apt install java
+  ````
+1. Follow instructions [here](https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-micro-xrce-dds-gen-tool) to install the generator.
+1. Add the generator directory to $PATH, like [so](https://github.com/eProsima/Micro-XRCE-DDS-docs/issues/83). 
+1. Test it
+  ```console
+  cd /path/to/ardupilot
+  microxrceddsgen -version
+  # openjdk version "11.0.18" 2023-01-17
+  # OpenJDK Runtime Environment (build 11.0.18+10-post-Ubuntu-0ubuntu122.04)
+  # OpenJDK 64-Bit Server VM (build 11.0.18+10-post-Ubuntu-0ubuntu122.04, mixed mode, sharing)
+  # microxrceddsgen version: 1.0.0beta2
+  ```
+
 ## Parameters for XRCE DDS
 
 | Name | Description |
 | - | - |
 | SERIAL1_BAUD | The serial baud rate for XRCE DDS |
 | SERIAL1_PROTOCOL | Set this to 45 to use XRCE DDS on the serial port |
-| XRCE+TYPE | Set this to 0 to connect to the native XRCE Agent and 1 for MicroROS |
+| XRCE_TYPE | Set this to 0 to connect to the native XRCE Agent and 1 for MicroROS |
 
 
 ## Testing with a UART
@@ -93,7 +114,7 @@ The section below applies to MicroXRCE only
 
 Follow the steps to use the MicroXRCE agent
 
-- Install MicroXRCE Agent (as described here), using the stable `master` branch
+- Install MicroXRCE Agent (as described here), using the `develop` branch
 
   - https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-agent-standalone
 
@@ -267,3 +288,20 @@ Unlike the use of ROS 2 `.msg` files, since Ardupilot supports native DDS, the m
 This package is intended to work with any `.idl` file complying with those extensions, with some limitations. 
 
 1. IDL files from ROS 2 will need all `module` keywords stripped out. 
+
+To get a new IDL file from ROS2, follow this process:
+```console
+cd ardupilot
+source /opt/ros/humble/setup.bash
+# Find the IDL file
+find /opt/ros/$ROS_DISTRO -type f -wholename \*builtin_interfaces/msg/Time.idl
+# Create the directory in the source tree if it doens't exist
+mkdir -p libraries/AP_XRCE_Client/Idl/builtin_interfaces/msg/
+# Copy the IDL
+cp -r /opt/ros/humble/share/builtin_interfaces/msg/Time.idl libraries/AP_XRCE_Client/Idl/builtin_interfaces/msg/
+# Create an output directory to test it
+mkdir -p /tmp/xrce_out
+# Run the generator
+microxrceddsgen -replace -d /tmp/xrce_out libraries/AP_XRCE_Client/Idl/builtin_interfaces/msg/Time.idl
+# cat /tmp/xrce_out/
+```
