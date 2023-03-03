@@ -37,7 +37,13 @@ While DDS support in Ardupilot is mostly through git submodules, another tool ne
   ```console
   sudo apt install java
   ````
-1. Follow instructions [here](https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-micro-xrce-dds-gen-tool) to install the generator.
+1. Follow instructions [here](https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-micro-xrce-dds-gen-tool) to install the generator, but use `develop` branch instead of `master` (for now).
+  ```console
+  git clone -b develop --recurse-submodules https://github.com/eProsima/Micro-XRCE-DDS-Gen.git
+  cd Micro-XRCE-DDS-Gen
+  ./gradlew assemble
+  ```
+
 1. Add the generator directory to $PATH, like [so](https://github.com/eProsima/Micro-XRCE-DDS-docs/issues/83). 
 1. Test it
   ```console
@@ -48,6 +54,13 @@ While DDS support in Ardupilot is mostly through git submodules, another tool ne
   # OpenJDK 64-Bit Server VM (build 11.0.18+10-post-Ubuntu-0ubuntu122.04, mixed mode, sharing)
   # microxrceddsgen version: 1.0.0beta2
   ```
+
+> :warning: **If you have installed FastDDS or FastDDSGen globally on your system**:
+eProsima's libraries and the packaging system in Ardupilot are not determistic in this scenario.
+You may experience the wrong version of a library brought in, or runtime segfaults.
+For now, avoid having simultaneous local and global installs.
+If you followed the [global install](https://fast-dds.docs.eprosima.com/en/latest/installation/sources/sources_linux.html#global-installation)
+section, you should remove it and switch to local install.
 
 ## Parameters for XRCE DDS
 
@@ -106,32 +119,6 @@ param set XRCE_TYPE 1
 ```
 Then, restart the simulator if you changed XRCE_TYPE.
 
-## MicroXRCE
-
-The section below applies to MicroXRCE only 
-
-## Starting MicroXRCEAgent
-
-Follow the steps to use the MicroXRCE agent
-
-- Install MicroXRCE Agent (as described here), using the `develop` branch
-
-  - https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-agent-standalone
-
-- In a new terminal, run the following command :
-
-  - ```cd /usr/local/bin && MicroXRCEAgent serial -b 115200 -D /dev/pts/2``` (assuming we are using pts/2 for Ardupilot)
-
-For more information, one can take a look here - https://micro-xrce-dds.docs.eprosima.com/en/latest/agent.html#agent-cli
-
-### Starting the Integration Service
-
-- Install dependencies for the Integration Service and build it with `colcon`
-
-  - https://integration-service.docs.eprosima.com/en/latest/installation_manual/installation.html#installation
-
-TODO add to this once EProsima fixes build errors on Ubuntu 22.04.
-
 ## Starting with microROS Agent
 
 Follow the steps to use the microROS Agent
@@ -144,7 +131,7 @@ Follow the steps to use the microROS Agent
 
 - https://micro.ros.org/docs/tutorials/core/first_application_linux/
 
-TODO issue a PR to update MicroROS docs from foxy to something else. 
+Until this [PR](https://github.com/micro-ROS/micro-ROS.github.io) is merged, ignore the notes about `foxy`. It works on `humble`.
 
 Follow the instructions for the following:
 
@@ -196,7 +183,34 @@ nanosec: 0
 ---
 ```
 
-### Writing a minimal ROS2 application
+
+## MicroXRCE (Only if you aren't using ROS2 compatible topics)
+
+The section below applies to MicroXRCE only 
+
+## Starting MicroXRCEAgent
+
+Follow the steps to use the MicroXRCE agent
+
+- Install MicroXRCE Agent (as described here), using the `develop` branch
+
+  - https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-agent-standalone
+
+- In a new terminal, run the following command :
+
+  - ```cd /usr/local/bin && MicroXRCEAgent serial -b 115200 -D /dev/pts/2``` (assuming we are using pts/2 for Ardupilot)
+
+For more information, one can take a look here - https://micro-xrce-dds.docs.eprosima.com/en/latest/agent.html#agent-cli
+
+### Starting the Integration Service
+
+- Install dependencies for the Integration Service and build it with `colcon`
+
+  - https://integration-service.docs.eprosima.com/en/latest/installation_manual/installation.html#installation
+
+TODO add to this once EProsima fixes build errors on Ubuntu 22.04.
+
+### Writing a minimal ROS2 application for custom messages
 
 Use the previous workspace if you want, add in the ROS2 messages supported by Ardupilot.
 
