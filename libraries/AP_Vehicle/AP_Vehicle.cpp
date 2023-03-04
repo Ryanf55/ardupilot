@@ -310,7 +310,9 @@ void AP_Vehicle::setup()
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
 
 #if AP_XRCE_ENABLED
-    init_xrce_client();
+    if (!init_xrce_client()) {
+        gcs().send_text(MAV_SEVERITY_ERROR, "XRCE Client: Failed to Initialize");
+    }
 #endif
 }
 
@@ -829,11 +831,12 @@ void AP_Vehicle::check_motor_noise()
 }
 
 #if AP_XRCE_ENABLED
-void AP_Vehicle::init_xrce_client()
+[[nodiscard]] bool AP_Vehicle::init_xrce_client()
 {
     if (AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_DDS_XRCE, 0)) {
         xrce_client = new AP_XRCE_Client();
     }
+    return xrce_client != nullptr;
 }
 #endif // AP_XRCE_ENABLED
 

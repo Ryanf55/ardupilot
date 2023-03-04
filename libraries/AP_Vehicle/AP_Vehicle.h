@@ -398,7 +398,7 @@ protected:
 #if AP_XRCE_ENABLED
     // Declare the xrce client for communication with ROS2 and DDS(common for all vehicles)
     AP_XRCE_Client *xrce_client;
-    void init_xrce_client();
+    [[nodiscard]] bool init_xrce_client();
 #endif
 
 private:
