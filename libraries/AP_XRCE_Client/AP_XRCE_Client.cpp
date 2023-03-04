@@ -34,7 +34,7 @@ AP_XRCE_Client::AP_XRCE_Client(void)
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_XRCE_Client::main_loop, void),
                                       "XRCE",
                                       8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: thread create failed");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"XRCE Client: thread create failed");
     }
 }
 
@@ -44,7 +44,7 @@ AP_XRCE_Client::AP_XRCE_Client(void)
 void AP_XRCE_Client::main_loop(void)
 {
     if (!init() || !create()) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ALERT,"XRCE Client: Creation Requests failed");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"XRCE Client: Creation Requests failed");
         return;
     }
     GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization passed");
