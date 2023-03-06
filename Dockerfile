@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM amd64/ros:humble-ros-core
 WORKDIR /ardupilot
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -8,11 +8,13 @@ ARG USER_GID=1000
 RUN groupadd ${USER_NAME} --gid ${USER_GID}\
     && useradd -l -m ${USER_NAME} -u ${USER_UID} -g ${USER_GID} -s /bin/bash
 
-RUN apt-get update && apt-get install --no-install-recommends -y \
+RUN apt-get update && apt-get upgrade -y && apt-get install --no-install-recommends -y \
     lsb-release \
     sudo \
     tzdata \
-    bash-completion
+    bash-completion \
+    default-jre \
+    git
 
 COPY Tools/environment_install/install-prereqs-ubuntu.sh /ardupilot/Tools/environment_install/
 COPY Tools/completion /ardupilot/Tools/completion/
@@ -30,7 +32,13 @@ USER ${USER_NAME}
 ENV SKIP_AP_EXT_ENV=1 SKIP_AP_GRAPHIC_ENV=1 SKIP_AP_COV_ENV=1 SKIP_AP_GIT_CHECK=1
 RUN Tools/environment_install/install-prereqs-ubuntu.sh -y
 
+SHELL ["/bin/bash", "-c"]
+RUN git clone -b develop --recurse-submodules https://github.com/eProsima/Micro-XRCE-DDS-Gen.git
+RUN cd Micro-XRCE-DDS-Gen && ./gradlew assemble
+SHELL ["/bin/sh", "-c"]
+
 # add waf alias to ardupilot waf to .ardupilot_env
+RUN echo "export PATH=\$PATH:/ardupilot/Micro-XRCE-DDS-Gen/scripts\n" >> ~/.ardupilot_env
 RUN echo "alias waf=\"/${USER_NAME}/waf\"" >> ~/.ardupilot_env
 
 # Check that local/bin are in PATH for pip --user installed package
