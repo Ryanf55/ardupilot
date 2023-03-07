@@ -4,6 +4,7 @@
 
 #include <AP_RTC/AP_RTC.h>
 #include <AP_SerialManager/AP_SerialManager.h>
+#include <GCS_MAVLink/GCS.h>
 
 #include "AP_XRCE_Client.h"
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
@@ -25,6 +26,35 @@ const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
 
 #include "AP_XRCE_Topic_Table.h"
 
+/*
+  class constructor
+ */
+AP_XRCE_Client::AP_XRCE_Client(void)
+{
+    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_XRCE_Client::main_loop, void),
+                                      "XRCE",
+                                      8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"XRCE Client: thread create failed");
+    }
+}
+
+/*
+  main loop for XRCE thread
+ */
+void AP_XRCE_Client::main_loop(void)
+{
+    if (!init() || !create()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"XRCE Client: Creation Requests failed");
+        return;
+    }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization passed");
+    while (true) {
+        hal.scheduler->delay(1);
+        update();
+    }
+}
+
+
 bool AP_XRCE_Client::init()
 {
     AP_SerialManager *serial_manager = AP_SerialManager::get_singleton();
@@ -32,6 +62,9 @@ bool AP_XRCE_Client::init()
     if (xrce_port == nullptr) {
         return false;
     }
+
+    // ensure we own the UART
+    xrce_port->begin(0);
 
     constexpr uint8_t fd = 0;
     constexpr uint8_t relativeSerialAgentAddr = 0;
@@ -41,10 +74,14 @@ bool AP_XRCE_Client::init()
     }
 
     constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
+    //TODO does this need to be inside the loop to handle reconnect?
     uxr_init_session(&session, &serial_transport.comm, uniqueClientKey);
-    if (!uxr_create_session(&session)) {
-        return false;
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization wait");
+    while (!uxr_create_session(&session)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization waiting...");
+        hal.scheduler->delay(1000);
     }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Session Created");
 
     reliable_in = uxr_create_input_reliable_stream(&session,input_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
     reliable_out = uxr_create_output_reliable_stream(&session,output_reliable_stream,BUFFER_SIZE_SERIAL,STREAM_HISTORY);
@@ -58,13 +95,16 @@ bool AP_XRCE_Client::init()
     if(time_topic == nullptr) {
         return false;
     }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Init Complete");
 
     return true;
 }
 
 bool AP_XRCE_Client::create()
 {
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: create() enter");
     WITH_SEMAPHORE(csem);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: create semaphore csem");
 
     // Participant
     const uxrObjectId participant_id = {
@@ -133,8 +173,10 @@ void AP_XRCE_Client::update()
         return;
     }
     WITH_SEMAPHORE(csem);
+
     update_topic(time_topic);
-    connected = uxr_run_session_time(&session,1000);
+    write();
+    connected = uxr_run_session_time(&session, 1);
 }
 
 /*
@@ -160,8 +202,8 @@ size_t uxr_write_serial_data_platform(void* args, const uint8_t* buf, size_t len
         *errcode = 1;
         return 0;
     }
-    size_t bytes_written = xrce_port->write(buf, (size_t)len);
-    if (bytes_written == 0) {
+    ssize_t bytes_written = xrce_port->write(buf, (size_t)len);
+    if (bytes_written <= 0) {
         *errcode = 1;
         return 0;
     }
@@ -179,7 +221,7 @@ size_t uxr_read_serial_data_platform(void* args, uint8_t* buf, size_t len, int t
         hal.scheduler->delay(1); // TODO select or poll this is limiting speed (1mS)
         timeout--;
     }
-    size_t bytes_read = xrce_port->read(buf, (size_t)len);
+    ssize_t bytes_read = xrce_port->read(buf, (size_t)len);
     if (bytes_read <= 0) {
         *errcode = 1;
         return 0;
@@ -197,7 +239,7 @@ int clock_gettime(clockid_t clockid, struct timespec *ts)
 {
     uint64_t utc_usec;
     if (!AP::rtc().get_utc_usec(utc_usec)) {
-        return -1;
+        utc_usec = AP_HAL::micros64();
     }
     ts->tv_sec = utc_usec / 1000000ULL;
     ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;

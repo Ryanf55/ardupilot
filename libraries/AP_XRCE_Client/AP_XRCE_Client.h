@@ -53,10 +53,12 @@ private:
     AP_Int8 xrce_type;
 public:
     // Constructor
-    AP_XRCE_Client(){};
+    AP_XRCE_Client();
+
+    void main_loop(void);
 
     // 
-    bool init();
+    [[nodiscard]] bool init();
 
 
 
@@ -65,7 +67,7 @@ public:
     // if it works, then call init to set up the thread
     static void doAllocation();
     
-    bool create();
+    [[nodiscard]] bool create();
     void write();
     void update();
     static const struct AP_Param::GroupInfo var_info[];

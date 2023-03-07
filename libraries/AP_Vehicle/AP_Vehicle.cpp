@@ -17,6 +17,7 @@
 #include <AP_HAL_ChibiOS/sdcard.h>
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
 #endif
+#include <AP_XRCE_Client/AP_XRCE_Client.h>
 
 #define SCHED_TASK(func, rate_hz, max_time_micros, prio) SCHED_TASK_CLASS(AP_Vehicle, &vehicle, func, rate_hz, max_time_micros, prio)
 
@@ -127,7 +128,7 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
 #if AP_XRCE_ENABLED
     // @Group: XRCE
     // @Path: ../AP_XRCE_Client/AP_XRCE_Client.cpp
-    AP_SUBGROUPINFO(xrce_client, "XRCE_", 18, AP_Vehicle, AP_XRCE_Client),
+    AP_SUBGROUPPTR(xrce_client, "XRCE_", 18, AP_Vehicle, AP_XRCE_Client),
 #endif
 
     AP_GROUPEND
@@ -309,7 +310,9 @@ void AP_Vehicle::setup()
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
 
 #if AP_XRCE_ENABLED
-    init_xrce_client();
+    if (!init_xrce_client()) {
+        gcs().send_text(MAV_SEVERITY_ERROR, "XRCE Client: Failed to Initialize");
+    }
 #endif
 }
 
@@ -431,9 +434,6 @@ const AP_Scheduler::Task AP_Vehicle::scheduler_tasks[] = {
     SCHED_TASK(check_motor_noise,      5,     50, 252),
 #endif
     SCHED_TASK(update_arming,          1,     50, 253),
-#if AP_XRCE_ENABLED
-    SCHED_TASK(update_topics,          1,     75, 254),
-#endif
 };
 
 void AP_Vehicle::get_common_scheduler_tasks(const AP_Scheduler::Task*& tasks, uint8_t& num_tasks)
@@ -831,23 +831,12 @@ void AP_Vehicle::check_motor_noise()
 }
 
 #if AP_XRCE_ENABLED
-void AP_Vehicle::init_xrce_client()
+[[nodiscard]] bool AP_Vehicle::init_xrce_client()
 {
-    if(xrce_client.init()){
-        if(xrce_client.create()){
-            hal.scheduler->register_io_process(FUNCTOR_BIND(&xrce_client,&AP_XRCE_Client::write,void));
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"XRCE Client: Initialization passed");
-        } else {
-            GCS_SEND_TEXT(MAV_SEVERITY_ALERT,"XRCE Client: Creation Requests failed");
-        }
-    } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_ALERT,"XRCE Client: Initialization failed");
+    if (AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_DDS_XRCE, 0)) {
+        xrce_client = new AP_XRCE_Client();
     }
-}
-
-void AP_Vehicle::update_topics()
-{
-    xrce_client.update();
+    return xrce_client != nullptr;
 }
 #endif // AP_XRCE_ENABLED
 
