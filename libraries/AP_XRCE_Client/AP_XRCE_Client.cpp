@@ -1,13 +1,13 @@
-#include "AP_XRCE_Client.h"
-#include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
-#include "AP_XRCE_Gather_Data.h"
-
 #include <AP_HAL/AP_HAL.h>
+
+#if AP_XRCE_ENABLED
+
 #include <AP_RTC/AP_RTC.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 
-
-#if AP_XRCE_ENABLED
+#include "AP_XRCE_Client.h"
+#include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
+#include "AP_XRCE_Gather_Data.h"
 
 AP_HAL::UARTDriver *xrce_port;
 

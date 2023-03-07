@@ -83,6 +83,8 @@ class Board:
                 'AP_XRCE_Client'
             ]
             env.DEFINES.update(AP_XRCE_ENABLED = 1)
+            # check for microxrceddsgen
+            cfg.find_program('microxrceddsgen',mandatory=True)
         else:
             env.ENABLE_XRCE_DDS = False
             env.DEFINES.update(AP_XRCE_ENABLED = 0)
@@ -105,8 +107,7 @@ class Board:
             env.DEFINES.update(
                 ENABLE_ONVIF=0,
             )
-        # check for microxrceddsgen
-        cfg.find_program('microxrceddsgen',mandatory=True)
+
         # allow enable of OpenDroneID for any board
         if cfg.options.enable_opendroneid:
             env.ENABLE_OPENDRONEID = True
