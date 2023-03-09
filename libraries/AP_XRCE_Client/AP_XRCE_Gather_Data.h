@@ -1,5 +1,5 @@
 #include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
-#include "Generated/Time.h"
+#include "Time.h"
 #include <AP_HAL/AP_HAL.h>
 
 static void update_topic(ROS2_BuiltinInterfacesTimeTopic* topic)
