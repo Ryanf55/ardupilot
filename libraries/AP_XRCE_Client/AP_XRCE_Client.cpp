@@ -147,11 +147,9 @@ void AP_XRCE_Client::write()
     if(connected)
     {
         ucdrBuffer ub;
-        // uint32_t topic_size = rbi_time_topic.size_of_topic(0);
-        uint32_t topic_size = builtin_interfaces_msg_Time_size_of_topic(&normal_time_topic, 0);
+        uint32_t topic_size = builtin_interfaces_msg_Time_size_of_topic(&time_topic, 0);
         uxr_prepare_output_stream(&session,reliable_out,dwriter_id,&ub,topic_size);
-        // const bool success = rbi_time_topic.serialize_topic(&ub);
-        const bool success = builtin_interfaces_msg_Time_serialize_topic(&ub, &normal_time_topic);
+        const bool success = builtin_interfaces_msg_Time_serialize_topic(&ub, &time_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
             // AP_HAL::panic("FATAL: XRCE_Client failed to serialize\n");
@@ -165,7 +163,7 @@ void AP_XRCE_Client::update()
 {
     WITH_SEMAPHORE(csem);
 
-    update_topic(&rbi_time_topic);
+    update_topic(&time_topic);
     write();
     connected = uxr_run_session_time(&session, 1);
 }

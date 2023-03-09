@@ -38,8 +38,7 @@ private:
     uxrStreamId reliable_out;
 
     // Topic
-    ROS2_BuiltinInterfacesTimeTopic rbi_time_topic;
-    builtin_interfaces_msg_Time normal_time_topic;
+    builtin_interfaces_msg_Time time_topic;
 
     // Data Writer
     const uxrObjectId dwriter_id = {
