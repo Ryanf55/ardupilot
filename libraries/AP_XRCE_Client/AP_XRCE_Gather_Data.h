@@ -2,7 +2,7 @@
 #include "Generated/Time.h"
 #include <AP_HAL/AP_HAL.h>
 
-void update_topic(ROS2_BuiltinInterfacesTimeTopic* topic)
+static void update_topic(ROS2_BuiltinInterfacesTimeTopic* topic)
 {
     if (topic != nullptr) {
 
