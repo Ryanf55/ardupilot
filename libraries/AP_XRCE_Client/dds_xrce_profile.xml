@@ -5,7 +5,7 @@
         </rtps>
     </participant>
 
-    <topic profile_name="my_qos_label__t">
+    <topic profile_name="time__t">
         <name>rt/ROS2_Time</name>
         <dataType>builtin_interfaces::msg::dds_::Time_</dataType>
         <historyQos>
@@ -14,7 +14,7 @@
         </historyQos>
     </topic>
 
-    <data_writer profile_name="my_qos_label__dw">
+    <data_writer profile_name="time__dw">
         <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
         <qos>
           <reliability>

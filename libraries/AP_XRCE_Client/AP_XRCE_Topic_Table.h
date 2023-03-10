@@ -9,7 +9,10 @@
 
 const struct AP_XRCE_Client::Topic_table AP_XRCE_Client::topics[] = {
     {
-        .label = "my_qos_label__t",
+        .topic_id = 0x01,
+        .pub_id = 0x01,
+        .topic_profile_label = "time__t",
+        .dw_profile_label = "time__dw",
         .serialize = Generic_serialize_topic_fn_t(&builtin_interfaces_msg_Time_serialize_topic),
         .deserialize = Generic_deserialize_topic_fn_t(&builtin_interfaces_msg_Time_deserialize_topic),
         .size_of = Generic_size_of_topic_fn_t(&builtin_interfaces_msg_Time_size_of_topic),
