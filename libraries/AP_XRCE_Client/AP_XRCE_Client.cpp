@@ -107,22 +107,22 @@ bool AP_XRCE_Client::create()
 
     // Topic
     const uxrObjectId topic_id = {
-        .id = 0x01,
+        .id = topics[0].topic_id,
         .type = UXR_TOPIC_ID
     };
-    const char* topic_ref = "my_qos_label__t";
+    const char* topic_ref = topics[0].topic_profile_label;
     const auto topic_req_id = uxr_buffer_create_topic_ref(&session,reliable_out,topic_id,participant_id,topic_ref,UXR_REPLACE);
 
     // Publisher
     const uxrObjectId pub_id = {
-        .id = 0x01,
+        .id = topics[0].pub_id,
         .type = UXR_PUBLISHER_ID
     };
     const char* pub_xml = "";
     const auto pub_req_id = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
 
     // Data Writer
-    const char* data_writer_ref = "my_qos_label__dw";
+    const char* data_writer_ref = topics[0].dw_profile_label;
     const auto dwriter_req_id = uxr_buffer_create_datawriter_ref(&session,reliable_out,dwriter_id,pub_id,data_writer_ref,UXR_REPLACE);
     
     //Status requests
