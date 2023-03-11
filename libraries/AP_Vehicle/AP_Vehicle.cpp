@@ -17,6 +17,7 @@
 #include <AP_HAL_ChibiOS/sdcard.h>
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
 #endif
+#include <AP_XRCE_Client/AP_XRCE_Client.h>
 
 #define SCHED_TASK(func, rate_hz, max_time_micros, prio) SCHED_TASK_CLASS(AP_Vehicle, &vehicle, func, rate_hz, max_time_micros, prio)
 
@@ -124,11 +125,17 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
     AP_SUBGROUPINFO(nmea, "NMEA_", 17, AP_Vehicle, AP_NMEA_Output),
 #endif
 
+#if AP_XRCE_ENABLED
+    // @Group: XRCE
+    // @Path: ../AP_XRCE_Client/AP_XRCE_Client.cpp
+    AP_SUBGROUPPTR(xrce_client, "XRCE_", 18, AP_Vehicle, AP_XRCE_Client),
+#endif
+
     AP_GROUPEND
 };
 
 // reference to the vehicle. using AP::vehicle() here does not work on clang
-#if APM_BUILD_TYPE(APM_BUILD_UNKNOWN) || APM_BUILD_TYPE(APM_BUILD_AP_Periph)
+#if APM_BUILD_TYPE(APM_BUILD_UNKNOWN)
 AP_Vehicle& vehicle = *AP_Vehicle::get_singleton();
 #else
 extern AP_Vehicle& vehicle;
@@ -301,6 +308,12 @@ void AP_Vehicle::setup()
     AP_Param::invalidate_count();
 
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
+
+#if AP_XRCE_ENABLED
+    if (!init_xrce_client()) {
+        gcs().send_text(MAV_SEVERITY_ERROR, "XRCE Client: Failed to Initialize");
+    }
+#endif
 }
 
 void AP_Vehicle::loop()
@@ -816,6 +829,16 @@ void AP_Vehicle::check_motor_noise()
     }
 #endif
 }
+
+#if AP_XRCE_ENABLED
+[[nodiscard]] bool AP_Vehicle::init_xrce_client()
+{
+    if (AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_DDS_XRCE, 0)) {
+        xrce_client = new AP_XRCE_Client();
+    }
+    return xrce_client != nullptr;
+}
+#endif // AP_XRCE_ENABLED
 
 AP_Vehicle *AP_Vehicle::_singleton = nullptr;
 
