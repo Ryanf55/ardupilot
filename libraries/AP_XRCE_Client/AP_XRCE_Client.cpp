@@ -7,7 +7,6 @@
 #include <GCS_MAVLink/GCS.h>
 
 #include "AP_XRCE_Client.h"
-#include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
 #include "AP_XRCE_Gather_Data.h"
 #include "Time.h"
 

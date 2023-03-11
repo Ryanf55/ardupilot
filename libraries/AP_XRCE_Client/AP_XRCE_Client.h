@@ -4,7 +4,6 @@
 
 #include "uxr/client/client.h"
 #include "ucdr/microcdr.h"
-#include "AP_XRCE_ROS2_Builtin_Interfaces_Topics.h"
 #include "Time.h"
 #include "AP_XRCE_Generic_Fn_T.h"
 
