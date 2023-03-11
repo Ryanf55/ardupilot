@@ -68,7 +68,6 @@ section, you should remove it and switch to local install.
 | - | - |
 | SERIAL1_BAUD | The serial baud rate for XRCE DDS |
 | SERIAL1_PROTOCOL | Set this to 45 to use XRCE DDS on the serial port |
-| XRCE_TYPE | Set this to 0 to connect to the native XRCE Agent and 1 for MicroROS |
 
 
 ## Testing with a UART
@@ -106,18 +105,6 @@ param set SERIAL1_PROTOCOL 45
 ```
 sim_vehicle.py -D  --console --enable-xrce-dds -A "--uartC=uart:/dev/pts/1"
 ```
-
-If desired, set the XRCE parameters:
-
-- set **XRCE_TYPE = 0** (default) for a DDS Agent
-- set **XRCE_TYPE = 1** for a micro-ROS Agent
-
-
-For example:
-```
-param set XRCE_TYPE 1
-```
-Then, restart the simulator if you changed XRCE_TYPE.
 
 ## Starting with microROS Agent
 
@@ -251,8 +238,6 @@ You should see output similar to below:
 
   - **SERIAL1_BAUD 115**
   - **SERIAL1_PROTOCOL 45**
-  - **XRCE_TYPE  1**
-  - **XRCE_TOPIC 7**
 
 - Once the above values are set ,run the simulator again as :
 

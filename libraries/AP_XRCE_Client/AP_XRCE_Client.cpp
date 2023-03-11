@@ -14,12 +14,7 @@ AP_HAL::UARTDriver *xrce_port;
 
 
 const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
-    // @Param: TYPE
-    // @DisplayName: XRCE_TYPE
-    // @Description: Type of XRCE protocol to use
-    // @Values: 0:DDS,1:uROS(micro-ROS)
-    // @User: Standard
-    AP_GROUPINFO("TYPE", 1, AP_XRCE_Client, xrce_type, 0),
+    //! @todo Params go here
 
     AP_GROUPEND
 };
@@ -124,7 +119,7 @@ bool AP_XRCE_Client::create()
     // Data Writer
     const char* data_writer_ref = topics[0].dw_profile_label;
     const auto dwriter_req_id = uxr_buffer_create_datawriter_ref(&session,reliable_out,dwriter_id,pub_id,data_writer_ref,UXR_REPLACE);
-    
+
     //Status requests
     constexpr uint8_t nRequests = 4;
     const uint16_t requests[nRequests] = {participant_req_id, topic_req_id, pub_req_id, dwriter_req_id};
