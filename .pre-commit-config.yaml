@@ -38,7 +38,8 @@ repos:
 
 # Use to sort python imports by name and put system import first.
   -   repo: https://github.com/pycqa/isort
-      rev: 5.10.1
+      # Bump to 5.12.0 https://github.com/pre-commit/pre-commit/issues/2730
+      rev: 5.12.0
       hooks:
         - id: isort
           args: [--check-only]
@@ -51,3 +52,16 @@ repos:
         - id: mypy
           args: [--no-strict-optional, --ignore-missing-imports]
           additional_dependencies: [types-PyYAML, types-requests]
+
+# Use to check python style
+  -   repo: https://github.com/psf/black
+      rev: 23.1.0
+      hooks:
+        - id: black
+          files: libraries/AP_XRCE_Client/wscript
+
+  -   repo: https://github.com/lsst-ts/pre-commit-xmllint
+      rev: v1.0.0
+      hooks:
+        - id: format-xmllint
+          files: libraries/AP_XRCE_Client/dds_xrce_profile.xml
