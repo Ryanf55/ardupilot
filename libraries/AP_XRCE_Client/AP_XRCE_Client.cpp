@@ -219,6 +219,8 @@ extern "C" {
 
 int clock_gettime(clockid_t clockid, struct timespec *ts)
 {
+    //! @todo the value of clockid is ignored here.
+    //! A fallback mechanism is employed against the caller's choice of clock.
     uint64_t utc_usec;
     if (!AP::rtc().get_utc_usec(utc_usec)) {
         utc_usec = AP_HAL::micros64();

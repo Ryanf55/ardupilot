@@ -2,14 +2,18 @@
 
 #include "AP_XRCE_Gather_Data.h"
 #include <AP_HAL/AP_HAL.h>
+#include <AP_RTC/AP_RTC.h>
 
 void update_topic(builtin_interfaces_msg_Time* msg)
 {
     if (msg != nullptr) {
-        // TODO to be ROS REP 103 compliant, this should use Unix Epoch time, not boot time
-        const uint64_t u64 = AP_HAL::micros64();
-        msg->sec = u64 / 1000000ULL;
-        msg->nanosec = (u64 % 1000000ULL ) * 1000;
+
+        uint64_t utc_usec;
+        if (!AP::rtc().get_utc_usec(utc_usec)) {
+            utc_usec = AP_HAL::micros64();
+        }
+        msg->sec = utc_usec / 1000000ULL;
+        msg->nanosec = (utc_usec % 1000000ULL) * 1000UL;
     }
 }
 
