@@ -4,8 +4,6 @@
 
 #include "ucdr/microcdr.h"
 
-constexpr char packageName[] = "builtin_interfaces";
-
 ROS2_BuiltinInterfacesTimeTopic::ROS2_BuiltinInterfacesTimeTopic()
 {
 }
