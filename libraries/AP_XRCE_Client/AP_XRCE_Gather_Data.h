@@ -2,7 +2,7 @@
 
 #if AP_XRCE_ENABLED
 
-#include "Time.h"
+#include "generated/Time.h"
 
 void update_topic(builtin_interfaces_msg_Time* msg);
 

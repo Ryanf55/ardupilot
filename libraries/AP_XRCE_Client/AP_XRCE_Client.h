@@ -4,7 +4,7 @@
 
 #include "uxr/client/client.h"
 #include "ucdr/microcdr.h"
-#include "Time.h"
+#include "generated/Time.h"
 #include "AP_XRCE_Generic_Fn_T.h"
 
 #include <AP_HAL/AP_HAL.h>

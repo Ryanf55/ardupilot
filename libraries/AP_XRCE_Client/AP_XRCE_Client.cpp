@@ -8,7 +8,7 @@
 
 #include "AP_XRCE_Client.h"
 #include "AP_XRCE_Gather_Data.h"
-#include "Time.h"
+#include "generated/Time.h"
 
 AP_HAL::UARTDriver *xrce_port;
 
