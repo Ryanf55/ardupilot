@@ -251,6 +251,10 @@ submodules at specific revisions.
                  default=False,
                  help="Enables GPS logging")
     
+    g.add_option('--enable-xrce-dds', action='store_true',
+                 help="Enable the xrce client to connect with ROS2/DDS"
+    )
+
     g = opt.ap_groups['linux']
 
     linux_options = ('--prefix', '--destdir', '--bindir', '--libdir')
@@ -663,6 +667,9 @@ def _build_dynamic_sources(bld):
                 bld.srcnode.find_dir('modules/DroneCAN/libcanard/').abspath(),
             ]
         )
+
+    if bld.env.ENABLE_XRCE_DDS:
+        bld.recurse("libraries/AP_XRCE_Client")
 
     def write_version_header(tsk):
         bld = tsk.generator.bld
