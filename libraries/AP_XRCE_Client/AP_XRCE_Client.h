@@ -20,7 +20,8 @@
 
 extern const AP_HAL::HAL& hal;
 
-class AP_XRCE_Client {
+class AP_XRCE_Client
+{
 
 private:
 
@@ -57,16 +58,16 @@ public:
 
     void main_loop(void);
 
-    // 
+    //
     [[nodiscard]] bool init();
 
 
 
     // lookup serial manager to find the port
-    // then call all the new 
+    // then call all the new
     // if it works, then call init to set up the thread
     static void doAllocation();
-    
+
     [[nodiscard]] bool create();
     void write();
     void update();

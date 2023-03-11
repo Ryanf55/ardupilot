@@ -13,7 +13,7 @@
 AP_HAL::UARTDriver *xrce_port;
 
 
-const AP_Param::GroupInfo AP_XRCE_Client::var_info[]={
+const AP_Param::GroupInfo AP_XRCE_Client::var_info[]= {
     //! @todo Params go here
 
     AP_GROUPEND
@@ -138,8 +138,7 @@ bool AP_XRCE_Client::create()
 void AP_XRCE_Client::write()
 {
     WITH_SEMAPHORE(csem);
-    if(connected)
-    {
+    if (connected) {
         ucdrBuffer ub;
         uint32_t topic_size = builtin_interfaces_msg_Time_size_of_topic(&time_topic, 0);
         uxr_prepare_output_stream(&session,reliable_out,dwriter_id,&ub,topic_size);
