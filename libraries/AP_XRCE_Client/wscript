@@ -46,7 +46,11 @@ def build(bld):
     config_h_nodes = [bld.bldnode.find_or_declare(h[:-3]) for h in config_h_in]
 
     gen_path = "libraries/AP_XRCE_Client"
-    extra_bld_inc = ['modules/Micro-CDR/include', 'modules/Micro-XRCE-DDS-Client/include', gen_path]
+    extra_bld_inc = [
+        'modules/Micro-CDR/include',\
+        'modules/Micro-XRCE-DDS-Client/include',
+        gen_path,
+    ]
     for inc in extra_bld_inc:
         bld.env.INCLUDES += [bld.bldnode.find_or_declare(inc).abspath()]
 
@@ -68,7 +72,21 @@ def build(bld):
         )
 
     # temporary whitelist while include issue is sorted out
-    whitelist = ['Duration.idl', 'Time.idl']
+    whitelist = [
+      'BatteryState.idl',
+      'Duration.idl',
+      'Header.idl',
+      'NavSatFix.idl', 
+      'NavSatStatus.idl',
+      'Point.idl',
+      'Pose.idl',
+      # 'PoseStamped.idl',
+      'Quaternion.idl',
+      'Time.idl',
+      'Twist.idl',
+      # 'TwistStamped.idl',
+      'Vector3.idl',
+    ]
 
     idl_files = bld.srcnode.ant_glob('libraries/AP_XRCE_Client/Idl/**/*.idl')
     for idl in idl_files:
