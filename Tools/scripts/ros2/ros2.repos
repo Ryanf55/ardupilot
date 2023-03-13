@@ -5,8 +5,8 @@ repositories:
     version: srmainwaring/ddsPrototype
   ardupilot_ros2:
     type: git
-    url: https://github.com/arshPratap/ardupilot_ros2.git
-    version: main
+    url: https://github.com/srmainwaring/ardupilot_ros2.git
+    version: srmainwaring/pr-ci-test-package
   micro_ros_setup:
     type: git
     url: https://github.com/micro-ROS/micro_ros_setup.git
