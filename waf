@@ -5,6 +5,10 @@ import subprocess
 import os.path as p
 import sys
 
+if sys.version_info[0] != 3:
+    print("This script requires Python 3")
+    exit()
+
 d = p.dirname(p.realpath(__file__))
 waf_light = p.join(d, 'modules', 'waf', 'waf-light')
 
