@@ -79,9 +79,16 @@ class Board:
         if cfg.options.enable_dds:
             cfg.recurse('libraries/AP_DDS')
             env.ENABLE_DDS = True
+            env.DDS_TYPE = cfg.options.enable_dds
+            print(env.DDS_TYPE)
+            quit()
             env.AP_LIBRARIES += [
                 'AP_DDS'
             ]
+            env.DEFINES.update(AP_DDS_ENABLED = 1)
+            if env.DDS_TYPE == eProsimaMicroXRCEClient:
+            
+
             env.DEFINES.update(AP_DDS_ENABLED = 1)
             # check for microxrceddsgen
             cfg.find_program('microxrceddsgen',mandatory=True)

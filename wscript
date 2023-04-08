@@ -252,8 +252,9 @@ submodules at specific revisions.
                  default=False,
                  help="Enables GPS logging")
     
-    g.add_option('--enable-dds', action='store_true',
-                 help="Enable the dds client to connect with ROS2/DDS"
+    g.add_option('--enable-dds', action='store',
+                 help="Enable the DDS client using the selected implementation",
+                 choices= ["eProsimaMicroXRCEClient", "microROS"]
     )
 
     g.add_option('--enable-dronecan-tests', action='store_true',
