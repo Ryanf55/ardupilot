@@ -114,11 +114,14 @@ void Battery::set_initial_SoC(float voltage)
     remaining_Ah = 0;
 }
 
-void Battery::setup(float _capacity_Ah, float _resistance, float _max_voltage)
+void Battery::setup(float _capacity_Ah, float _resistance, float _max_voltage, uint8_t cells)
 {
     capacity_Ah = _capacity_Ah;
     resistance = _resistance;
     max_voltage = _max_voltage;
+    // Commented out because the macro is not defined in SITL
+    // static_assert(cells <= AP_BATT_MONITOR_CELLS_MAX);
+    num_cells = cells;
 }
 
 void Battery::init_voltage(float voltage)
@@ -149,6 +152,8 @@ void Battery::set_current(float current)
         voltage = get_resting_voltage(100 * remaining_Ah / capacity_Ah) - voltage_delta;
     }
 
+    //! @todo using the ambient temperature and internal resistance, update battery temperature
+
     voltage_filter.apply(voltage);
 }
 
@@ -156,3 +161,12 @@ float Battery::get_voltage(void) const
 {
     return voltage_filter.get();
 }
+
+// Want to add a method to get cell voltages
+// Ideally, re-use headers from AP_BattMon
+// struct cells ...
+// float Battery::get_cell_voltages(void) const
+// {
+//     const auto pack_voltage = voltage_filer.get();
+//     const auto cell_voltage = pack_voltage / num_cells;
+// }

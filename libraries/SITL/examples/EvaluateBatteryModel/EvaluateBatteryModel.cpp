@@ -28,6 +28,7 @@ public:
     float get_capacity() { return model.battCapacityAh; }
     float get_max_volt() { return model.maxVoltage; }
     float get_resistance() { return model.refBatRes; }
+    float get_num_cells() { return model.numBattCells; }
 
 };
 
@@ -55,13 +56,14 @@ void setup(void)
     const float amp_hour_capacity = frame.get_capacity();
     const float resistance = frame.get_resistance();
     const float max_voltage = frame.get_max_volt();
+    const uint8_t num_cells = frame.get_num_cells();
     const float min_voltage = max_voltage * 0.7;
 
     ::printf("Simulating %0.2fv, %0.2f ah battery with resistance of %f\n", max_voltage, amp_hour_capacity, resistance);
     ::printf("Voltage from %0.2f to %0.2f with constant current draw of %0.2f\n", max_voltage, min_voltage, current);
 
     // setup battery model
-    battery.setup(amp_hour_capacity, resistance, max_voltage);
+    battery.setup(amp_hour_capacity, resistance, max_voltage, num_cells);
     battery.init_voltage(max_voltage);
 
     uint64_t time = 0;

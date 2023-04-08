@@ -97,8 +97,12 @@ private:
         float refTempC = 25; // temperature C
         float refBatRes = 0.01; // BAT.Res
 
+
+        // number cells in the battery
+        uint8_t numBattCells = 3;
+
         // full pack voltage
-        float maxVoltage = 4.2*3;
+        float maxVoltage = 4.2 * numBattCells;
 
         // battery capacity in Ah. Use zero for unlimited
         float battCapacityAh = 0.0;

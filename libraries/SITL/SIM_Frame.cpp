@@ -369,6 +369,7 @@ void Frame::load_frame_params(const char *model_json)
         FRAME_VAR(refTempC),
         FRAME_VAR(maxVoltage),
         FRAME_VAR(battCapacityAh),
+        FRAME_VAR(numBattCells),
         FRAME_VAR(refBatRes),
         FRAME_VAR(propExpo),
         FRAME_VAR(refRotRate),
@@ -495,7 +496,7 @@ void Frame::init(const char *frame_str, Battery *_battery)
     // power_factor is ratio of power consumed per newton of thrust
     float power_factor = hover_power / hover_thrust;
 
-    battery->setup(model.battCapacityAh, model.refBatRes, model.maxVoltage);
+    battery->setup(model.battCapacityAh, model.refBatRes, model.maxVoltage, model.numBattCells);
 
     if (uint8_t(model.num_motors) != num_motors) {
         ::printf("Warning model expected %u motors and got %u\n", uint8_t(model.num_motors), num_motors);
@@ -521,6 +522,7 @@ void Frame::init(const char *frame_str, Battery *_battery)
     if (model.battCapacityAh > 0) {
         AP_Param::set_default_by_name("BATT_CAPACITY", model.battCapacityAh*1000);
     }
+    AP_Param::set_default_by_name("BATT_CELLS", model.numBattCells);
 }
 
 /*

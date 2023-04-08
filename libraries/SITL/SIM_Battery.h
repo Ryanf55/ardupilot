@@ -27,7 +27,7 @@ namespace SITL {
  */
 class Battery {
 public:
-    void setup(float _capacity_Ah, float _resistance, float _max_voltage);
+    void setup(float _capacity_Ah, float _resistance, float _max_voltage, uint8_t _cells);
 
     void init_voltage(float voltage);
 
@@ -40,6 +40,7 @@ private:
     float max_voltage;
     float voltage_set;
     float remaining_Ah;
+    uint8_t num_cells;
     uint64_t last_us;
 
     // 10Hz filter for battery voltage
