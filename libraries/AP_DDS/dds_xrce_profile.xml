@@ -123,7 +123,7 @@
     </historyQos>
   </topic>
   <data_reader profile_name="joy__dr">
-    <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
+    <!-- <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
     <qos>
       <reliability>
         <kind>BEST_EFFORT</kind>
@@ -131,15 +131,15 @@
       <durability>
         <kind>VOLATILE</kind>
       </durability>
-    </qos>
+    </qos> -->
     <topic>
       <kind>NO_KEY</kind>
       <name>rt/ROS2_Joy</name>
       <dataType>sensor_msgs::msg::dds_::Joy_</dataType>
-      <historyQos>
+      <!-- <historyQos>
         <kind>KEEP_LAST</kind>
         <depth>5</depth>
-      </historyQos>
+      </historyQos> -->
     </topic>
   </data_reader>
 </profiles>

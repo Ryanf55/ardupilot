@@ -31,11 +31,12 @@ private:
 
     // Serial Allocation
     uxrSerialTransport serial_transport; // client uxr serial transport
-    uxrSession session; //Session
+    uxrSession uxr_session; //Session
 
     // Input Stream
     uint8_t input_reliable_stream[BUFFER_SIZE_SERIAL];
     uxrStreamId reliable_in;
+    uxrStreamId besteffort_in;
 
     // Output Stream
     uint8_t output_reliable_stream[BUFFER_SIZE_SERIAL];
@@ -47,6 +48,19 @@ private:
     tf2_msgs_msg_TFMessage static_transforms_topic;
     sensor_msgs_msg_BatteryState battery_state_topic;
 
+    // Subscriber callback
+    static void on_topic(
+        uxrSession* session,
+        uxrObjectId object_id,
+        uint16_t request_id,
+        uxrStreamId stream_id,
+        struct ucdrBuffer* ub,
+        uint16_t length,
+        void* args);
+
+    uint32_t count = 0;
+
+    // HAL semaphore
     HAL_Semaphore csem;
 
     // connection parametrics
