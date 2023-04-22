@@ -343,23 +343,43 @@ bool AP_DDS_Client::create()
             .type = UXR_TOPIC_ID
         };
         const char* topic_ref = topics[i].topic_profile_label;
-        const auto topic_req_id = uxr_buffer_create_topic_ref(&session,reliable_out,topic_id,participant_id,topic_ref,UXR_REPLACE);
 
-        // Publisher
-        const uxrObjectId pub_id = {
-            .id = topics[i].pub_id,
-            .type = UXR_PUBLISHER_ID
-        };
-        const char* pub_xml = "";
-        const auto pub_req_id = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
 
-        // Data Writer
-        const char* data_writer_ref = topics[i].dw_profile_label;
-        const auto dwriter_req_id = uxr_buffer_create_datawriter_ref(&session,reliable_out,topics[i].dw_id,pub_id,data_writer_ref,UXR_REPLACE);
 
         // Status requests
         constexpr uint8_t nRequests = 3;
-        const uint16_t requests[nRequests] = {topic_req_id, pub_req_id, dwriter_req_id};
+        uint16_t requests[nRequests];
+        if (strlen(topics[i].dw_profile_label)) {
+            requests[0] = uxr_buffer_create_topic_ref(&session,reliable_out,topic_id,participant_id,topic_ref,UXR_REPLACE);
+
+            // Publisher
+            const uxrObjectId pub_id = {
+                .id = topics[i].pub_id,
+                .type = UXR_PUBLISHER_ID
+            };
+            const char* pub_xml = "";
+            requests[1] = uxr_buffer_create_publisher_xml(&session,reliable_out,pub_id,participant_id,pub_xml,UXR_REPLACE);
+
+            // Data Writer
+            const char* data_writer_ref = topics[i].dw_profile_label;
+            requests[2] =  uxr_buffer_create_datawriter_ref(&session,reliable_out,topics[i].dw_id,pub_id,data_writer_ref,UXR_REPLACE);
+        } else if (strlen(topics[i].dr_profile_label)) {
+            requests[0] = uxr_buffer_create_topic_ref(&session,reliable_in,topic_id,participant_id,topic_ref,UXR_REPLACE);
+
+            // Subscriber
+            const uxrObjectId sub_id = {
+                .id = topics[i].pub_id,
+                .type = UXR_SUBSCRIBER_ID
+            };
+            const char* sub_xml = "";
+            requests[1] = uxr_buffer_create_subscriber_xml(&session,reliable_in,sub_id,participant_id,sub_xml,UXR_REPLACE);
+
+            // Data Reader
+            const char* data_reader_ref = topics[i].dr_profile_label;
+            requests[2] =  uxr_buffer_create_datareader_ref(&session,reliable_in,topics[i].dw_id,sub_id,data_reader_ref,UXR_REPLACE);
+
+        }
+
         constexpr int requestTimeoutMs = nRequests * maxTimeMsPerRequestMs;
         uint8_t status[nRequests];
         if (!uxr_run_session_until_all_status(&session, requestTimeoutMs, requests, status, nRequests)) {

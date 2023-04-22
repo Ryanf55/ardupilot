@@ -101,6 +101,7 @@ public:
         const uxrObjectId dw_id;
         const char* topic_profile_label;
         const char* dw_profile_label;
+        const char* dr_profile_label;
         Generic_serialize_topic_fn_t serialize;
         Generic_deserialize_topic_fn_t deserialize;
         Generic_size_of_topic_fn_t size_of;
