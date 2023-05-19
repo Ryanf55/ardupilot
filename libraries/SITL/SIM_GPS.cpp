@@ -18,6 +18,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <SITL/SITL.h>
 #include <AP_Common/NMEA.h>
+#include <AP_HAL/utility/sparse-endian.h>
 
 // simulated CAN GPS devices get fed from our SITL estimates:
 #if HAL_SIM_GPS_EXTERNAL_FIFO_ENABLED
@@ -73,6 +74,7 @@ uint32_t GPS::device_baud() const
 #if AP_SIM_GPS_FILE_ENABLED
         case Type::FILE:
 #endif
+        case Type::GSOF:
             return 0;  // 0 meaning unset
     }
     return 0;  // 0 meaning unset
@@ -1018,6 +1020,90 @@ uint32_t GPS::CalculateBlockCRC32(uint32_t length, uint8_t *buffer, uint32_t crc
     return( crc );
 }
 
+void GPS::update_gsof(const struct gps_data *d)
+{
+
+    // TODO finish this packet
+    // struct PACKED gsof_pos_time {
+    //     uint32_t    time_week_ms; // GPS msToW
+    //     uint16_t    time_week;
+    //     int8_t     num_sats;
+    //     int32_t     altitude_ellipsoid;
+    //     int32_t     altitude_msl;
+    //     uint32_t    horizontal_accuracy;
+    //     uint32_t    vertical_accuracy;
+    // } pos_time {};
+
+    const uint8_t GSOF_POS = 2;
+    struct PACKED gsof_pos {
+        uint32_t    lat;
+        uint32_t    lng;
+        uint32_t    alt;
+    } pos {};
+
+    // TODO convert from host endianness to "Motorola" BE format that the receiver uses
+    
+    // TODO implement all packets
+
+    // TODO send other packets
+
+    // TODO add GSOF49
+
+    send_gsof(GSOF_POS, (uint8_t*)&pos, sizeof(pos));
+
+}
+void GPS::send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size)
+{
+    // All Trimble "Data Collector" packets, including GSOF, are comprised of three fields:
+    // * A fixed-length packet header (dcol_header)
+    // * A variable-length data frame (buf)
+    // * A fixed-length packet trailer (dcol_trailer)
+    // Reference: // https://receiverhelp.trimble.com/oem-gnss/index.html#API_DataCollectorFormatPacketStructure.html?TocPath=API%2520Documentation%257CData%2520collector%2520format%2520packets%257CData%2520collector%2520format%253A%2520packet%2520structure%257C_____0
+
+    const uint8_t STX = 0x02; 
+    // status bitfield
+    // https://receiverhelp.trimble.com/oem-gnss/index.html#API_ReceiverStatusByte.html?TocPath=API%2520Documentation%257CData%2520collector%2520format%2520packets%257CData%2520collector%2520format%253A%2520packet%2520structure%257C_____1
+    const uint8_t STATUS = 0xa8;
+    const uint8_t TYPE = 0x40;
+    const uint8_t LENGTH = 0x6d;
+    
+    const uint8_t dcol_header[4] = {
+        STX,
+        STATUS,
+        TYPE,
+        LENGTH
+    };
+
+
+
+    // const uint8_t TRANSMISSION_NUM = 0xa9;
+    // const uint8_t PAGE_INDEX = 0x00;
+    // const uint8_t MAX_PAGE_INDEX = 0x00;
+    // const uint8_t RECORD_LENGTH = 0x68;
+    // const uint8_t hdr[8] = {
+    //     STATUS,
+    //     TYPE,
+    //     LENGTH,
+    //     TRANSMISSION_NUM,
+    //     PAGE_INDEX,
+    //     MAX_PAGE_INDEX,
+    //     output_record_type,
+    //     RECORD_LENGTH
+    // };
+
+    // Sum bytes (status + type + length + data bytes) and modulo 256 the summation
+    const uint8_t data_csum = ((STATUS + TYPE + LENGTH + size) % 256);
+    const uint8_t ETX = 0x03;
+    const uint8_t dcol_trailer[2] = {
+        data_csum,
+        ETX
+    };
+    
+    write_to_autopilot((char*)dcol_header, sizeof(dcol_header));
+    write_to_autopilot((char*)buf, size);
+    write_to_autopilot((char*)dcol_trailer, sizeof(dcol_trailer));
+}
+
 /*
   read file data logged from AP_GPS_DEBUG_LOGGING_ENABLED
  */
@@ -1218,6 +1304,10 @@ void GPS::update()
 
         case Type::NOVA:
             update_nova(&d);
+            break;
+
+        case Type::GSOF:
+            update_gsof(&d);
             break;
 
 #if AP_SIM_GPS_FILE_ENABLED
