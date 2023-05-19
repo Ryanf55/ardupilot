@@ -42,19 +42,24 @@ do {                                            \
 # define Debug(fmt, args ...)
 #endif
 
+enum class PacketType
+{
+    GSOF = 0x40
+};
+
 AP_GPS_GSOF::AP_GPS_GSOF(AP_GPS &_gps, AP_GPS::GPS_State &_state,
                          AP_HAL::UARTDriver *_port) :
     AP_GPS_Backend(_gps, _state, _port)
 {
-    msg.state = Msg_Parser::State::STARTTX;
 
+    // TODO move the init out of the constructor
     // baud request for port 0
     requestBaud(0);
     // baud request for port 3
     requestBaud(3);
 
     const uint32_t now = AP_HAL::millis();
-    gsofmsg_time = now + 110;
+    gsofmsg_time = now + 110; // TODO this falls over at 49 days
 }
 
 // Process all bytes available from the stream
@@ -68,7 +73,7 @@ AP_GPS_GSOF::read(void)
         if (now > gsofmsg_time) {
             requestGSOF(gsofmsgreq[gsofmsgreq_index], 0);
             requestGSOF(gsofmsgreq[gsofmsgreq_index], 3);
-            gsofmsg_time = now + 110;
+            gsofmsg_time = now + 110; // TODO this falls over at 49 days
             gsofmsgreq_index++;
         }
     }
@@ -88,52 +93,52 @@ AP_GPS_GSOF::read(void)
 bool
 AP_GPS_GSOF::parse(const uint8_t temp)
 {
-    switch (msg.state)
+    switch (state)
     {
     default:
-    case Msg_Parser::State::STARTTX:
+    case State::STARTTX:
         if (temp == STX)
         {
-            msg.state = Msg_Parser::State::STATUS;
+            state = State::STATUS;
             msg.read = 0;
             msg.checksumcalc = 0;
         }
         break;
-    case Msg_Parser::State::STATUS:
+    case State::STATUS:
         msg.status = temp;
-        msg.state = Msg_Parser::State::PACKETTYPE;
+        state = State::PACKETTYPE;
         msg.checksumcalc += temp;
         break;
-    case Msg_Parser::State::PACKETTYPE:
+    case State::PACKETTYPE:
         msg.packettype = temp;
-        msg.state = Msg_Parser::State::LENGTH;
+        state = State::LENGTH;
         msg.checksumcalc += temp;
         break;
-    case Msg_Parser::State::LENGTH:
+    case State::LENGTH:
         msg.length = temp;
-        msg.state = Msg_Parser::State::DATA;
+        state = State::DATA;
         msg.checksumcalc += temp;
         break;
-    case Msg_Parser::State::DATA:
+    case State::DATA:
         msg.data[msg.read] = temp;
         msg.read++;
         msg.checksumcalc += temp;
         if (msg.read >= msg.length)
         {
-            msg.state = Msg_Parser::State::CHECKSUM;
+            state = State::CHECKSUM;
         }
         break;
-    case Msg_Parser::State::CHECKSUM:
+    case State::CHECKSUM:
         msg.checksum = temp;
-        msg.state = Msg_Parser::State::ENDTX;
+        state = State::ENDTX;
         if (msg.checksum == msg.checksumcalc)
         {
             return process_message();
         }
         break;
-    case Msg_Parser::State::ENDTX:
+    case State::ENDTX:
         msg.endtx = temp;
-        msg.state = Msg_Parser::State::STARTTX;
+        state = State::STARTTX;
         break;
     }
 
@@ -246,11 +251,11 @@ AP_GPS_GSOF::SwapUint16(const uint8_t* src, const uint32_t pos) const
 }
 
 bool
-AP_GPS_GSOF::process_message(void)
+AP_GPS_GSOF::process_message(const Msg_Parser& msg)
 {
     //http://www.trimble.com/OEM_ReceiverHelp/V4.81/en/default.html#welcome.html
 
-    if (msg.packettype == 0x40) { // GSOF
+    switch(msg.packettype) {
 #if gsof_DEBUGGING
         const uint8_t trans_number = msg.data[0];
         const uint8_t pageidx = msg.data[1];
@@ -259,90 +264,95 @@ AP_GPS_GSOF::process_message(void)
         Debug("GSOF page: %u of %u (trans_number=%u)",
               pageidx, maxpageidx, trans_number);
 #endif
+        case static_cast<uint8_t>(PacketType::GSOF):
 
-        int valid = 0;
+            int valid = 0;
 
-        // want 1 2 8 9 12
-        for (uint32_t a = 3; a < msg.length; a++)
-        {
-            const uint8_t output_type = msg.data[a];
-            a++;
-            const uint8_t output_length = msg.data[a];
-            a++;
-            //Debug("GSOF type: " + output_type + " len: " + output_length);
-
-            if (output_type == 1) // pos time
+            // want 1 2 8 9 12
+            for (uint32_t a = 3; a < msg.length; a++)
             {
-                state.time_week_ms = SwapUint32(msg.data, a);
-                state.time_week = SwapUint16(msg.data, a + 4);
-                state.num_sats = msg.data[a + 6];
-                const uint8_t posf1 = msg.data[a + 7];
-                const uint8_t posf2 = msg.data[a + 8];
+                const uint8_t output_type = msg.data[a];
+                a++;
+                const uint8_t output_length = msg.data[a];
+                a++;
+                //Debug("GSOF type: " + output_type + " len: " + output_length);
 
-                //Debug("POSTIME: " + posf1 + " " + posf2);
-                
-                if ((posf1 & 1)) { // New position
-                    state.status = AP_GPS::GPS_OK_FIX_3D;
-                    if ((posf2 & 1)) { // Differential position 
-                        state.status = AP_GPS::GPS_OK_FIX_3D_DGPS;
-                        if (posf2 & 2) { // Differential position method
-                            if (posf2 & 4) {// Differential position method
-                                state.status = AP_GPS::GPS_OK_FIX_3D_RTK_FIXED;
-                            } else {
-                                state.status = AP_GPS::GPS_OK_FIX_3D_RTK_FLOAT;
+                if (output_type == 1) // pos time // TODO convert to enum class
+                {
+                    
+                    state.time_week_ms = SwapUint32(msg.data, a); // TODO call check_new_itow to remove timing jitter
+                    check_new_itow(state.time_week_ms, msg.length + SOMETHING); // Something is trivially small - logs will then show delta time
+                    state.time_week = SwapUint16(msg.data, a + 4);
+                    state.num_sats = msg.data[a + 6];
+                    const uint8_t posf1 = msg.data[a + 7];
+                    const uint8_t posf2 = msg.data[a + 8];
+
+                    //Debug("POSTIME: " + posf1 + " " + posf2);
+                    
+                    if ((posf1 & 1)) { // New position
+                        state.status = AP_GPS::GPS_OK_FIX_3D;
+                        if ((posf2 & 1)) { // Differential position 
+                            state.status = AP_GPS::GPS_OK_FIX_3D_DGPS;
+                            if (posf2 & 2) { // Differential position method
+                                if (posf2 & 4) {// Differential position method
+                                    state.status = AP_GPS::GPS_OK_FIX_3D_RTK_FIXED;
+                                } else {
+                                    state.status = AP_GPS::GPS_OK_FIX_3D_RTK_FLOAT;
+                                }
                             }
                         }
+                    } else {
+                        state.status = AP_GPS::NO_FIX;
                     }
-                } else {
-                    state.status = AP_GPS::NO_FIX;
+                    valid++;
                 }
-                valid++;
-            }
-            else if (output_type == 2) // position
-            {
-                state.location.lat = (int32_t)(RAD_TO_DEG_DOUBLE * (SwapDouble(msg.data, a)) * (double)1e7);
-                state.location.lng = (int32_t)(RAD_TO_DEG_DOUBLE * (SwapDouble(msg.data, a + 8)) * (double)1e7);
-                state.location.alt = (int32_t)(SwapDouble(msg.data, a + 16) * 100);
-
-                state.last_gps_time_ms = AP_HAL::millis();
-
-                valid++;
-            }
-            else if (output_type == 8) // velocity
-            {
-                const uint8_t vflag = msg.data[a];
-                if ((vflag & 1) == 1)
+                else if (output_type == 2) // position
                 {
-                    state.ground_speed = SwapFloat(msg.data, a + 1);
-                    state.ground_course = degrees(SwapFloat(msg.data, a + 5));
-                    fill_3d_velocity();
-                    state.velocity.z = -SwapFloat(msg.data, a + 9);
-                    state.have_vertical_velocity = true;
+                    state.location.lat = (int32_t)(RAD_TO_DEG_DOUBLE * (SwapDouble(msg.data, a)) * (double)1e7);
+                    state.location.lng = (int32_t)(RAD_TO_DEG_DOUBLE * (SwapDouble(msg.data, a + 8)) * (double)1e7);
+                    state.location.alt = (int32_t)(SwapDouble(msg.data, a + 16) * 100);
+
+                    state.last_gps_time_ms = AP_HAL::millis();
+
+                    valid++;
                 }
-                valid++;
-            }
-            else if (output_type == 9) //dop
-            {
-                state.hdop = (uint16_t)(SwapFloat(msg.data, a + 4) * 100);
-                valid++;
-            }
-            else if (output_type == 12) // position sigma
-            {
-                state.horizontal_accuracy = (SwapFloat(msg.data, a + 4) + SwapFloat(msg.data, a + 8)) / 2;
-                state.vertical_accuracy = SwapFloat(msg.data, a + 16);
-                state.have_horizontal_accuracy = true;
-                state.have_vertical_accuracy = true;
-                valid++;
+                else if (output_type == 8) // velocity
+                {
+                    const uint8_t vflag = msg.data[a];
+                    if ((vflag & 1) == 1)
+                    {
+                        state.ground_speed = SwapFloat(msg.data, a + 1);
+                        state.ground_course = degrees(SwapFloat(msg.data, a + 5));
+                        fill_3d_velocity();
+                        state.velocity.z = -SwapFloat(msg.data, a + 9);
+                        state.have_vertical_velocity = true;
+                    }
+                    valid++;
+                }
+                else if (output_type == 9) //dop
+                {
+                    state.hdop = (uint16_t)(SwapFloat(msg.data, a + 4) * 100);
+                    valid++;
+                }
+                else if (output_type == 12) // position sigma
+                {
+                    state.horizontal_accuracy = (SwapFloat(msg.data, a + 4) + SwapFloat(msg.data, a + 8)) / 2;
+                    state.vertical_accuracy = SwapFloat(msg.data, a + 16);
+                    state.have_horizontal_accuracy = true;
+                    state.have_vertical_accuracy = true;
+                    valid++;
+                }
+
+                a += output_length-1u;
             }
 
-            a += output_length-1u;
-        }
-
-        if (valid == 5) {
-            return true;
-        } else {
-            state.status = AP_GPS::NO_FIX;
-        }
+            if (valid == 5) {
+                return true;
+            } else {
+                state.status = AP_GPS::NO_FIX;
+            }
+        default:
+            return false;
     }
 
     return false;
