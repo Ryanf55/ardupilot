@@ -60,6 +60,7 @@ public:
         NOVA  =  8,
         SBP2  =  9,
         MSP  =  19,
+        GSOF  = 10,
     };
 
     GPS(uint8_t _instance);
@@ -126,6 +127,12 @@ private:
     void nova_send_message(uint8_t *header, uint8_t headerlength, uint8_t *payload, uint8_t payloadlen);
     uint32_t CRC32Value(uint32_t icrc);
     uint32_t CalculateBlockCRC32(uint32_t length, uint8_t *buffer, uint32_t crc);
+
+    // If gsof gets data in, handle it. 
+    // Simply, it should respond to this: https://receiverhelp.trimble.com/oem-gnss/index.html#API_TestingComms.html
+    void on_data_gsof();
+    void update_gsof(const struct gps_data *d);
+    void send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size);
 
     // get delayed data
     gps_data interpolate_data(const gps_data &d, uint32_t delay_ms);
