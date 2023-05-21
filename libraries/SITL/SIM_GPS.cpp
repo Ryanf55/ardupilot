@@ -14,11 +14,15 @@
 
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
 
+#include <assert.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_HAL/AP_HAL.h>
 #include <SITL/SITL.h>
 #include <AP_Common/NMEA.h>
 #include <AP_HAL/utility/sparse-endian.h>
+#include <AP_Filesystem/AP_Filesystem.h>
+#include <filesystem>
+
 
 // simulated CAN GPS devices get fed from our SITL estimates:
 #if HAL_SIM_GPS_EXTERNAL_FIFO_ENABLED
@@ -1034,14 +1038,40 @@ void GPS::update_gsof(const struct gps_data *d)
     //     uint32_t    vertical_accuracy;
     // } pos_time {};
 
-    const uint8_t GSOF_POS = 2;
-    struct PACKED gsof_pos {
-        uint32_t    lat;
-        uint32_t    lng;
-        uint32_t    alt;
-    } pos {};
+    // const uint8_t GSOF_POS = 2;
+    // struct PACKED gsof_pos {
+    //     uint32_t    lat;
+    //     uint32_t    lng;
+    //     uint32_t    alt;
+    // } pos {};
 
-    // TODO convert from host endianness to "Motorola" BE format that the receiver uses
+    // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
+    constexpr uint8_t GSOF_DOP_TYPE = 0x09;
+    constexpr uint8_t GSOF_DOP_LEN = 0x10;
+    [[maybe_unused]] const auto gps_accuracy = _sitl->gps_accuracy[instance];
+
+    // TODO move to common library
+    // constexpr uint32_t uint32_NaN = std::numeric_limits<double>::quiet_NaN();
+    struct PACKED gsof_dop {
+        const uint8_t OUTPUT_RECORD_TYPE = GSOF_DOP_TYPE; 
+        const uint8_t RECORD_LEN = GSOF_DOP_LEN;
+        uint32_t pdop = htobe32(1);
+        uint32_t hdop = htobe32(2);
+        uint32_t vdop = htobe32(3);
+        uint32_t tdop = htobe32(4);
+    };
+    // Check the payload size calculation in the compiler
+    constexpr auto dop_size = sizeof(gsof_dop);
+    static_assert(dop_size == 18);
+    constexpr auto record_type_size = sizeof(gsof_dop::OUTPUT_RECORD_TYPE);
+    static_assert(record_type_size == 1);
+    constexpr auto len_size = sizeof(gsof_dop::RECORD_LEN);
+    static_assert(len_size == 1);
+    constexpr auto dop_payload_size = dop_size - (record_type_size + len_size);
+    static_assert(dop_payload_size == GSOF_DOP_LEN);
+
+    auto dop = gsof_dop{};
+    dop.hdop = htobe32(5);
     
     // TODO implement all packets
 
@@ -1049,9 +1079,10 @@ void GPS::update_gsof(const struct gps_data *d)
 
     // TODO add GSOF49
 
-    send_gsof(GSOF_POS, (uint8_t*)&pos, sizeof(pos));
-
+    send_gsof(GSOF_DOP_TYPE, (uint8_t*)&dop, sizeof(dop));
 }
+
+
 void GPS::send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size)
 {
     // All Trimble "Data Collector" packets, including GSOF, are comprised of three fields:
@@ -1064,44 +1095,85 @@ void GPS::send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size)
     // status bitfield
     // https://receiverhelp.trimble.com/oem-gnss/index.html#API_ReceiverStatusByte.html?TocPath=API%2520Documentation%257CData%2520collector%2520format%2520packets%257CData%2520collector%2520format%253A%2520packet%2520structure%257C_____1
     const uint8_t STATUS = 0xa8;
-    const uint8_t TYPE = 0x40;
-    const uint8_t LENGTH = 0x6d;
-    
+    const uint8_t PACKET_TYPE = 0x40; // Report Packet 40h (GENOUT)
+
+    // Before writing the GSOF data buffer, the GSOF header needs added between the DCOL header and the payload data frame.
+    // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_GSOF.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____2
+
+    static uint8_t TRANSMISSION_NUMBER = 0; // Functionally, this is a sequence number
+    // Most messages, even GSOF49, only take one page. For SIM, assume it.
+    assert(size < 0xFA); // GPS SIM doesn't yet support paging
+    constexpr uint8_t PAGE_INDEX = 0; 
+    constexpr uint8_t MAX_PAGE_INDEX = 0;
+    [[maybe_unused]] const uint8_t gsof_header[3] = {
+        TRANSMISSION_NUMBER,
+        PAGE_INDEX,
+        MAX_PAGE_INDEX,
+
+    };
+    ++TRANSMISSION_NUMBER;
+
+    // A captured GSOF49 packet from BD940  has LENGTH field set to 0x6d = 109 bytes.
+    // A captured GSOF49 packet from BD940  has total bytes of 115 bytes.
+    // Thus, the following 5 bytes are not counted.
+    // 1) STX
+    // 2) STATUS
+    // 3) PACKET TYPE
+    // 4) LENGTH
+    // 5) CHECKSUM
+    // 6) ETX
+    // This aligns with manual's idea of data bytes:
+    // "Each message begins with a 4-byte header, followed by the bytes of data in each packet. The packet ends with a 2-byte trailer."
+    // Thus, for this implementation with single-page single-record per DCOL packet,
+    // the length is simply the sum of data packet size, the gsof_header size.    
+    const uint8_t length = size + sizeof(gsof_header);
     const uint8_t dcol_header[4] = {
         STX,
         STATUS,
-        TYPE,
-        LENGTH
+        PACKET_TYPE,
+        length
     };
 
 
-
-    // const uint8_t TRANSMISSION_NUM = 0xa9;
-    // const uint8_t PAGE_INDEX = 0x00;
-    // const uint8_t MAX_PAGE_INDEX = 0x00;
-    // const uint8_t RECORD_LENGTH = 0x68;
-    // const uint8_t hdr[8] = {
-    //     STATUS,
-    //     TYPE,
-    //     LENGTH,
-    //     TRANSMISSION_NUM,
-    //     PAGE_INDEX,
-    //     MAX_PAGE_INDEX,
-    //     output_record_type,
-    //     RECORD_LENGTH
-    // };
 
     // Sum bytes (status + type + length + data bytes) and modulo 256 the summation
-    const uint8_t data_csum = ((STATUS + TYPE + LENGTH + size) % 256);
+    // Because it's a uint8, use natural overflow
+    uint8_t csum = STATUS + PACKET_TYPE + length;
+    for (size_t i = 0; i < ARRAY_SIZE(gsof_header); i++) {
+        csum += gsof_header[i];
+    }
+    for (size_t i = 0; i < size; i++) {
+        csum += buf[i];
+    }
+
+
     const uint8_t ETX = 0x03;
     const uint8_t dcol_trailer[2] = {
-        data_csum,
+        csum,
         ETX
     };
-    
+
+
+    // AP_Filesystem filesystem;
+    // if(filesystem.open("gsof/Group49", O_RDONLY) != 0) {
+    //     printf("Read Bad, open GDB\n");
+    // } else {
+    //     printf("Read Good\n");
+    // }
+
+    // const std::filesystem::path p = "gsof/Group49";
+    // const auto exists = std::filesystem::exists(p);
+    // const auto cur_path = std::filesystem::current_path();
+    // const auto abs_pth = std::filesystem::absoulute(p);
+
+
+    // const uint8_t gsof_49[115] = { 0x00, 0x01 };
     write_to_autopilot((char*)dcol_header, sizeof(dcol_header));
+    write_to_autopilot((char*)gsof_header, sizeof(gsof_header));
     write_to_autopilot((char*)buf, size);
     write_to_autopilot((char*)dcol_trailer, sizeof(dcol_trailer));
+    const uint8_t total_size = sizeof(dcol_header) + sizeof(gsof_header) + size + sizeof(dcol_trailer);
+    assert(dcol_header[3] == total_size - 6); // Validate length
 }
 
 /*
