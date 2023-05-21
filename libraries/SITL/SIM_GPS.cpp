@@ -185,7 +185,7 @@ void GPS::send_ubx(uint8_t msgid, uint8_t *buf, uint16_t size)
 }
 
 /*
-  return GPS time of week in milliseconds
+  populate GPS time of week
  */
 static void gps_time(uint16_t *time_week, uint32_t *time_week_ms)
 {
@@ -197,6 +197,28 @@ static void gps_time(uint16_t *time_week, uint32_t *time_week_ms)
     uint32_t t_ms = tv.tv_usec / 1000;
     // round time to nearest 200ms
     *time_week_ms = (epoch_seconds % AP_SEC_PER_WEEK) * AP_MSEC_PER_SEC + ((t_ms/200) * 200);
+}
+
+/*
+  return GPS time of week [number of weeks since midnight 5-6 January 1980]
+ */
+static uint16_t gps_time_week()
+{
+    uint16_t time_week;
+    uint32_t time_week_ms;
+    gps_time(&time_week, &time_week_ms);
+    return time_week;
+}
+
+/*
+  return time since start of the GPS [mS]
+ */
+static uint32_t gps_time_week_ms()
+{
+    uint16_t time_week;
+    uint32_t time_week_ms;
+    gps_time(&time_week, &time_week_ms);
+    return time_week_ms;
 }
 
 /*
@@ -549,19 +571,16 @@ void GPS::update_nmea(const struct gps_data *d)
                      d->have_lock?_sitl->gps_numsats[instance]:3,
                      1.2,
                      d->altitude);
-    const float speed_mps = norm(d->speedN, d->speedE);
+    const float speed_mps = speed_2d(d);
     const float speed_knots = speed_mps * M_PER_SEC_TO_KNOTS;
 
-    float heading = ToDeg(atan2f(d->speedE, d->speedN));
-    if (heading < 0) {
-        heading += 360.0f;
-    }
+    const auto heading_rad = heading(d);
 
     //$GPVTG,133.18,T,120.79,M,0.11,N,0.20,K,A*24
     nmea_printf("$GPVTG,%.2f,T,%.2f,M,%.2f,N,%.2f,K,A",
                      tstring,
-                     heading,
-                     heading,
+                     heading_rad,
+                     heading_rad,
                      speed_knots,
                      speed_knots * KNOTS_TO_METERS_PER_SECOND * 3.6);
 
@@ -571,7 +590,7 @@ void GPS::update_nmea(const struct gps_data *d)
                      lat_string,
                      lng_string,
                      speed_knots,
-                     heading,
+                     heading_rad,
                      dstring);
 
     if (_sitl->gps_hdg_enabled[instance] == SITL::SIM::GPS_HEADING_HDT) {
@@ -588,7 +607,7 @@ void GPS::update_nmea(const struct gps_data *d)
                     d->altitude,
                     wrap_360(d->yaw_deg),
                     d->pitch_deg,
-                    heading,
+                    heading_rad,
                     speed_mps,
                     d->roll_deg,
                     d->have_lock?1:0, // 2=rtkfloat 3=rtkfixed,
@@ -1026,60 +1045,152 @@ uint32_t GPS::CalculateBlockCRC32(uint32_t length, uint8_t *buffer, uint32_t crc
 
 void GPS::update_gsof(const struct gps_data *d)
 {
+    // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_TIME.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____25
+    constexpr uint8_t GSOF_POS_TIME_TYPE = 0x01;
+    constexpr uint8_t GSOF_POS_TIME_LEN = 0x0A;
+#if AP_STATS_ENABLED
+    // TODO why can't we get access to BOOTCNT? 
+    // const uint8_t bootcount = _sitl->node_stats.params.bootcount % 256;
+    const uint8_t bootcount = 0;
+#else
+    const uint8_t bootcount = 0;
+#endif
 
-    // TODO finish this packet
-    // struct PACKED gsof_pos_time {
-    //     uint32_t    time_week_ms; // GPS msToW
-    //     uint16_t    time_week;
-    //     int8_t     num_sats;
-    //     int32_t     altitude_ellipsoid;
-    //     int32_t     altitude_msl;
-    //     uint32_t    horizontal_accuracy;
-    //     uint32_t    vertical_accuracy;
-    // } pos_time {};
+    const struct PACKED gsof_pos_time {
+        const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_TIME_TYPE; 
+        const uint8_t RECORD_LEN = GSOF_POS_TIME_LEN;
+        uint32_t time_week_ms = htobe32(gps_time_week_ms());
+        uint16_t time_week = htobe16(gps_time_week());
+        uint8_t num_sats = 0; // d->have_lock?_sitl->gps_numsats[instance]:3;
+        // TODO
+        // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%201
+        uint8_t pos_flags_1 = 0;
+        // TODO
+        // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%202
+        uint8_t pos_flags_2 = 0;
+        // TODO increment every time GPS is "restarted", can we use boot count?
+        uint8_t initialized_num = bootcount; 
+    } pos_time;
+    static_assert(sizeof(gsof_pos_time) - (sizeof(gsof_pos_time::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_time::RECORD_LEN)) == GSOF_POS_TIME_LEN);
 
-    // const uint8_t GSOF_POS = 2;
-    // struct PACKED gsof_pos {
-    //     uint32_t    lat;
-    //     uint32_t    lng;
-    //     uint32_t    alt;
-    // } pos {};
+    constexpr uint8_t GSOF_POS_TYPE = 0x02;
+    constexpr uint8_t GSOF_POS_LEN = 0x18;
+
+    uint32_t lat_u64 = 0;
+    const auto lat_d_scaled = d->latitude * 1E-7;
+    memcpy(&lat_u64, &(lat_d_scaled), sizeof(lat_u64));
+
+    uint32_t lng_u64 = 0;
+    const auto lng_d_scaled = d->longitude * 1E-7;
+    memcpy(&lng_u64, &(lng_d_scaled), sizeof(lng_u64));
+
+    uint32_t alt_u64 = 0;
+    const auto alt_d_scaled = d->altitude * 1E-7;
+    memcpy(&alt_u64, &(alt_d_scaled), sizeof(alt_u64));
+
+    // TODO fix constness 
+    // Method 1: Use designated initializer (or aggregate initialization)
+    // Not working, perhaps because PACKED?
+    // error: designated initializers cannot be used with a non-aggregate type ‘SITL::GPS::update_gsof(const SITL::GPS::gps_data*)::gsof_pos
+    // Method 2: Initialize in-class as const
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96184
+    // Perhaps a bug in gcc? 
+    // error: ../../libraries/SITL/SIM_GPS.cpp:1096:24: error: use of local variable with automatic storage from containing function
+    //
+    // https://godbolt.org/z/7oeMfMzj6
+    struct PACKED gsof_pos {
+        const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_TYPE; 
+        const uint8_t RECORD_LEN = GSOF_POS_LEN;
+        uint64_t lat;
+        uint64_t lng;
+        uint64_t alt;
+    } pos {};
+    static_assert(sizeof(gsof_pos) - (sizeof(gsof_pos::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos::RECORD_LEN)) == GSOF_POS_LEN);
+
+    pos.lat = htobe64(lat_u64);
+    pos.lng = htobe64(lng_u64);
+    pos.alt = htobe64(alt_u64);
+    
+
+    // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Velocity.html
+    constexpr uint8_t GSOF_VEL_TYPE = 0x08;
+     // use the smaller packet by ignoring local coordinate system
+    constexpr uint8_t GSOF_VEL_LEN = 0x0D;
+    // Even if this is used in the initialization of the vel class, i get -Werror=unused-variable
+    const auto horiz_m_p_s = speed_2d(d);
+    const auto heading_rad = heading(d);
+    const auto vertical_m_p_s = d->speedD;
+
+    struct PACKED gsof_vel {
+        const uint8_t OUTPUT_RECORD_TYPE = GSOF_VEL_TYPE; 
+        const uint8_t RECORD_LEN = GSOF_VEL_LEN;
+        // TODO
+        // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Velocity%20flags
+        uint8_t flags = 0;
+        uint32_t horiz_m_p_s = 0;
+        uint32_t heading_rad = 0;
+        // Trimble API has ambiguous direction here
+        uint32_t vertical_m_p_s = 0;
+    } vel {};
+    static_assert(sizeof(gsof_vel) - (sizeof(gsof_vel::OUTPUT_RECORD_TYPE) + sizeof(gsof_vel::RECORD_LEN)) == GSOF_VEL_LEN);
+
+    vel.horiz_m_p_s = horiz_m_p_s;
+    vel.heading_rad = heading_rad;
+    vel.vertical_m_p_s = vertical_m_p_s;
 
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
     constexpr uint8_t GSOF_DOP_TYPE = 0x09;
     constexpr uint8_t GSOF_DOP_LEN = 0x10;
     [[maybe_unused]] const auto gps_accuracy = _sitl->gps_accuracy[instance];
 
-    // TODO move to common library
-    // constexpr uint32_t uint32_NaN = std::numeric_limits<double>::quiet_NaN();
+    // TODO use the new functions in PR#23841 to convert from double NaN to uint32_t
+    // OR, use the accuracy estimates, and a new SIM param, to derive the DOP's 
+    [[maybe_unused]] constexpr auto NaND = std::numeric_limits<double>::quiet_NaN();
     struct PACKED gsof_dop {
         const uint8_t OUTPUT_RECORD_TYPE = GSOF_DOP_TYPE; 
         const uint8_t RECORD_LEN = GSOF_DOP_LEN;
         uint32_t pdop = htobe32(1);
-        uint32_t hdop = htobe32(2);
-        uint32_t vdop = htobe32(3);
-        uint32_t tdop = htobe32(4);
-    };
+        uint32_t hdop = htobe32(1);
+        uint32_t vdop = htobe32(1);
+        uint32_t tdop = htobe32(1);
+    } dop {};
     // Check the payload size calculation in the compiler
     constexpr auto dop_size = sizeof(gsof_dop);
     static_assert(dop_size == 18);
-    constexpr auto record_type_size = sizeof(gsof_dop::OUTPUT_RECORD_TYPE);
-    static_assert(record_type_size == 1);
+    constexpr auto dop_record_type_size = sizeof(gsof_dop::OUTPUT_RECORD_TYPE);
+    static_assert(dop_record_type_size == 1);
     constexpr auto len_size = sizeof(gsof_dop::RECORD_LEN);
     static_assert(len_size == 1);
-    constexpr auto dop_payload_size = dop_size - (record_type_size + len_size);
+    constexpr auto dop_payload_size = dop_size - (dop_record_type_size + len_size);
     static_assert(dop_payload_size == GSOF_DOP_LEN);
 
-    auto dop = gsof_dop{};
-    dop.hdop = htobe32(5);
+
+    constexpr uint8_t GSOF_POS_SIGMA_TYPE = 0x0C;
+    constexpr uint8_t GSOF_POS_SIGMA_LEN = 0x26;
+    struct PACKED gsof_pos_sigma {
+        const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_SIGMA_TYPE; 
+        const uint8_t RECORD_LEN = GSOF_POS_SIGMA_LEN;
+        uint32_t pos_rms = htobe32(0);
+        uint32_t sigma_e = htobe32(0);
+        uint32_t sigma_n = htobe32(0);
+        uint32_t cov_en = htobe32(0);
+        uint32_t sigma_up = htobe32(0);
+        uint32_t semi_major_axis = htobe32(0);
+        uint32_t semi_minor_axis = htobe32(0);
+        uint32_t orientation = htobe32(0);
+        uint32_t unit_variance = htobe32(0);
+        uint16_t n_epocs = htobe32(1); // Always 1 for kinematic.
+    } pos_sigma {};
+    [[maybe_unused]] const auto sps = sizeof(gsof_pos_sigma);
+    static_assert(sizeof(gsof_pos_sigma) - (sizeof(gsof_pos_sigma::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_sigma::RECORD_LEN)) == GSOF_POS_SIGMA_LEN);
     
-    // TODO implement all packets
-
-    // TODO send other packets
-
     // TODO add GSOF49
 
+    send_gsof(GSOF_POS_TIME_TYPE, (uint8_t*)&pos_time, sizeof(pos_time));
+    send_gsof(GSOF_POS_TYPE, (uint8_t*)&pos, sizeof(pos));
+    send_gsof(GSOF_VEL_TYPE, (uint8_t*)&vel, sizeof(vel));
     send_gsof(GSOF_DOP_TYPE, (uint8_t*)&dop, sizeof(dop));
+    send_gsof(GSOF_POS_SIGMA_TYPE, (uint8_t*)&pos_sigma, sizeof(pos_sigma));
 }
 
 
@@ -1146,34 +1257,18 @@ void GPS::send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size)
         csum += buf[i];
     }
 
-
     const uint8_t ETX = 0x03;
     const uint8_t dcol_trailer[2] = {
         csum,
         ETX
     };
 
-
-    // AP_Filesystem filesystem;
-    // if(filesystem.open("gsof/Group49", O_RDONLY) != 0) {
-    //     printf("Read Bad, open GDB\n");
-    // } else {
-    //     printf("Read Good\n");
-    // }
-
-    // const std::filesystem::path p = "gsof/Group49";
-    // const auto exists = std::filesystem::exists(p);
-    // const auto cur_path = std::filesystem::current_path();
-    // const auto abs_pth = std::filesystem::absoulute(p);
-
-
-    // const uint8_t gsof_49[115] = { 0x00, 0x01 };
     write_to_autopilot((char*)dcol_header, sizeof(dcol_header));
     write_to_autopilot((char*)gsof_header, sizeof(gsof_header));
     write_to_autopilot((char*)buf, size);
     write_to_autopilot((char*)dcol_trailer, sizeof(dcol_trailer));
     const uint8_t total_size = sizeof(dcol_header) + sizeof(gsof_header) + size + sizeof(dcol_trailer);
-    assert(dcol_header[3] == total_size - 6); // Validate length
+    assert(dcol_header[3] == total_size - (sizeof(dcol_header) +  sizeof(dcol_trailer))); // Validate length based on everything but DCOL h
 }
 
 /*
@@ -1424,6 +1519,16 @@ GPS::gps_data GPS::interpolate_data(const gps_data &d, uint32_t delay_ms)
     }
     // delay is too long, use last sample
     return _gps_history[N-1];
+}
+
+float GPS::heading(const gps_data *d) const
+{
+    return wrap_360(ToDeg(atan2f(d->speedE, d->speedN)));
+}
+
+float GPS::speed_2d(const gps_data *d) const
+{
+    return norm(d->speedN, d->speedE);
 }
 
 #endif  // HAL_SIM_GPS_ENABLED
