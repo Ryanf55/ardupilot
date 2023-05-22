@@ -130,7 +130,7 @@ private:
     // Simply, it should respond to this: https://receiverhelp.trimble.com/oem-gnss/index.html#API_TestingComms.html
     void on_data_gsof();
     void update_gsof(const struct gps_data *d);
-    void send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size);
+    void send_gsof(const uint8_t output_record_type, const uint8_t *buf, const uint16_t size);
 
     // get delayed data
     gps_data interpolate_data(const gps_data &d, uint32_t delay_ms);

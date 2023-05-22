@@ -20,9 +20,6 @@
 #include <SITL/SITL.h>
 #include <AP_Common/NMEA.h>
 #include <AP_HAL/utility/sparse-endian.h>
-#include <AP_Filesystem/AP_Filesystem.h>
-#include <filesystem>
-
 
 // simulated CAN GPS devices get fed from our SITL estimates:
 #if HAL_SIM_GPS_EXTERNAL_FIFO_ENABLED
@@ -1116,10 +1113,6 @@ void GPS::update_gsof(const struct gps_data *d)
     constexpr uint8_t GSOF_VEL_TYPE = 0x08;
      // use the smaller packet by ignoring local coordinate system
     constexpr uint8_t GSOF_VEL_LEN = 0x0D;
-    // Even if this is used in the initialization of the vel class, i get -Werror=unused-variable
-    const auto horiz_m_p_s = speed_2d(d);
-    const auto heading_rad = heading(d);
-    const auto vertical_m_p_s = d->speedD;
 
     struct PACKED gsof_vel {
         const uint8_t OUTPUT_RECORD_TYPE = GSOF_VEL_TYPE; 
@@ -1129,14 +1122,14 @@ void GPS::update_gsof(const struct gps_data *d)
         uint8_t flags = 0;
         uint32_t horiz_m_p_s = 0;
         uint32_t heading_rad = 0;
-        // Trimble API has ambiguous direction here
         uint32_t vertical_m_p_s = 0;
     } vel {};
     static_assert(sizeof(gsof_vel) - (sizeof(gsof_vel::OUTPUT_RECORD_TYPE) + sizeof(gsof_vel::RECORD_LEN)) == GSOF_VEL_LEN);
 
-    vel.horiz_m_p_s = horiz_m_p_s;
-    vel.heading_rad = heading_rad;
-    vel.vertical_m_p_s = vertical_m_p_s;
+    vel.horiz_m_p_s = speed_2d(d);
+    vel.heading_rad = heading(d);
+    // Trimble API has ambiguous direction here
+    vel.vertical_m_p_s = d->speedD;
 
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
     constexpr uint8_t GSOF_DOP_TYPE = 0x09;
@@ -1181,7 +1174,6 @@ void GPS::update_gsof(const struct gps_data *d)
         uint32_t unit_variance = htobe32(0);
         uint16_t n_epocs = htobe32(1); // Always 1 for kinematic.
     } pos_sigma {};
-    [[maybe_unused]] const auto sps = sizeof(gsof_pos_sigma);
     static_assert(sizeof(gsof_pos_sigma) - (sizeof(gsof_pos_sigma::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_sigma::RECORD_LEN)) == GSOF_POS_SIGMA_LEN);
     
     // TODO add GSOF49
@@ -1194,7 +1186,7 @@ void GPS::update_gsof(const struct gps_data *d)
 }
 
 
-void GPS::send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size)
+void GPS::send_gsof(const uint8_t output_record_type, const uint8_t *buf, const uint16_t size)
 {
     // All Trimble "Data Collector" packets, including GSOF, are comprised of three fields:
     // * A fixed-length packet header (dcol_header)
@@ -1216,7 +1208,7 @@ void GPS::send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size)
     assert(size < 0xFA); // GPS SIM doesn't yet support paging
     constexpr uint8_t PAGE_INDEX = 0; 
     constexpr uint8_t MAX_PAGE_INDEX = 0;
-    [[maybe_unused]] const uint8_t gsof_header[3] = {
+    const uint8_t gsof_header[3] = {
         TRANSMISSION_NUMBER,
         PAGE_INDEX,
         MAX_PAGE_INDEX,
@@ -1257,7 +1249,7 @@ void GPS::send_gsof(uint8_t output_record_type, uint8_t *buf, uint16_t size)
         csum += buf[i];
     }
 
-    const uint8_t ETX = 0x03;
+    constexpr uint8_t ETX = 0x03;
     const uint8_t dcol_trailer[2] = {
         csum,
         ETX
