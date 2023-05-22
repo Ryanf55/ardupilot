@@ -80,7 +80,7 @@ private:
 #endif
 
     AP_BattMonitor::BattMonitor_State _interim_state;
-    BattMonitor_DroneCAN_Type _type;
+    [[maybe_unused]] BattMonitor_DroneCAN_Type _type;
 
     HAL_Semaphore _sem_battmon;
 

@@ -30,9 +30,9 @@ private:
 
     uint8_t  _instance;
 
-    AP_DroneCAN* _ap_dronecan;
-    uint8_t _node_id;
-    uint8_t _sensor_id;
+    [[maybe_unused]] AP_DroneCAN* _ap_dronecan;
+    [[maybe_unused]] uint8_t _node_id;
+    [[maybe_unused]] uint8_t _sensor_id;
     uint32_t _devid;
 
     // Module Detection Registry

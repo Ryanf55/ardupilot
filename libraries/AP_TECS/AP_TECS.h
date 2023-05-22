@@ -151,7 +151,7 @@ private:
     uint64_t _update_50hz_last_usec;
 
     // Last time update_speed was called
-    uint64_t _update_speed_last_usec;
+    // uint64_t _update_speed_last_usec;
 
     // Last time update_pitch_throttle was called
     uint64_t _update_pitch_throttle_last_usec;
@@ -408,7 +408,7 @@ private:
     bool _flare_initialised;
 
     // slew height demand lag filter value when transition to land
-    float hgt_dem_lag_filter_slew;
+    // float hgt_dem_lag_filter_slew;
 
     // percent traveled along the previous and next waypoints
     float _path_proportion;

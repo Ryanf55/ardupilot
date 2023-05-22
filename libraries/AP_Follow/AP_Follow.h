@@ -130,7 +130,7 @@ private:
     AC_P        _p_pos;             // position error P controller
 
     // local variables
-    bool _healthy;                  // true if we are receiving mavlink messages (regardless of whether they have target position info within them)
+    // bool _healthy;                  // true if we are receiving mavlink messages (regardless of whether they have target position info within them)
     uint32_t _last_location_update_ms;  // system time of last position update
     Location _target_location;      // last known location of target
     Vector3f _target_velocity_ned;  // last known velocity of target in NED frame in m/s

@@ -88,11 +88,11 @@ private:
     private:
         uint8_t &high_level;
         uint8_t &low_level;
-        uint8_t &delay;
-        uint8_t &ramp_up_step_time;
-        uint8_t &time_high;
-        uint8_t &ramp_down_step_time;
-        uint8_t &timing;
+        // uint8_t &delay;
+        // uint8_t &ramp_up_step_time;
+        // uint8_t &time_high;
+        // uint8_t &ramp_down_step_time;
+        // uint8_t &timing;
 
         uint8_t output_value;
     };
