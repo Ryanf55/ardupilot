@@ -18,6 +18,7 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_HAL/AP_HAL.h>
 #include <SITL/SITL.h>
+#include <AP_Common/Bitmask.h>
 #include <AP_Common/NMEA.h>
 #include <AP_HAL/utility/sparse-endian.h>
 
@@ -1053,7 +1054,60 @@ void GPS::update_gsof(const struct gps_data *d)
     const uint8_t bootcount = 0;
 #endif
 
-    const struct PACKED gsof_pos_time {
+    // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%201
+    enum class pos_flags_1_fields : uint8_t {
+        NEW_POSITION = 0,
+        CLOCK_FIX_CALULATED = 1,
+        HORIZ_FROM_THIS_POS = 2,
+        HEIGHT_FROM_THIS_POS = 3,
+        RESERVED_4 = 4,
+        LEAST_SQ_POSITION = 5,
+        RESERVED_6 = 6,
+        POSITION_L1_PSEUDORANGES = 7
+    };
+    Bitmask<8> pos_flags_1;
+    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::NEW_POSITION));
+    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::CLOCK_FIX_CALULATED));
+    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::HORIZ_FROM_THIS_POS));
+    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::HEIGHT_FROM_THIS_POS));
+    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::RESERVED_4));
+    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::LEAST_SQ_POSITION));
+    pos_flags_1.clear(static_cast<uint8_t>(pos_flags_1_fields::RESERVED_6));
+    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::POSITION_L1_PSEUDORANGES));
+
+    // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%202
+    enum class pos_flags_2_fields : uint8_t {
+        DIFFERENTIAL_POS = 0,
+        DIFFERENTIAL_POS_PHASE_RTK = 1,
+        POSITION_METHOD_FIXED_PHASE = 2,
+        OMNISTAR_ACTIVE = 3,
+        DETERMINED_WITH_STATIC_CONSTRAINT = 4,
+        NETWORK_RTK = 5,
+        DITHERED_RTK = 6,
+        BEACON_DGNSS = 7
+    };
+    Bitmask<8> pos_flags_2;
+
+    // Simulate a GPS without RTK in SIM since there is no RTK SIM params
+    pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::NETWORK_RTK));
+    pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DITHERED_RTK));
+    pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::BEACON_DGNSS));
+    if(d->have_lock) {
+        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS));
+        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS_PHASE_RTK));
+        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::POSITION_METHOD_FIXED_PHASE));
+        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::OMNISTAR_ACTIVE));
+        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::DETERMINED_WITH_STATIC_CONSTRAINT));
+    } else {
+        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS));
+        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS_PHASE_RTK));
+        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::POSITION_METHOD_FIXED_PHASE));
+        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::OMNISTAR_ACTIVE));
+        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DETERMINED_WITH_STATIC_CONSTRAINT));
+    }
+
+
+    struct PACKED gsof_pos_time {
         const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_TIME_TYPE; 
         const uint8_t RECORD_LEN = GSOF_POS_TIME_LEN;
         uint32_t time_week_ms = htobe32(gps_time_week_ms());
@@ -1061,7 +1115,7 @@ void GPS::update_gsof(const struct gps_data *d)
         uint8_t num_sats = 0; // d->have_lock?_sitl->gps_numsats[instance]:3;
         // TODO
         // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%201
-        uint8_t pos_flags_1 = 0;
+        uint8_t pos_flags_1 = pos_flags_1;
         // TODO
         // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%202
         uint8_t pos_flags_2 = 0;
@@ -1069,7 +1123,9 @@ void GPS::update_gsof(const struct gps_data *d)
         uint8_t initialized_num = bootcount; 
     } pos_time;
     static_assert(sizeof(gsof_pos_time) - (sizeof(gsof_pos_time::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_time::RECORD_LEN)) == GSOF_POS_TIME_LEN);
-
+    memcpy(&(pos_time.pos_flags_1), &pos_flags_1, sizeof(pos_time.pos_flags_1));
+    memcpy(&(pos_time.pos_flags_2), &pos_flags_2, sizeof(pos_time.pos_flags_2));
+    // pos_time.pos_flags_1 = pos_flags_1;
     constexpr uint8_t GSOF_POS_TYPE = 0x02;
     constexpr uint8_t GSOF_POS_LEN = 0x18;
 
@@ -1130,6 +1186,34 @@ void GPS::update_gsof(const struct gps_data *d)
     vel.heading_rad = heading(d);
     // Trimble API has ambiguous direction here
     vel.vertical_m_p_s = d->speedD;
+
+    // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Velocity%20flags
+    enum class velocity_fields : uint8_t {
+        VALID = 0,
+        CONSECUTIVE_MEASUREMENTS = 1,
+        HEADING_VALID = 2,
+        RESERVED_3 = 3,
+        RESERVED_4 = 4,
+        RESERVED_5 = 5,
+        RESERVED_6 = 6,
+        RESERVED_7 = 7
+    };
+    Bitmask<8> vel_flags;
+    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_3));
+    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_4));
+    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_5));
+    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_6));
+    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_7));
+    if(d->have_lock) {
+        vel_flags.set(static_cast<uint8_t>(velocity_fields::VALID));
+        vel_flags.set(static_cast<uint8_t>(velocity_fields::CONSECUTIVE_MEASUREMENTS));
+        vel_flags.set(static_cast<uint8_t>(velocity_fields::HEADING_VALID));
+    } else {
+        vel_flags.clear(static_cast<uint8_t>(velocity_fields::VALID));
+        vel_flags.clear(static_cast<uint8_t>(velocity_fields::CONSECUTIVE_MEASUREMENTS));
+        vel_flags.clear(static_cast<uint8_t>(velocity_fields::HEADING_VALID));
+    }
+    memcpy(&(vel.flags), &vel_flags, sizeof(vel.flags));
 
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
     constexpr uint8_t GSOF_DOP_TYPE = 0x09;
