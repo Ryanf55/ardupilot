@@ -208,28 +208,6 @@ static GPS_TOW gps_time()
 }
 
 /*
-  return GPS time of week [number of weeks since midnight 5-6 January 1980]
- */
-static uint16_t gps_time_week()
-{
-    uint16_t time_week;
-    uint32_t time_week_ms;
-    gps_time(&time_week, &time_week_ms);
-    return time_week;
-}
-
-/*
-  return time since start of the GPS [mS]
- */
-static uint32_t gps_time_week_ms()
-{
-    uint16_t time_week;
-    uint32_t time_week_ms;
-    gps_time(&time_week, &time_week_ms);
-    return time_week_ms;
-}
-
-/*
   send a new set of GPS UBLOX packets
  */
 void GPS::update_ubx(const struct gps_data *d)
@@ -1100,12 +1078,12 @@ void GPS::update_gsof(const struct gps_data *d)
         pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DETERMINED_WITH_STATIC_CONSTRAINT));
     }
 
-
+    const auto gps_tow = gps_time();
     struct PACKED gsof_pos_time {
         const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_TIME_TYPE; 
         const uint8_t RECORD_LEN = GSOF_POS_TIME_LEN;
-        uint32_t time_week_ms = htobe32(gps_time_week_ms());
-        uint16_t time_week = htobe16(gps_time_week());
+        uint32_t time_week_ms;
+        uint16_t time_week;
         uint8_t num_sats = 0; // d->have_lock?_sitl->gps_numsats[instance]:3;
         // TODO
         // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%201
@@ -1119,21 +1097,22 @@ void GPS::update_gsof(const struct gps_data *d)
     static_assert(sizeof(gsof_pos_time) - (sizeof(gsof_pos_time::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_time::RECORD_LEN)) == GSOF_POS_TIME_LEN);
     memcpy(&(pos_time.pos_flags_1), &pos_flags_1, sizeof(pos_time.pos_flags_1));
     memcpy(&(pos_time.pos_flags_2), &pos_flags_2, sizeof(pos_time.pos_flags_2));
-    // pos_time.pos_flags_1 = pos_flags_1;
+    pos_time.time_week_ms = htobe32(gps_tow.ms);
+    pos_time.time_week = htobe16(gps_tow.week);
     constexpr uint8_t GSOF_POS_TYPE = 0x02;
     constexpr uint8_t GSOF_POS_LEN = 0x18;
 
     int64_t lat_i64 = 0;
-    const int64_t lat_d_scaled = d->latitude;
-    memcpy(&lat_i64, &(lat_d_scaled), sizeof(lat_i64));
+    // const int64_t lat_d_scaled = ;
+    memcpy(&lat_i64, &(d->latitude), sizeof(lat_i64));
 
     int64_t lng_i64 = 0;
-    const int64_t lng_d_scaled = d->longitude;
-    memcpy(&lng_i64, &(lng_d_scaled), sizeof(lng_i64));
+    // const int64_t lng_d_scaled = d->longitude;
+    memcpy(&lng_i64, &(d->longitude), sizeof(lng_i64));
 
     int64_t alt_i64 = 0;
-    const int64_t alt_d_scaled = d->altitude * 1E-7;
-    memcpy(&alt_i64, &(alt_d_scaled), sizeof(alt_i64));
+    // const int64_t alt_d_scaled = d->altitude * 1E-7;
+    memcpy(&alt_i64, &(d->altitude), sizeof(alt_i64));
 
     // TODO fix constness 
     // Method 1: Use designated initializer (or aggregate initialization)
