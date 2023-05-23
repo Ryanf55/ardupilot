@@ -59,8 +59,9 @@ public:
 #endif
         NOVA  =  8,
         SBP2  =  9,
-        MSP  =  19,
-        GSOF  = 10,
+        GSOF  = 11, // matches GPS_TYPE
+        MSP   =  19,
+
     };
 
     GPS(uint8_t _instance);
