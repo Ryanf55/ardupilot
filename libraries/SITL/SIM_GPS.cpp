@@ -575,10 +575,10 @@ void GPS::update_nmea(const struct gps_data *d)
                      d->have_lock?_sitl->gps_numsats[instance]:3,
                      1.2,
                      d->altitude);
-    const float speed_mps = speed_2d(d);
+    const float speed_mps = d->speed_2d();
     const float speed_knots = speed_mps * M_PER_SEC_TO_KNOTS;
 
-    const auto heading_rad = heading(d);
+    const auto heading_rad = d->heading();
 
     //$GPVTG,133.18,T,120.79,M,0.11,N,0.20,K,A*24
     nmea_printf("$GPVTG,%.2f,T,%.2f,M,%.2f,N,%.2f,K,A",
@@ -1044,13 +1044,8 @@ void GPS::update_gsof(const struct gps_data *d)
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_TIME.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____25
     constexpr uint8_t GSOF_POS_TIME_TYPE = 0x01;
     constexpr uint8_t GSOF_POS_TIME_LEN = 0x0A;
-#if AP_STATS_ENABLED
-    // TODO why can't we get access to BOOTCNT? 
-    // const uint8_t bootcount = _sitl->node_stats.params.bootcount % 256;
-    const uint8_t bootcount = 0;
-#else
-    const uint8_t bootcount = 0;
-#endif
+     // TODO magic number until SITL supports GPS bootcount based on GPSN_ENABLE
+    const uint8_t bootcount = 17;
 
     const struct PACKED gsof_pos_time {
         const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_TIME_TYPE; 
@@ -1125,8 +1120,8 @@ void GPS::update_gsof(const struct gps_data *d)
     } vel {};
     static_assert(sizeof(gsof_vel) - (sizeof(gsof_vel::OUTPUT_RECORD_TYPE) + sizeof(gsof_vel::RECORD_LEN)) == GSOF_VEL_LEN);
 
-    vel.horiz_m_p_s = speed_2d(d);
-    vel.heading_rad = heading(d);
+    vel.horiz_m_p_s = d->speed_2d();
+    vel.heading_rad = d->heading();
     // Trimble API has ambiguous direction here
     vel.vertical_m_p_s = d->speedD;
 
@@ -1229,7 +1224,7 @@ void GPS::send_gsof(const uint8_t output_record_type, const uint8_t *buf, const 
     // Thus, for this implementation with single-page single-record per DCOL packet,
     // the length is simply the sum of data packet size, the gsof_header size.    
     const uint8_t length = size + sizeof(gsof_header);
-    const uint8_t dcol_header[4] = {
+    const uint8_t dcol_header[4] {
         STX,
         STATUS,
         PACKET_TYPE,
@@ -1259,7 +1254,10 @@ void GPS::send_gsof(const uint8_t output_record_type, const uint8_t *buf, const 
     write_to_autopilot((char*)buf, size);
     write_to_autopilot((char*)dcol_trailer, sizeof(dcol_trailer));
     const uint8_t total_size = sizeof(dcol_header) + sizeof(gsof_header) + size + sizeof(dcol_trailer);
-    assert(dcol_header[3] == total_size - (sizeof(dcol_header) +  sizeof(dcol_trailer))); // Validate length based on everything but DCOL h
+     // Validate length based on everything but DCOL h
+    if(dcol_header[3] != total_size - (sizeof(dcol_header) +  sizeof(dcol_trailer))) {
+        INTERNAL_ERROR(AP_InternalError::error_t::flow_of_control);
+    }
 }
 
 /*
@@ -1593,14 +1591,16 @@ GPS::gps_data GPS::interpolate_data(const gps_data &d, uint32_t delay_ms)
     return _gps_history[N-1];
 }
 
-float GPS::heading(const gps_data *d) const
+float GPS::gps_data::heading() const
 {
-    return wrap_360(ToDeg(atan2f(d->speedE, d->speedN)));
+    const auto velocity = Vector2d{speedE, speedN};
+    return ToDeg(velocity.angle());
 }
 
-float GPS::speed_2d(const gps_data *d) const
+float GPS::gps_data::speed_2d() const
 {
-    return norm(d->speedN, d->speedE);
+    const auto velocity = Vector2d{speedN, speedE};
+    return velocity.length();
 }
 
 #endif  // HAL_SIM_GPS_ENABLED
