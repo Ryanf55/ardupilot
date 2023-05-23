@@ -1130,11 +1130,6 @@ void GPS::update_gsof(const struct gps_data *d)
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
     constexpr uint8_t GSOF_DOP_TYPE = 0x09;
     constexpr uint8_t GSOF_DOP_LEN = 0x10;
-    [[maybe_unused]] const auto gps_accuracy = _sitl->gps_accuracy[instance];
-
-    // TODO use the new functions in PR#23841 to convert from double NaN to uint32_t
-    // OR, use the accuracy estimates, and a new SIM param, to derive the DOP's 
-    [[maybe_unused]] constexpr auto NaND = std::numeric_limits<double>::quiet_NaN();
     struct PACKED gsof_dop {
         const uint8_t OUTPUT_RECORD_TYPE = GSOF_DOP_TYPE; 
         const uint8_t RECORD_LEN = GSOF_DOP_LEN;
