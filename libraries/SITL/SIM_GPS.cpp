@@ -1067,17 +1067,17 @@ void GPS::update_gsof(const struct gps_data *d)
     constexpr uint8_t GSOF_POS_TYPE = 0x02;
     constexpr uint8_t GSOF_POS_LEN = 0x18;
 
-    uint32_t lat_u64 = 0;
-    const auto lat_d_scaled = d->latitude * 1E-7;
-    memcpy(&lat_u64, &(lat_d_scaled), sizeof(lat_u64));
+    int64_t lat_i64 = 0;
+    const int64_t lat_d_scaled = d->latitude;
+    memcpy(&lat_i64, &(lat_d_scaled), sizeof(lat_i64));
 
-    uint32_t lng_u64 = 0;
-    const auto lng_d_scaled = d->longitude * 1E-7;
-    memcpy(&lng_u64, &(lng_d_scaled), sizeof(lng_u64));
+    int64_t lng_i64 = 0;
+    const int64_t lng_d_scaled = d->longitude;
+    memcpy(&lng_i64, &(lng_d_scaled), sizeof(lng_i64));
 
-    uint32_t alt_u64 = 0;
-    const auto alt_d_scaled = d->altitude * 1E-7;
-    memcpy(&alt_u64, &(alt_d_scaled), sizeof(alt_u64));
+    int64_t alt_i64 = 0;
+    const int64_t alt_d_scaled = d->altitude * 1E-7;
+    memcpy(&alt_i64, &(alt_d_scaled), sizeof(alt_i64));
 
     // TODO fix constness 
     // Method 1: Use designated initializer (or aggregate initialization)
@@ -1090,18 +1090,19 @@ void GPS::update_gsof(const struct gps_data *d)
     //
     // https://godbolt.org/z/7oeMfMzj6
     struct PACKED gsof_pos {
-        const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_TYPE; 
-        const uint8_t RECORD_LEN = GSOF_POS_LEN;
+        const uint8_t OUTPUT_RECORD_TYPE; 
+        const uint8_t RECORD_LEN;
         uint64_t lat;
         uint64_t lng;
         uint64_t alt;
-    } pos {};
-    static_assert(sizeof(gsof_pos) - (sizeof(gsof_pos::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos::RECORD_LEN)) == GSOF_POS_LEN);
-
-    pos.lat = htobe64(lat_u64);
-    pos.lng = htobe64(lng_u64);
-    pos.alt = htobe64(alt_u64);
-    
+    } pos {
+        OUTPUT_RECORD_TYPE: GSOF_POS_TYPE,
+        RECORD_LEN: GSOF_POS_LEN,
+        lat: htobe64(lat_i64),
+        lng: htobe64(lng_i64),
+        alt: htobe64(alt_i64)
+    };
+    static_assert(sizeof(gsof_pos) - (sizeof(gsof_pos::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos::RECORD_LEN)) == GSOF_POS_LEN); 
 
     // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Velocity.html
     constexpr uint8_t GSOF_VEL_TYPE = 0x08;
@@ -1117,9 +1118,10 @@ void GPS::update_gsof(const struct gps_data *d)
         uint32_t horiz_m_p_s = 0;
         uint32_t heading_rad = 0;
         uint32_t vertical_m_p_s = 0;
-    } vel {};
-    static_assert(sizeof(gsof_vel) - (sizeof(gsof_vel::OUTPUT_RECORD_TYPE) + sizeof(gsof_vel::RECORD_LEN)) == GSOF_VEL_LEN);
+    } vel {
 
+    };
+    static_assert(sizeof(gsof_vel) - (sizeof(gsof_vel::OUTPUT_RECORD_TYPE) + sizeof(gsof_vel::RECORD_LEN)) == GSOF_VEL_LEN);
     vel.horiz_m_p_s = d->speed_2d();
     vel.heading_rad = d->heading();
     // Trimble API has ambiguous direction here
