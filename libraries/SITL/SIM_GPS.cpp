@@ -191,7 +191,7 @@ void GPS::send_ubx(uint8_t msgid, uint8_t *buf, uint16_t size)
 }
 
 /*
-  populate GPS time of week
+  return GPS time of week
  */
 static GPS_TOW gps_time()
 {
