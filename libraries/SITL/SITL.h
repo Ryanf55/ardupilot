@@ -166,9 +166,6 @@ public:
 #ifdef SFML_JOYSTICK
     static const struct AP_Param::GroupInfo var_sfml_joystick[];
 #endif //SFML_JOYSTICK
-#if AP_STATS_ENABLED
-    AP_Stats node_stats;
-#endif
 
     // Board Orientation (and inverse)
     Matrix3f ahrs_rotation;
