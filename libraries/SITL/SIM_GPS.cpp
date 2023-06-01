@@ -1103,15 +1103,14 @@ void GPS::update_gsof(const struct gps_data *d)
     constexpr uint8_t GSOF_POS_LEN = 0x18;
 
     int64_t lat_i64 = 0;
-    // const int64_t lat_d_scaled = ;
-    memcpy(&lat_i64, &(d->latitude), sizeof(lat_i64));
+    const auto lat_rad = d->latitude * DEG_TO_RAD_DOUBLE;
+    memcpy(&lat_i64, &lat_rad, sizeof(lat_i64));
 
     int64_t lng_i64 = 0;
-    // const int64_t lng_d_scaled = d->longitude;
-    memcpy(&lng_i64, &(d->longitude), sizeof(lng_i64));
+    const auto lng_rad = d->longitude * DEG_TO_RAD_DOUBLE;
+    memcpy(&lng_i64, &lng_rad, sizeof(lng_i64));
 
     int64_t alt_i64 = 0;
-    // const int64_t alt_d_scaled = d->altitude * 1E-7;
     memcpy(&alt_i64, &(d->altitude), sizeof(alt_i64));
 
     // TODO fix constness 
