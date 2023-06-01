@@ -1230,16 +1230,24 @@ void GPS::update_gsof(const struct gps_data *d)
     static_assert(sizeof(gsof_pos_sigma) - (sizeof(gsof_pos_sigma::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_sigma::RECORD_LEN)) == GSOF_POS_SIGMA_LEN);
     
     // TODO add GSOF49
-
-    send_gsof(GSOF_POS_TIME_TYPE, (uint8_t*)&pos_time, sizeof(pos_time));
-    send_gsof(GSOF_POS_TYPE, (uint8_t*)&pos, sizeof(pos));
-    send_gsof(GSOF_VEL_TYPE, (uint8_t*)&vel, sizeof(vel));
-    send_gsof(GSOF_DOP_TYPE, (uint8_t*)&dop, sizeof(dop));
-    send_gsof(GSOF_POS_SIGMA_TYPE, (uint8_t*)&pos_sigma, sizeof(pos_sigma));
+    const uint8_t payload_sz = sizeof(pos_time) + sizeof(pos) + sizeof(vel) + sizeof(dop) + sizeof(pos_sigma);
+    uint8_t buf[payload_sz] = {};
+    uint8_t offset = 0;
+    memcpy(&buf[offset], &pos_time, sizeof(pos_time));
+    offset += sizeof(pos_time);
+    memcpy(&buf[offset], &pos, sizeof(pos));
+    offset += sizeof(pos);
+    memcpy(&buf[offset], &vel, sizeof(vel));
+    offset += sizeof(vel);
+    memcpy(&buf[offset], &dop, sizeof(dop));
+    offset += sizeof(dop);
+    memcpy(&buf[offset], &pos_sigma, sizeof(pos_sigma));
+    offset += sizeof(pos_sigma);
+    send_gsof((uint8_t*)&buf, sizeof(buf));
 }
 
 
-void GPS::send_gsof(const uint8_t output_record_type, const uint8_t *buf, const uint16_t size)
+void GPS::send_gsof(const uint8_t *buf, const uint16_t size)
 {
     // All Trimble "Data Collector" packets, including GSOF, are comprised of three fields:
     // * A fixed-length packet header (dcol_header)
