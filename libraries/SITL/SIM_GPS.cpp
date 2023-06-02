@@ -18,7 +18,6 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_HAL/AP_HAL.h>
 #include <SITL/SITL.h>
-#include <AP_Common/Bitmask.h>
 #include <AP_Common/NMEA.h>
 #include <AP_HAL/utility/sparse-endian.h>
 
@@ -394,7 +393,7 @@ void GPS::update_ubx(const struct gps_data *d)
     memset(&sol, 0, sizeof(sol));
     sol.fix_type = d->have_lock?3:0;
     sol.fix_status = 221;
-    sol.satellites = d->have_lock?_sitl->gps_numsats[instance]:3;
+    sol.satellites = d->num_satellites;
     sol.time = gps_tow.ms;
     sol.week = gps_tow.week;
 
@@ -420,7 +419,7 @@ void GPS::update_ubx(const struct gps_data *d)
     pvt.fix_type = d->have_lock? 0x3 : 0;
     pvt.flags = 0b10000011; // carrsoln=fixed, psm = na, diffsoln and fixok
     pvt.flags2 =0; 
-    pvt.num_sv = d->have_lock?_sitl->gps_numsats[instance]:3;
+    pvt.num_sv = d->num_satellites;
     pvt.lon = d->longitude * 1.0e7;
     pvt.lat  = d->latitude * 1.0e7;
     pvt.height = d->altitude * 1000.0f;
@@ -551,7 +550,7 @@ void GPS::update_nmea(const struct gps_data *d)
                      lat_string,
                      lng_string,
                      d->have_lock?1:0,
-                     d->have_lock?_sitl->gps_numsats[instance]:3,
+                     d->num_satellites,
                      1.2,
                      d->altitude);
     const float speed_mps = d->speed_2d();
@@ -595,8 +594,8 @@ void GPS::update_nmea(const struct gps_data *d)
                     d->roll_deg,
                     d->have_lock?1:0, // 2=rtkfloat 3=rtkfixed,
                     3, // fixed rtk yaw solution,
-                    d->have_lock?_sitl->gps_numsats[instance]:3,
-                    d->have_lock?_sitl->gps_numsats[instance]:3,
+                    d->num_satellites,
+                    d->num_satellites,
                     d->speedE * 3.6,
                     d->speedN * 3.6,
                     -d->speedD * 3.6);
@@ -699,7 +698,7 @@ void GPS::update_sbp(const struct gps_data *d)
     pos.height = d->altitude;
     pos.h_accuracy = _sitl->gps_accuracy[instance]*1000;
     pos.v_accuracy = _sitl->gps_accuracy[instance]*1000;
-    pos.n_sats = _sitl->gps_numsats[instance];
+    pos.n_sats = d->num_satellites;
 
     // Send single point position solution
     pos.flags = 0;
@@ -714,7 +713,7 @@ void GPS::update_sbp(const struct gps_data *d)
     velned.d = 1e3 * d->speedD;
     velned.h_accuracy = 5e3;
     velned.v_accuracy = 5e3;
-    velned.n_sats = _sitl->gps_numsats[instance];
+    velned.n_sats = d->num_satellites;
     velned.flags = 0;
     sbp_send_message(SBP_VEL_NED_MSGTYPE, 0x2222, sizeof(velned), (uint8_t*)&velned);
 
@@ -1018,6 +1017,19 @@ uint32_t GPS::CalculateBlockCRC32(uint32_t length, uint8_t *buffer, uint32_t crc
     return( crc );
 }
 
+uint8_t GPS::serialize_bitmask(const Bitmask<8>& mask)
+{
+    uint8_t ret = 0;
+    for (uint8_t i = 0 ; i < 8 ; i++)
+    {
+        if (mask.get(i)) {
+            ret |= 1 << i; 
+        }
+    }
+
+    return ret;
+}
+
 void GPS::update_gsof(const struct gps_data *d)
 {
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_TIME.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____25
@@ -1084,7 +1096,7 @@ void GPS::update_gsof(const struct gps_data *d)
         const uint8_t RECORD_LEN = GSOF_POS_TIME_LEN;
         uint32_t time_week_ms;
         uint16_t time_week;
-        uint8_t num_sats = 0; // d->have_lock?_sitl->gps_numsats[instance]:3;
+        uint8_t num_sats;
         // TODO
         // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%201
         uint8_t pos_flags_1 = pos_flags_1;
@@ -1095,10 +1107,11 @@ void GPS::update_gsof(const struct gps_data *d)
         uint8_t initialized_num = bootcount; 
     } pos_time;
     static_assert(sizeof(gsof_pos_time) - (sizeof(gsof_pos_time::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_time::RECORD_LEN)) == GSOF_POS_TIME_LEN);
-    memcpy(&(pos_time.pos_flags_1), &pos_flags_1, sizeof(pos_time.pos_flags_1));
-    memcpy(&(pos_time.pos_flags_2), &pos_flags_2, sizeof(pos_time.pos_flags_2));
+    pos_time.pos_flags_1 = serialize_bitmask(pos_flags_1);
+    pos_time.pos_flags_2 = serialize_bitmask(pos_flags_2);
     pos_time.time_week_ms = htobe32(gps_tow.ms);
     pos_time.time_week = htobe16(gps_tow.week);
+    pos_time.num_sats = d->num_satellites;
     constexpr uint8_t GSOF_POS_TYPE = 0x02;
     constexpr uint8_t GSOF_POS_LEN = 0x18;
 
@@ -1111,7 +1124,9 @@ void GPS::update_gsof(const struct gps_data *d)
     memcpy(&lng_i64, &lng_rad, sizeof(lng_i64));
 
     int64_t alt_i64 = 0;
-    memcpy(&alt_i64, &(d->altitude), sizeof(alt_i64));
+    const double alt_m = static_cast<double>(d->altitude);
+    memcpy(&alt_i64, &alt_m, sizeof(alt_i64));
+    // assert(d->altiude < 600);
 
     // TODO fix constness 
     // Method 1: Use designated initializer (or aggregate initialization)
@@ -1131,11 +1146,13 @@ void GPS::update_gsof(const struct gps_data *d)
         uint64_t alt;
     } pos {
         OUTPUT_RECORD_TYPE: GSOF_POS_TYPE,
-        RECORD_LEN: GSOF_POS_LEN,
-        lat: htobe64(lat_i64),
-        lng: htobe64(lng_i64),
-        alt: htobe64(alt_i64)
+        RECORD_LEN: GSOF_POS_LEN
     };
+    static_assert(sizeof(pos.lat) == sizeof(lat_i64), "Unexpected double format");
+    pos.lat = htobe64(lat_i64);
+    pos.lng = htobe64(lng_i64);
+    pos.alt = htobe64(alt_i64);
+
     static_assert(sizeof(gsof_pos) - (sizeof(gsof_pos::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos::RECORD_LEN)) == GSOF_POS_LEN); 
 
     // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Velocity.html
@@ -1499,7 +1516,7 @@ void GPS::update()
 
     const uint8_t idx = instance;  // alias to avoid code churn
 
-        struct gps_data d;
+        struct gps_data d {};
 
         // simulate delayed lock times
         bool have_lock = (!_sitl->gps_disable[idx] && now_ms >= _sitl->gps_lock_time[idx]*1000UL);
@@ -1510,7 +1527,7 @@ void GPS::update()
         }
 
         // swallow any config bytes
-        char c;
+        char c = 0;
         read_from_autopilot(&c, 1);
 
         last_update = now_ms;
@@ -1530,7 +1547,11 @@ void GPS::update()
         d.speedE = speedE + (velErrorNED.y * rand_float()); 
         d.speedD = speedD + (velErrorNED.z * rand_float());
         d.have_lock = have_lock;
-
+        if (d.have_lock) {
+            d.num_satellites = _sitl->gps_numsats[instance];
+        } else {
+            d.num_satellites  = 3;
+        }
         if (_sitl->gps_drift_alt[idx] > 0) {
             // slow altitude drift
             d.altitude += _sitl->gps_drift_alt[idx]*sinf(now_ms*0.001f*0.02f);
