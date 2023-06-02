@@ -1033,8 +1033,8 @@ uint8_t GPS::serialize_bitmask(const Bitmask<8>& mask)
 void GPS::update_gsof(const struct gps_data *d)
 {
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_TIME.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____25
-    constexpr uint8_t GSOF_POS_TIME_TYPE = 0x01;
-    constexpr uint8_t GSOF_POS_TIME_LEN = 0x0A;
+    constexpr uint8_t GSOF_POS_TIME_TYPE { 0x01 };
+    constexpr uint8_t GSOF_POS_TIME_LEN { 0x0A };
      // TODO magic number until SITL supports GPS bootcount based on GPSN_ENABLE
     const uint8_t bootcount = 17;
 
@@ -1092,17 +1092,16 @@ void GPS::update_gsof(const struct gps_data *d)
 
     const auto gps_tow = gps_time();
     struct PACKED gsof_pos_time {
-        const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_TIME_TYPE; 
-        const uint8_t RECORD_LEN = GSOF_POS_TIME_LEN;
+        const uint8_t OUTPUT_RECORD_TYPE { GSOF_POS_TIME_TYPE }; 
+        const uint8_t RECORD_LEN { GSOF_POS_TIME_LEN };
         uint32_t time_week_ms;
         uint16_t time_week;
         uint8_t num_sats;
         // TODO
         // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%201
-        uint8_t pos_flags_1 = pos_flags_1;
-        // TODO
+        uint8_t pos_flags_1;
         // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%202
-        uint8_t pos_flags_2 = 0;
+        uint8_t pos_flags_2;
         // TODO increment every time GPS is "restarted", can we use boot count?
         uint8_t initialized_num = bootcount; 
     } pos_time;
@@ -1112,21 +1111,21 @@ void GPS::update_gsof(const struct gps_data *d)
     pos_time.time_week_ms = htobe32(gps_tow.ms);
     pos_time.time_week = htobe16(gps_tow.week);
     pos_time.num_sats = d->num_satellites;
+
     constexpr uint8_t GSOF_POS_TYPE = 0x02;
     constexpr uint8_t GSOF_POS_LEN = 0x18;
 
-    int64_t lat_i64 = 0;
+    int64_t lat_i64 { 0 };
     const auto lat_rad = d->latitude * DEG_TO_RAD_DOUBLE;
     memcpy(&lat_i64, &lat_rad, sizeof(lat_i64));
 
-    int64_t lng_i64 = 0;
+    int64_t lng_i64 { 0 };
     const auto lng_rad = d->longitude * DEG_TO_RAD_DOUBLE;
     memcpy(&lng_i64, &lng_rad, sizeof(lng_i64));
 
-    int64_t alt_i64 = 0;
+    int64_t alt_i64 { 0 };
     const double alt_m = static_cast<double>(d->altitude);
     memcpy(&alt_i64, &alt_m, sizeof(alt_i64));
-    // assert(d->altiude < 600);
 
     // TODO fix constness 
     // Method 1: Use designated initializer (or aggregate initialization)
@@ -1139,16 +1138,15 @@ void GPS::update_gsof(const struct gps_data *d)
     //
     // https://godbolt.org/z/7oeMfMzj6
     struct PACKED gsof_pos {
-        const uint8_t OUTPUT_RECORD_TYPE; 
-        const uint8_t RECORD_LEN;
+        const uint8_t OUTPUT_RECORD_TYPE { GSOF_POS_TYPE }; 
+        const uint8_t RECORD_LEN { GSOF_POS_LEN };
         uint64_t lat;
         uint64_t lng;
         uint64_t alt;
-    } pos {
-        OUTPUT_RECORD_TYPE: GSOF_POS_TYPE,
-        RECORD_LEN: GSOF_POS_LEN
-    };
+    } pos {};
     static_assert(sizeof(pos.lat) == sizeof(lat_i64), "Unexpected double format");
+    // pos.OUTPUT_RECORD_TYPE = GSOF_POS_TYPE;
+    // pos.RECORD_LEN = GSOF_POS_LEN;
     pos.lat = htobe64(lat_i64);
     pos.lng = htobe64(lng_i64);
     pos.alt = htobe64(alt_i64);
@@ -1161,14 +1159,14 @@ void GPS::update_gsof(const struct gps_data *d)
     constexpr uint8_t GSOF_VEL_LEN = 0x0D;
 
     struct PACKED gsof_vel {
-        const uint8_t OUTPUT_RECORD_TYPE = GSOF_VEL_TYPE; 
-        const uint8_t RECORD_LEN = GSOF_VEL_LEN;
+        const uint8_t OUTPUT_RECORD_TYPE { GSOF_VEL_TYPE }; 
+        const uint8_t RECORD_LEN { GSOF_VEL_LEN };
         // TODO
         // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Velocity%20flags
-        uint8_t flags = 0;
-        uint32_t horiz_m_p_s = 0;
-        uint32_t heading_rad = 0;
-        uint32_t vertical_m_p_s = 0;
+        uint8_t flags;
+        uint32_t horiz_m_p_s;
+        uint32_t heading_rad;
+        uint32_t vertical_m_p_s;
     } vel {
 
     };
@@ -1204,14 +1202,14 @@ void GPS::update_gsof(const struct gps_data *d)
         vel_flags.clear(static_cast<uint8_t>(velocity_fields::CONSECUTIVE_MEASUREMENTS));
         vel_flags.clear(static_cast<uint8_t>(velocity_fields::HEADING_VALID));
     }
-    memcpy(&(vel.flags), &vel_flags, sizeof(vel.flags));
+    vel.flags = serialize_bitmask(vel_flags);
 
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
     constexpr uint8_t GSOF_DOP_TYPE = 0x09;
     constexpr uint8_t GSOF_DOP_LEN = 0x10;
     struct PACKED gsof_dop {
-        const uint8_t OUTPUT_RECORD_TYPE = GSOF_DOP_TYPE; 
-        const uint8_t RECORD_LEN = GSOF_DOP_LEN;
+        const uint8_t OUTPUT_RECORD_TYPE { GSOF_DOP_TYPE }; 
+        const uint8_t RECORD_LEN { GSOF_DOP_LEN };
         uint32_t pdop = htobe32(1);
         uint32_t hdop = htobe32(1);
         uint32_t vdop = htobe32(1);
@@ -1227,12 +1225,11 @@ void GPS::update_gsof(const struct gps_data *d)
     constexpr auto dop_payload_size = dop_size - (dop_record_type_size + len_size);
     static_assert(dop_payload_size == GSOF_DOP_LEN);
 
-
     constexpr uint8_t GSOF_POS_SIGMA_TYPE = 0x0C;
     constexpr uint8_t GSOF_POS_SIGMA_LEN = 0x26;
     struct PACKED gsof_pos_sigma {
-        const uint8_t OUTPUT_RECORD_TYPE = GSOF_POS_SIGMA_TYPE; 
-        const uint8_t RECORD_LEN = GSOF_POS_SIGMA_LEN;
+        const uint8_t OUTPUT_RECORD_TYPE { GSOF_POS_SIGMA_TYPE }; 
+        const uint8_t RECORD_LEN { GSOF_POS_SIGMA_LEN };
         uint32_t pos_rms = htobe32(0);
         uint32_t sigma_e = htobe32(0);
         uint32_t sigma_n = htobe32(0);
