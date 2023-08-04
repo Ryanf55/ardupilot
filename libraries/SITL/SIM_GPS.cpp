@@ -1171,10 +1171,20 @@ void GPS::update_gsof(const struct gps_data *d)
 
     };
     static_assert(sizeof(gsof_vel) - (sizeof(gsof_vel::OUTPUT_RECORD_TYPE) + sizeof(gsof_vel::RECORD_LEN)) == GSOF_VEL_LEN);
-    vel.horiz_m_p_s = d->speed_2d();
-    vel.heading_rad = d->heading();
-    // Trimble API has ambiguous direction here
-    vel.vertical_m_p_s = d->speedD;
+
+    int32_t speed_i32 { 0 };
+    const auto speed_2d = d->speed_2d();
+    memcpy(&speed_i32, &speed_2d, sizeof(speed_2d));
+    vel.horiz_m_p_s = htobe32(speed_i32);
+    const auto heading = d->heading();
+    int32_t heading_i32 { 0 };
+    memcpy(&heading_i32, &heading, sizeof(heading));
+    vel.heading_rad = htobe32(heading_i32);
+    // Trimble API has ambiguous direction here, need to narrow it to fit
+    const float vel_d = static_cast<float>(d->speedD);
+    int32_t vel_d_i32 { 0 };
+    memcpy(&vel_d_i32, &vel_d, sizeof(vel_d));
+    vel.vertical_m_p_s = htobe32(vel_d_i32);
 
     // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Velocity%20flags
     enum class velocity_fields : uint8_t {
