@@ -1180,7 +1180,8 @@ void GPS::update_gsof(const struct gps_data *d)
     int32_t heading_i32 { 0 };
     memcpy(&heading_i32, &heading, sizeof(heading));
     vel.heading_rad = htobe32(heading_i32);
-    // Trimble API has ambiguous direction here, need to narrow it to fit
+    // Trimble API has ambiguous direction here.
+    // Intentionally narrow from double.
     const float vel_d = static_cast<float>(d->speedD);
     int32_t vel_d_i32 { 0 };
     memcpy(&vel_d_i32, &vel_d, sizeof(vel_d));
@@ -1689,7 +1690,7 @@ GPS::gps_data GPS::interpolate_data(const gps_data &d, uint32_t delay_ms)
 float GPS::gps_data::heading() const
 {
     const auto velocity = Vector2d{speedE, speedN};
-    return ToDeg(velocity.angle());
+    return velocity.angle();
 }
 
 float GPS::gps_data::speed_2d() const
