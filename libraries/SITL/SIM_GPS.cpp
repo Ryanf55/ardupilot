@@ -292,7 +292,7 @@ void GPS::update_ubx(const struct gps_data *d)
         uint32_t headVeh;
         uint8_t reserved2[4]; 
     } pvt {};
-    const uint8_t SV_COUNT = 10;
+    const uint8_t SV_COUNT = 13;
     struct PACKED ubx_nav_svinfo {
         uint32_t itow;
         uint8_t numCh;
@@ -480,7 +480,7 @@ void GPS::update_ubx(const struct gps_data *d)
         for (uint8_t i = 0; i < SV_COUNT; i++) {
             svinfo.sv[i].chn = i;
             svinfo.sv[i].svid = i;
-            svinfo.sv[i].flags = (i < _sitl->gps_numsats[instance]) ? 0x7 : 0x6; // sv used, diff correction data, orbit information
+            svinfo.sv[i].flags = (i < d->num_satellites) ? 0x7 : 0x6; // sv used, diff correction data, orbit information
             svinfo.sv[i].quality = 7; // code and carrier lock and time synchronized
             svinfo.sv[i].cno = MAX(20, 30 - i);
             svinfo.sv[i].elev = MAX(30, 90 - i);
@@ -812,7 +812,7 @@ void GPS::update_sbp2(const struct gps_data *d)
     pos.height = d->altitude;
     pos.h_accuracy = _sitl->gps_accuracy[instance]*1000;
     pos.v_accuracy = _sitl->gps_accuracy[instance]*1000;
-    pos.n_sats = _sitl->gps_numsats[instance];
+    pos.n_sats = d->num_satellites;
 
     // Send single point position solution
     pos.flags = 1;
@@ -827,7 +827,7 @@ void GPS::update_sbp2(const struct gps_data *d)
     velned.d = 1e3 * d->speedD;
     velned.h_accuracy = 5e3;
     velned.v_accuracy = 5e3;
-    velned.n_sats = _sitl->gps_numsats[instance];
+    velned.n_sats = d->num_satellites;
     velned.flags = 1;
     sbp_send_message(SBP_VEL_NED_MSGTYPE, 0x2222, sizeof(velned), (uint8_t*)&velned);
 
@@ -972,7 +972,7 @@ void GPS::update_nova(const struct gps_data *d)
     bestpos.lat = d->latitude;
     bestpos.lng = d->longitude;
     bestpos.hgt = d->altitude;
-    bestpos.svsused = _sitl->gps_numsats[instance];
+    bestpos.svsused = d->num_satellites;
     bestpos.latsdev=0.2;
     bestpos.lngsdev=0.2;
     bestpos.hgtsdev=0.2;
@@ -1403,7 +1403,7 @@ void GPS::update_msp(const struct gps_data *d)
     msp_gps.gps_week = t.week;
     msp_gps.ms_tow = t.ms;
     msp_gps.fix_type = d->have_lock?3:0;
-    msp_gps.satellites_in_view = d->have_lock?_sitl->gps_numsats[instance]:3;
+    msp_gps.satellites_in_view = d->num_satellites;
     msp_gps.horizontal_pos_accuracy = _sitl->gps_accuracy[instance]*100;
     msp_gps.vertical_pos_accuracy = _sitl->gps_accuracy[instance]*100;
     msp_gps.horizontal_vel_accuracy = 30;
