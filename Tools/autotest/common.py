@@ -13010,7 +13010,6 @@ switch value'''
             (11, "GSOF", 11, "GSOF", 5, 'detected'),
             (19, "MSP", 19, "MSP", 32, 'specified'),  # no attempt to auto-detect this in AP_GPS
             # (9, "FILE"),
-
         ]
         self.context_collect("STATUSTEXT")
         for (sim_gps_type, name, gps_type, detect_name, serial_protocol, detect_prefix) in sim_gps:
