@@ -13,3 +13,24 @@ namespace std {
 }
 
 #endif
+
+#if defined(HAVE_STD_UNDERLYING_TYPE) && !HAVE_STD_UNDERLYING_TYPE
+
+// namespace std {
+    template< class T >
+    struct underlying_type;
+
+    template<typename _Tp, bool = is_enum<_Tp>::value>
+    struct __underlying_type_impl
+    {
+      using type = __underlying_type(_Tp);
+    };
+
+    template< class T, class V >
+    V to_underlying(T) {
+        return underlying_type(V);
+    }
+    
+// }
+
+#endif

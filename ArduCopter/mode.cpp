@@ -199,7 +199,7 @@ bool Copter::gcs_mode_enabled(const Mode::Number mode_num)
 {
     // List of modes that can be blocked, index is bit number in parameter bitmask
     static const uint8_t mode_list [] {
-        (uint8_t)Mode::Number::STABILIZE,
+        std::underlying_type<Mode::Number>(Mode::Number::STABILIZE),
         (uint8_t)Mode::Number::ACRO,
         (uint8_t)Mode::Number::ALT_HOLD,
         (uint8_t)Mode::Number::AUTO,

@@ -2,6 +2,7 @@
 
 #include "Copter.h"
 #include <AP_Math/chirp.h>
+#include <type_traits>
 class Parameters;
 class ParametersG2;
 
@@ -43,6 +44,7 @@ public:
         // Mode number 127 reserved for the "drone show mode" in the Skybrush
         // fork at https://github.com/skybrush-io/ardupilot
     };
+
 
     // constructor
     Mode(void);

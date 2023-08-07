@@ -179,3 +179,18 @@ template <typename T> void BIT_CLEAR (T& value, uint8_t bitnumber) noexcept {
      ((value) &= ~((T)(1U) << (bitnumber)));
  }
 
+
+/* 
+  to_underlying from C++ STL: https://en.cppreference.com/w/cpp/types/underlying_type
+*/
+
+namespace std {
+#if defined(__clang__)
+
+#endif
+
+#if defined(__GNUC__)
+  // #define underlying_type __underlying_type 
+#endif
+}
+
