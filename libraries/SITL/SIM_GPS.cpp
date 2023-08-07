@@ -1017,19 +1017,6 @@ uint32_t GPS::CalculateBlockCRC32(uint32_t length, uint8_t *buffer, uint32_t crc
     return( crc );
 }
 
-uint8_t GPS::serialize_bitmask(const Bitmask<8>& mask)
-{
-    uint8_t ret = 0;
-    for (uint8_t i = 0 ; i < 8 ; i++)
-    {
-        if (mask.get(i)) {
-            ret |= 1 << i; 
-        }
-    }
-
-    return ret;
-}
-
 void GPS::update_gsof(const struct gps_data *d)
 {
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_TIME.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____25
@@ -1039,55 +1026,53 @@ void GPS::update_gsof(const struct gps_data *d)
     const uint8_t bootcount = 17;
 
     // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%201
-    enum class pos_flags_1_fields : uint8_t {
-        NEW_POSITION = 0,
-        CLOCK_FIX_CALULATED = 1,
-        HORIZ_FROM_THIS_POS = 2,
-        HEIGHT_FROM_THIS_POS = 3,
-        RESERVED_4 = 4,
-        LEAST_SQ_POSITION = 5,
-        RESERVED_6 = 6,
-        POSITION_L1_PSEUDORANGES = 7
+    enum POS_FLAGS_1 : uint8_t {
+        NEW_POSITION = 1U << 0,
+        CLOCK_FIX_CALULATED = 1U << 1,
+        HORIZ_FROM_THIS_POS = 1U << 2,
+        HEIGHT_FROM_THIS_POS = 1U << 3,
+        RESERVED_4 = 1U << 4,
+        LEAST_SQ_POSITION = 1U << 5,
+        RESERVED_6 = 1U << 6,
+        POSITION_L1_PSEUDORANGES = 1U << 7
     };
-    Bitmask<8> pos_flags_1;
-    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::NEW_POSITION));
-    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::CLOCK_FIX_CALULATED));
-    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::HORIZ_FROM_THIS_POS));
-    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::HEIGHT_FROM_THIS_POS));
-    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::RESERVED_4));
-    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::LEAST_SQ_POSITION));
-    pos_flags_1.clear(static_cast<uint8_t>(pos_flags_1_fields::RESERVED_6));
-    pos_flags_1.set(static_cast<uint8_t>(pos_flags_1_fields::POSITION_L1_PSEUDORANGES));
+    const uint8_t pos_flags_1 {
+        POS_FLAGS_1::NEW_POSITION |
+        POS_FLAGS_1::CLOCK_FIX_CALULATED |
+        POS_FLAGS_1::HORIZ_FROM_THIS_POS |
+        POS_FLAGS_1::HEIGHT_FROM_THIS_POS |
+        POS_FLAGS_1::RESERVED_4 |
+        POS_FLAGS_1::LEAST_SQ_POSITION |
+        POS_FLAGS_1::POSITION_L1_PSEUDORANGES};
 
     // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Position%20flags%202
-    enum class pos_flags_2_fields : uint8_t {
-        DIFFERENTIAL_POS = 0,
-        DIFFERENTIAL_POS_PHASE_RTK = 1,
-        POSITION_METHOD_FIXED_PHASE = 2,
-        OMNISTAR_ACTIVE = 3,
-        DETERMINED_WITH_STATIC_CONSTRAINT = 4,
-        NETWORK_RTK = 5,
-        DITHERED_RTK = 6,
-        BEACON_DGNSS = 7
+    enum POS_FLAGS_2 : uint8_t {
+        DIFFERENTIAL_POS = 1U << 0,
+        DIFFERENTIAL_POS_PHASE_RTK = 1U << 1,
+        POSITION_METHOD_FIXED_PHASE = 1U << 2,
+        OMNISTAR_ACTIVE = 1U << 3,
+        DETERMINED_WITH_STATIC_CONSTRAINT = 1U << 4,
+        NETWORK_RTK = 1U << 5,
+        DITHERED_RTK = 1U << 6,
+        BEACON_DGNSS = 1U << 7,
     };
-    Bitmask<8> pos_flags_2;
 
-    // Simulate a GPS without RTK in SIM since there is no RTK SIM params
-    pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::NETWORK_RTK));
-    pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DITHERED_RTK));
-    pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::BEACON_DGNSS));
+    // Simulate a GPS without RTK in SIM since there is no RTK SIM params.
+    // This means these flags are unset:
+    // NETWORK_RTK, DITHERED_RTK, BEACON_DGNSS
+    uint8_t pos_flags_2 {0};
     if(d->have_lock) {
-        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS));
-        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS_PHASE_RTK));
-        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::POSITION_METHOD_FIXED_PHASE));
-        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::OMNISTAR_ACTIVE));
-        pos_flags_2.set(static_cast<uint8_t>(pos_flags_2_fields::DETERMINED_WITH_STATIC_CONSTRAINT));
+        pos_flags_2 |= POS_FLAGS_2::DIFFERENTIAL_POS;
+        pos_flags_2 |= POS_FLAGS_2::DIFFERENTIAL_POS_PHASE_RTK;
+        pos_flags_2 |= POS_FLAGS_2::POSITION_METHOD_FIXED_PHASE;
+        pos_flags_2 |= POS_FLAGS_2::OMNISTAR_ACTIVE;
+        pos_flags_2 |= POS_FLAGS_2::DETERMINED_WITH_STATIC_CONSTRAINT;
     } else {
-        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS));
-        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DIFFERENTIAL_POS_PHASE_RTK));
-        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::POSITION_METHOD_FIXED_PHASE));
-        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::OMNISTAR_ACTIVE));
-        pos_flags_2.clear(static_cast<uint8_t>(pos_flags_2_fields::DETERMINED_WITH_STATIC_CONSTRAINT));
+        pos_flags_2 |= POS_FLAGS_2::DIFFERENTIAL_POS;
+        pos_flags_2 |= POS_FLAGS_2::DIFFERENTIAL_POS_PHASE_RTK;
+        pos_flags_2 |= POS_FLAGS_2::POSITION_METHOD_FIXED_PHASE;
+        pos_flags_2 |= POS_FLAGS_2::OMNISTAR_ACTIVE;
+        pos_flags_2 |= POS_FLAGS_2::DETERMINED_WITH_STATIC_CONSTRAINT;
     }
 
     const auto gps_tow = gps_time();
@@ -1106,8 +1091,8 @@ void GPS::update_gsof(const struct gps_data *d)
         uint8_t initialized_num = bootcount; 
     } pos_time;
     static_assert(sizeof(gsof_pos_time) - (sizeof(gsof_pos_time::OUTPUT_RECORD_TYPE) + sizeof(gsof_pos_time::RECORD_LEN)) == GSOF_POS_TIME_LEN);
-    pos_time.pos_flags_1 = serialize_bitmask(pos_flags_1);
-    pos_time.pos_flags_2 = serialize_bitmask(pos_flags_2);
+    pos_time.pos_flags_1 = pos_flags_1;
+    pos_time.pos_flags_2 = pos_flags_2;
     pos_time.time_week_ms = htobe32(gps_tow.ms);
     pos_time.time_week = htobe16(gps_tow.week);
     pos_time.num_sats = d->have_lock ? _sitl->gps_numsats[instance] : 3;
@@ -1188,32 +1173,22 @@ void GPS::update_gsof(const struct gps_data *d)
     vel.vertical_m_p_s = htobe32(vel_d_i32);
 
     // https://receiverhelp.trimble.com/oem-gnss/GSOFmessages_Flags.html#Velocity%20flags
-    enum class velocity_fields : uint8_t {
-        VALID = 0,
-        CONSECUTIVE_MEASUREMENTS = 1,
-        HEADING_VALID = 2,
-        RESERVED_3 = 3,
-        RESERVED_4 = 4,
-        RESERVED_5 = 5,
-        RESERVED_6 = 6,
-        RESERVED_7 = 7
+    enum VEL_FIELDS : uint8_t {
+        VALID = 1U << 0,
+        CONSECUTIVE_MEASUREMENTS = 1U << 1,
+        HEADING_VALID = 1U << 2,
+        RESERVED_3 = 1U << 3,
+        RESERVED_4 = 1U << 4,
+        RESERVED_5 = 1U << 5,
+        RESERVED_6 = 1U << 6,
+        RESERVED_7 = 1U << 7,
     };
-    Bitmask<8> vel_flags;
-    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_3));
-    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_4));
-    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_5));
-    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_6));
-    vel_flags.clear(static_cast<uint8_t>(velocity_fields::RESERVED_7));
+    uint8_t vel_flags {0};
     if(d->have_lock) {
-        vel_flags.set(static_cast<uint8_t>(velocity_fields::VALID));
-        vel_flags.set(static_cast<uint8_t>(velocity_fields::CONSECUTIVE_MEASUREMENTS));
-        vel_flags.set(static_cast<uint8_t>(velocity_fields::HEADING_VALID));
-    } else {
-        vel_flags.clear(static_cast<uint8_t>(velocity_fields::VALID));
-        vel_flags.clear(static_cast<uint8_t>(velocity_fields::CONSECUTIVE_MEASUREMENTS));
-        vel_flags.clear(static_cast<uint8_t>(velocity_fields::HEADING_VALID));
+        vel_flags |= VEL_FIELDS::VALID;
+        vel_flags |= VEL_FIELDS::CONSECUTIVE_MEASUREMENTS;
+        vel_flags |= VEL_FIELDS::HEADING_VALID;
     }
-    vel.flags = serialize_bitmask(vel_flags);
 
     // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
     constexpr uint8_t GSOF_DOP_TYPE = 0x09;

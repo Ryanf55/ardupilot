@@ -137,8 +137,6 @@ private:
     void nova_send_message(uint8_t *header, uint8_t headerlength, uint8_t *payload, uint8_t payloadlen);
     uint32_t CRC32Value(uint32_t icrc);
     uint32_t CalculateBlockCRC32(uint32_t length, uint8_t *buffer, uint32_t crc);
-    // Convert the bitmask into a uint8_t
-    static uint8_t serialize_bitmask(const Bitmask<8>& mask);
 
     // If gsof gets data in, handle it. 
     // Simply, it should respond to this: https://receiverhelp.trimble.com/oem-gnss/index.html#API_TestingComms.html
