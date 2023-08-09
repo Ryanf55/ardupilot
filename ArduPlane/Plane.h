@@ -83,6 +83,7 @@
 #include <AP_Landing/AP_Landing.h>
 #include <AP_LandingGear/AP_LandingGear.h>     // Landing Gear library
 #include <AP_Follow/AP_Follow.h>
+#include <AP_ExternalControl/AP_ExternalControl.h>
 
 #include "GCS_Mavlink.h"
 #include "GCS_Plane.h"
@@ -769,6 +770,9 @@ private:
     AP_Arming_Plane arming;
 
     AP_Param param_loader {var_info};
+
+    // dummy implementation of external control
+    AP_ExternalControl external_control;
 
     static const AP_Scheduler::Task scheduler_tasks[];
     static const AP_Param::Info var_info[];
