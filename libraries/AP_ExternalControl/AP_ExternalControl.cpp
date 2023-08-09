@@ -3,6 +3,12 @@
 // singleton instance
 AP_ExternalControl *AP_ExternalControl::singleton;
 
+AP_ExternalControl::AP_ExternalControl()
+{
+    singleton = this;
+}
+
+
 namespace AP {
 
 AP_ExternalControl *externalcontrol()

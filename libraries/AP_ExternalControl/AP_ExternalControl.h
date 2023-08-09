@@ -8,6 +8,8 @@
 
 class AP_ExternalControl {
 public:
+
+    AP_ExternalControl();
     /*
       set linear velocity and yaw rate. Pass NaN for yaw_rate_rads to not control yaw
       velocity is in earth frame, NED, m/s
