@@ -957,6 +957,7 @@ private:
 class ModeGuided : public Mode {
 
 public:
+    friend class AP_ExternalControl_Copter;
     // inherit constructor
     using Mode::Mode;
     Number mode_number() const override { return Number::GUIDED; }
