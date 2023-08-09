@@ -9,6 +9,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_AHRS/AP_AHRS.h>
+#include <AP_ExternalControl/AP_ExternalControl.h>
 
 #include "AP_DDS_Client.h"
 
@@ -460,8 +461,19 @@ void AP_DDS_Client::on_topic (uxrSession* uxr_session, uxrObjectId object_id, ui
         }
         uint32_t* count_ptr = (uint32_t*) args;
         (*count_ptr)++;
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Received geometry_msgs/TwistStamped");
-        // TODO implement the velocity control to AP
+        auto *external_control = AP::externalcontrol();
+        if (external_control == nullptr) {
+            break;
+        }
+        /*
+          get commands from ENU to NED frame
+         */
+        Vector3f linear_velocity {
+            float(rx_velocity_control_topic.twist.linear.y),
+            float(rx_velocity_control_topic.twist.linear.x),
+            float(-rx_velocity_control_topic.twist.linear.z) };
+        const float yaw_rate = -rx_velocity_control_topic.twist.angular.z;
+        external_control->set_linear_velocity_and_yaw_rate(linear_velocity, yaw_rate);
         break;
     }
     }
