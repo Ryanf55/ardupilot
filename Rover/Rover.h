@@ -43,6 +43,7 @@
 #include <AR_WPNav/AR_WPNav_OA.h>
 #include <AP_OpticalFlow/AP_OpticalFlow.h>
 #include <AC_PrecLand/AC_PrecLand_config.h>
+#include <AP_ExternalControl/AP_ExternalControl.h>
 
 // Configuration
 #include "defines.h"
@@ -139,6 +140,9 @@ private:
 
     // Arming/Disarming management class
     AP_Arming_Rover arming;
+
+    // dummy external control implementation
+    AP_ExternalControl external_control;
 
 #if AP_OPTICALFLOW_ENABLED
     AP_OpticalFlow optflow;
