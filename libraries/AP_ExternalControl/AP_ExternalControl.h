@@ -4,6 +4,10 @@
 
 #pragma once
 
+#include "AP_ExternalControl_config.h"
+
+#if AP_EXTERNAL_CONTROL_ENABLED
+
 #include <AP_Math/AP_Math.h>
 
 class AP_ExternalControl {
@@ -29,3 +33,5 @@ private:
 namespace AP {
     AP_ExternalControl *externalcontrol();
 };
+
+#endif // AP_EXTERNAL_CONTROL_ENABLED
