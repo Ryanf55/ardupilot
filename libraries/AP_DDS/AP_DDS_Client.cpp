@@ -9,7 +9,10 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_AHRS/AP_AHRS.h>
+#include <AP_ExternalControl/AP_ExternalControl_config.h>
+#if AP_EXTERNAL_CONTROL_ENABLED
 #include <AP_ExternalControl/AP_ExternalControl.h>
+#endif
 
 #include "AP_DDS_Client.h"
 
@@ -461,6 +464,7 @@ void AP_DDS_Client::on_topic (uxrSession* uxr_session, uxrObjectId object_id, ui
         }
         uint32_t* count_ptr = (uint32_t*) args;
         (*count_ptr)++;
+#if AP_EXTERNAL_CONTROL_ENABLED
         auto *external_control = AP::externalcontrol();
         if (external_control == nullptr) {
             break;
@@ -474,6 +478,7 @@ void AP_DDS_Client::on_topic (uxrSession* uxr_session, uxrObjectId object_id, ui
             float(-rx_velocity_control_topic.twist.linear.z) };
         const float yaw_rate = -rx_velocity_control_topic.twist.angular.z;
         external_control->set_linear_velocity_and_yaw_rate(linear_velocity, yaw_rate);
+#endif // AP_EXTERNAL_CONTROL_ENABLED
         break;
     }
     }
