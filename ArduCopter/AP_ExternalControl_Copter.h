@@ -5,6 +5,8 @@
 
 #include <AP_ExternalControl/AP_ExternalControl.h>
 
+#if AP_EXTERNAL_CONTROL_ENABLED
+
 class AP_ExternalControl_Copter : public AP_ExternalControl {
 public:
     /*
@@ -14,3 +16,5 @@ public:
      */
     bool set_linear_velocity_and_yaw_rate(const Vector3f &linear_velocity, float yaw_rate_rads) override;
 };
+
+#endif // AP_EXTERNAL_CONTROL_ENABLED

@@ -99,7 +99,11 @@
 #include "GCS_Copter.h"
 #include "AP_Rally.h"           // Rally point library
 #include "AP_Arming.h"
+
+#include <AP_ExternalControl/AP_ExternalControl_config.h>
+#if AP_EXTERNAL_CONTROL_ENABLED
 #include "AP_ExternalControl_Copter.h"
+#endif
 
 #include <AP_Beacon/AP_Beacon_config.h>
 #if AP_BEACON_ENABLED
@@ -194,7 +198,9 @@ public:
     friend class AP_AdvancedFailsafe_Copter;
 #endif
     friend class AP_Arming_Copter;
+#if AP_EXTERNAL_CONTROL_ENABLED
     friend class AP_ExternalControl_Copter;
+#endif
     friend class ToyMode;
     friend class RC_Channel_Copter;
     friend class RC_Channels_Copter;
@@ -322,7 +328,10 @@ private:
 #endif
 
     // external control library
+#if AP_EXTERNAL_CONTROL_ENABLED
     AP_ExternalControl_Copter external_control;
+#endif
+
 
     // system time in milliseconds of last recorded yaw reset from ekf
     uint32_t ekfYawReset_ms;

@@ -2,8 +2,11 @@
   external control library for copter
  */
 
-#include "Copter.h"
+
 #include "AP_ExternalControl_Copter.h"
+#if AP_EXTERNAL_CONTROL_ENABLED
+
+#include "Copter.h"
 
 /*
   set linear velocity and yaw rate. Pass NaN for yaw_rate_rads to not control yaw
@@ -21,3 +24,5 @@ bool AP_ExternalControl_Copter::set_linear_velocity_and_yaw_rate(const Vector3f 
     copter.mode_guided.set_velocity(velocity_up_cms, false, 0, !isnan(yaw_rate_rads), yaw_rate_cds);
     return true;
 }
+
+#endif // AP_EXTERNAL_CONTROL_ENABLED
