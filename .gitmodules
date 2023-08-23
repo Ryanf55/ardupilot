@@ -39,3 +39,6 @@
 	path = modules/Micro-CDR
 	url = https://github.com/ardupilot/Micro-CDR.git
 	branch = master
+[submodule "modules/mip_sdk"]
+	path = modules/mip_sdk
+	url = https://github.com/LORD-MicroStrain/mip_sdk.git

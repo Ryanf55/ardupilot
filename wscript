@@ -542,6 +542,7 @@ def configure(cfg):
     cfg.recurse('libraries/AP_GPS')
     cfg.recurse('libraries/AP_HAL_SITL')
     cfg.recurse('libraries/SITL')
+    cfg.recurse('libraries/AP_ExternalAHRS')
 
     cfg.start_msg('Scripting runtime checks')
     if cfg.options.scripting_checks:

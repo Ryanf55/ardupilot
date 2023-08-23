@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+def configure(cfg):
+    cfg.env.CMAKE_MIN_VERSION = '3.10'
+    cfg.load('cmake')
+
+def build(bld):
+    raise "F"
+    # cmake configuration
+    mip_sdk_config = bld.cmake(
+        name='mip_sdk',
+        cmake_src='modules/mip_sdk', # where is the source tree
+        cmake_bld='build/mip', # where to generate the build system
+        cmake_vars=dict(
+            CMAKE_BUILD_TYPE='Release',
+            # WITH_SERIAL=False
+        ),
+    )
+
+    # cmake build for external target 'bar'
+    bld(
+        features='cmake_build',
+        cmake_config='mip_sdk_config', # this build depends on the cmake generation above defined
+        cmake_target='mip', # what to pass to option --target of cmake
+    )
+
+    # cmake build for target 'mip' (syntactic sugar)
+    mip_sdk_config.build('mip')
