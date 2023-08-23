@@ -11,7 +11,6 @@ def build(bld):
     src_dir = bld.srcnode.find_node(str(MIP_SDK_FOLDER))
     build_dir = bld.bldnode.make_node(str(MIP_SDK_FOLDER))
 
-    # cmake configuration
     mip = bld.cmake(
         name='mip',
         cmake_src=src_dir,
@@ -21,5 +20,10 @@ def build(bld):
         #     # WITH_SERIAL=False
         # ),
     )
-    
-    mip.build('mip')
+    bld(
+        features='cmake_build',
+        cmake_target="mip",
+        cmake_config="mip"
+    )
+
+    mip.build(cmake_target="foobar")
