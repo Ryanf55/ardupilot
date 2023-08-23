@@ -792,6 +792,7 @@ def _build_recursion(bld):
             dirs_to_recurse.append('Tools/AP_Periph')
 
     dirs_to_recurse.append('libraries/AP_Scripting')
+    dirs_to_recurse.append('libraries/AP_ExternalAHRS')
 
     if bld.env.ENABLE_ONVIF:
         dirs_to_recurse.append('libraries/AP_ONVIF')
