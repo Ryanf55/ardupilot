@@ -27,10 +27,9 @@ public:
     void update(void);
 
 private:
-    struct MicroStrain_Packet {
+    struct PACKED MicroStrain_Packet {
         uint8_t header[4];
         uint8_t payload[256];
-        uint8_t checksum[2];
 
         size_t payload_size = 0;
     };
@@ -39,7 +38,7 @@ private:
     uint32_t last_gnss_pkt_us;
     uint32_t last_filter_pkt_us;
 
-    void generate_checksum(MicroStrain_Packet&);
+    uint16_t generate_checksum(const MicroStrain_Packet&) const WARN_IF_UNUSED;
 
     void send_packet(MicroStrain_Packet);
     void send_imu_packet();

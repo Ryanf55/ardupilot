@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <AP_Common/AP_Checksum.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <GCS_MAVLink/GCS.h>
 
@@ -48,32 +49,19 @@ static void simulation_timeval(struct timeval *tv)
     tv->tv_usec = new_usec % 1000000ULL;
 }
 
-void MicroStrain::generate_checksum(MicroStrain_Packet& packet)
+uint16_t MicroStrain::generate_checksum(const MicroStrain_Packet& packet) const
 {
-    uint8_t checksumByte1 = 0;
-    uint8_t checksumByte2 = 0;
-
-    for (int i = 0; i < 4; i++) {
-        checksumByte1 += packet.header[i];
-        checksumByte2 += checksumByte1;
-    }
-
-    for (int i = 0; i < packet.header[3]; i++) {
-        checksumByte1 += packet.payload[i];
-        checksumByte2 += checksumByte1;
-    }
-
-    packet.checksum[0] = checksumByte1;
-    packet.checksum[1] = checksumByte2;
+    constexpr uint8_t header_sz = sizeof(packet.header);
+    return AP::Fletcher16(&packet.header[0], header_sz + packet.payload_size);
 }
 
 void MicroStrain::send_packet(MicroStrain_Packet packet)
 {
-    generate_checksum(packet);
 
     write_to_autopilot((char *)&packet.header, sizeof(packet.header));
     write_to_autopilot((char *)&packet.payload, packet.payload_size);
-    write_to_autopilot((char *)&packet.checksum, sizeof(packet.checksum));
+    const auto csum = generate_checksum(packet);
+    write_to_autopilot((char *)&csum, sizeof(csum));
 }
 
 
