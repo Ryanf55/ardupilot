@@ -26,7 +26,7 @@ BASE_PKGS="base-devel ccache git gsfonts tk wget gcc"
 SITL_PKGS="python-pip python-setuptools python-wheel python-wxpython opencv python-numpy python-scipy"
 PX4_PKGS="lib32-glibc zip zlib ncurses"
 
-PYTHON_PKGS="future lxml pymavlink MAVProxy pexpect argparse matplotlib pyparsing geocoder pyserial empy dronecan"
+PYTHON_PKGS="future lxml pymavlink MAVProxy pexpect argparse matplotlib pyparsing geocoder pyserial empy dronecan pre-commit"
 
 # GNU Tools for ARM Embedded Processors
 # (see https://launchpad.net/gcc-arm-embedded/)
@@ -113,6 +113,7 @@ SCRIPT_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
 (
     cd "$SCRIPT_DIR"
     git submodule update --init --recursive
+    pre-commit install
 )
 
 echo "Done. Please log out and log in again."
