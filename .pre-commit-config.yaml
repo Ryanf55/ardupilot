@@ -31,14 +31,36 @@ repos:
               )$
         -   id: check-added-large-files
         -   id: check-executables-have-shebangs
+            exclude:
+              (?x)^(
+                Tools/bootloaders/CubeOrange-bdshot_bl.hex|
+                libraries/AP_Baro/AP_Baro_ICP101XX.cpp |
+                Tools/bootloaders/CubeOrange-periph_bl.hex |
+                libraries/AP_HAL_ChibiOS/hwdef/STM32CubeConf/L4R5-8MHz/L4R5-8MHz.ioc |
+                libraries/AP_Scripting/examples/rover-SaveTurns.lua |
+                libraries/AP_Scripting/examples/rover-MinFixType.lua |
+                Tools/CPUInfo/output-PixFlamingo.txt |
+                libraries/AP_Baro/AP_Baro_ICP201XX.h |
+                libraries/AP_HAL_ChibiOS/hwdef/STM32CubeConf/L4R5-24MHz/L4R5-24MHz.ioc |
+                libraries/AP_Motors/examples/AP_Motors_test/MotorTestSweep.sh |
+                libraries/AP_Baro/AP_Baro_ICP201XX.cpp |
+                Tools/ros2/ardupilot_dds_tests/ardupilot_dds_tests/time_listener.py |
+                libraries/AP_Baro/AP_Baro_ICP101XX.h
+              )$
         -   id: check-shebang-scripts-are-executable
             exclude: |
               (?x)^(
                 .*\/wscript |
-                wscript
+                wscript |
+                libraries/SITL/examples/Webots_Python/controllers/ardupilot_vehicle_controller/webots_vehicle.py
               )$
         -   id: check-merge-conflict
         -   id: check-xml
+            exclude: |
+              (?x)^(
+                Tools/autotest/template/scrimmage.xml
+              )$
+
         -   id: check-yaml
 
   -   repo: https://github.com/lsst-ts/pre-commit-xmllint
