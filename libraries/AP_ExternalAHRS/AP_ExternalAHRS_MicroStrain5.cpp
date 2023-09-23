@@ -44,16 +44,16 @@ AP_ExternalAHRS_MicroStrain5::AP_ExternalAHRS_MicroStrain5(AP_ExternalAHRS *_fro
     port_num = sm.find_portnum(AP_SerialManager::SerialProtocol_AHRS, 0);
 
     if (!uart) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "ExternalAHRS no UART");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "MicroStrain5 ExternalAHRS no UART");
         return;
     }
 
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_ExternalAHRS_MicroStrain5::update_thread, void), "AHRS", 2048, AP_HAL::Scheduler::PRIORITY_SPI, 0)) {
-        AP_BoardConfig::allocation_error("Failed to allocate ExternalAHRS update thread");
+        AP_BoardConfig::allocation_error("MicroStrain5 failed to allocate ExternalAHRS update thread");
     }
 
     hal.scheduler->delay(5000);
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "MicroStrain ExternalAHRS initialised");
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "MicroStrain5 ExternalAHRS initialised");
 }
 
 void AP_ExternalAHRS_MicroStrain5::update_thread(void)
