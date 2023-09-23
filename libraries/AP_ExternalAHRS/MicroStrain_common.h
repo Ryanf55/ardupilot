@@ -117,6 +117,25 @@ protected:
             header[3] = len;
         }
 
+        // Gets the 16 bit checksum from the checksum field.
+        // Make sure to call populate_csum() when building the packet.
+        uint16_t csum16() const WARN_IF_UNUSED {
+            return ((uint16_t)checksum[0] << 8) | (uint16_t)checksum[1];
+        }
+
+        // Sets the 16 bit checksum
+        void csum16(const uint16_t csum) {
+            checksum[0] = csum >> 8;
+            checksum[1] = csum & 0xff;
+        }
+
+        // Calculates and populates the fletcher checksum in-place
+        void populate_csum();
+
+        // Calculates the checksum from the header/payload bytes
+        uint16_t calculate_csum() const WARN_IF_UNUSED;
+
+
         // Gets the descriptor set
         DescriptorSet descriptor_set() const WARN_IF_UNUSED {
             return DescriptorSet(header[2]);
@@ -126,6 +145,13 @@ protected:
         void descriptor_set(const uint8_t descriptor_set) {
             header[2] = descriptor_set;
         }
+        // Sets the descriptor set
+        void descriptor_set(const DescriptorSet descriptor_set) {
+            header[2] = static_cast<uint8_t>(descriptor_set);
+        }
+
+        // Returns true if the fletcher checksum for the packet is valid, else false.
+        bool valid_packet() const WARN_IF_UNUSED;
     };
 
     struct {
@@ -138,11 +164,12 @@ protected:
     uint32_t last_gps_pkt;
     uint32_t last_filter_pkt;
 
+    // Flag for if ping response was received
+    bool got_ping_rsp = false;
+
     // Handle a single byte.
     // If the byte matches a descriptor, it returns true and that type should be handled.
     bool handle_byte(const uint8_t b, DescriptorSet& descriptor);
-    // Returns true if the fletcher checksum for the packet is valid, else false.
-    static bool valid_packet(const MicroStrain_Packet &packet);
     // Calls the correct functions based on the packet descriptor of the packet
     DescriptorSet handle_packet(const MicroStrain_Packet &packet);
     // Collects data from an imu packet into `imu_data`
@@ -150,6 +177,7 @@ protected:
     // Collects data from a gnss packet into `gnss_data`
     void handle_gnss(const MicroStrain_Packet &packet);
     void handle_filter(const MicroStrain_Packet &packet);
+    void handle_base_command(const MicroStrain_Packet &packet);
     static Vector3f populate_vector3f(const uint8_t* data, uint8_t offset);
     static Quaternion populate_quaternion(const uint8_t* data, uint8_t offset);
     // Depending on the descriptor, the data corresponds to a different GNSS instance.

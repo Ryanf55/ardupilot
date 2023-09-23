@@ -45,8 +45,7 @@ public:
     void send_status_report(class GCS_MAVLINK &link) const override;
 
     // check for new data
-    void update() override
-    {
+    void update() override {
         build_packet();
     };
 
@@ -55,8 +54,14 @@ private:
     uint32_t baudrate;
     int8_t port_num;
     bool port_open = false;
-
-
+    // This flag is false when the driver starts up. 
+    // At runtime, while it's flag, the driver attempts to ping the MicroStrain hardware.
+    // Upon response, this flag will remain true for the lifetime of the driver class object.
+    // It does NOT support failure detection, hotplugging, or software restarts.
+    bool got_ping = false;
+    
+    // Send ping, return true if the device responds
+    bool do_ping() WARN_IF_UNUSED;
 
     void build_packet();
 

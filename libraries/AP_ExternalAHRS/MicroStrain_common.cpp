@@ -42,6 +42,26 @@ enum class GNSSPacketField {
     GPS_TIMESTAMP = 0xD3,
 };
 
+// https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/filter_data_links.htm
+enum class FilterPacketField {
+    FILTER_STATUS = 0x10,
+    LLH_POSITION = 0x01,
+    NED_VELOCITY = 0x02,
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/shared_data/data/mip_field_shared_gps_timestamp.htm
+    GPS_TIMESTAMP = 0xD3,
+};
+
+// https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Commands/base_command/base_command_links.htm
+enum class BaseCommandPacketFieldCmd {
+    PING = 0x01,
+};
+
+// The same as BaseCommandPacketFieldCmd but add 0x80 
+enum class BaseCommandPacketFieldRsp {
+    PING = 0xF1,
+};
+
+
 // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_1/data/mip_field_gnss_fix_info.htm
 enum class GNSSFixType {
     FIX_3D = 0x00,
@@ -53,13 +73,15 @@ enum class GNSSFixType {
     FIX_RTK_FIXED = 0x06,
 };
 
-// https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/filter_data_links.htm
-enum class FilterPacketField {
-    FILTER_STATUS = 0x10,
-    LLH_POSITION = 0x01,
-    NED_VELOCITY = 0x02,
-    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/shared_data/data/mip_field_shared_gps_timestamp.htm
-    GPS_TIMESTAMP = 0xD3,
+// https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/mip_common.html
+enum class AckNackReplyCode {
+    SUCCESS = 0x00,
+    UNKNOWN_CMD = 0x01,
+    BAD_CSUM = 0x02,
+    INVALID_PARAM = 0x03,
+    CMD_FAILED = 0x04,
+    CMD_TIMEOUT = 0x05,
+    UNKNOWN_DESCRIPTOR = 0x06,
 };
 
 bool AP_MicroStrain::handle_byte(const uint8_t b, DescriptorSet& descriptor)
@@ -101,7 +123,7 @@ bool AP_MicroStrain::handle_byte(const uint8_t b, DescriptorSet& descriptor)
                 message_in.state = ParseState::WaitingFor_SyncOne;
                 message_in.index = 0;
 
-                if (valid_packet(message_in.packet)) {
+                if (message_in.packet.valid_packet()) {
                     descriptor = handle_packet(message_in.packet);
                     return true;
                 }
@@ -111,22 +133,33 @@ bool AP_MicroStrain::handle_byte(const uint8_t b, DescriptorSet& descriptor)
     return false;
 }
 
-bool AP_MicroStrain::valid_packet(const MicroStrain_Packet & packet)
-{
-    uint8_t checksum_one = 0;
-    uint8_t checksum_two = 0;
+void AP_MicroStrain::MicroStrain_Packet::populate_csum() {
+    const auto csum = calculate_csum();
+    checksum[0] = csum >> 8;
+    checksum[1] = csum & 0xff;
+}
+
+uint16_t AP_MicroStrain::MicroStrain_Packet::calculate_csum() const {
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/dcp_content/introduction/Fletcher%20Checksum.htm
+    uint8_t checksumByte0 = 0;
+    uint8_t checksumByte1 = 0;
 
     for (int i = 0; i < 4; i++) {
-        checksum_one += packet.header[i];
-        checksum_two += checksum_one;
+        checksumByte0 += header[i];
+        checksumByte1 += checksumByte0;
     }
 
-    for (int i = 0; i < packet.payload_length(); i++) {
-        checksum_one += packet.payload[i];
-        checksum_two += checksum_one;
+    for (int i = 0; i < payload_length(); i++) {
+        checksumByte0 += payload[i];
+        checksumByte1 += checksumByte0;
     }
 
-    return packet.checksum[0] == checksum_one && packet.checksum[1] == checksum_two;
+    return ((uint16_t)checksumByte0 << 8) | (uint16_t)checksumByte1;
+}
+
+bool AP_MicroStrain::MicroStrain_Packet::valid_packet() const
+{
+    return calculate_csum() == csum16();
 }
 
 AP_MicroStrain::DescriptorSet AP_MicroStrain::handle_packet(const MicroStrain_Packet& packet)
@@ -140,6 +173,7 @@ AP_MicroStrain::DescriptorSet AP_MicroStrain::handle_packet(const MicroStrain_Pa
         handle_filter(packet);
         break;
     case DescriptorSet::BaseCommand:
+        handle_base_command(packet);
     case DescriptorSet::DMCommand:
     case DescriptorSet::SystemCommand:
         break;
@@ -292,6 +326,24 @@ void AP_MicroStrain::handle_filter(const MicroStrain_Packet &packet)
             filter_status.state = be16toh_ptr(&packet.payload[i+2]);
             filter_status.mode = be16toh_ptr(&packet.payload[i+4]);
             filter_status.flags = be16toh_ptr(&packet.payload[i+6]);
+            break;
+        }
+        }
+    }
+}
+
+void AP_MicroStrain::handle_base_command(const MicroStrain_Packet &packet)
+{
+    for (uint8_t i = 0; i < packet.payload_length(); i += packet.payload[i]) {
+        switch ((BaseCommandPacketFieldRsp) packet.payload[i+1]) {
+        case BaseCommandPacketFieldRsp::PING: {
+            const auto command_echo = packet.payload[i+2];
+            const auto error_code = packet.payload[i+3];
+
+            if (command_echo == (uint8_t)BaseCommandPacketFieldCmd::PING && 
+                error_code == (uint8_t)AckNackReplyCode::SUCCESS) {
+                got_ping_rsp = true;
+                }
             break;
         }
         }

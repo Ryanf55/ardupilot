@@ -63,6 +63,7 @@ AP_ExternalAHRS_MicroStrain7::AP_ExternalAHRS_MicroStrain7(AP_ExternalAHRS *_fro
     baudrate = sm.find_baudrate(AP_SerialManager::SerialProtocol_AHRS, 0);
     port_num = sm.find_portnum(AP_SerialManager::SerialProtocol_AHRS, 0);
 
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "M7");
     if (!uart) {
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "MicroStrain7 ExternalAHRS no UART");
         return;
@@ -72,8 +73,6 @@ AP_ExternalAHRS_MicroStrain7::AP_ExternalAHRS_MicroStrain7(AP_ExternalAHRS *_fro
         AP_BoardConfig::allocation_error("MicroStrain7 failed to allocate ExternalAHRS update thread");
     }
 
-    hal.scheduler->delay(5000);
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "MicroStrain7 ExternalAHRS initialised");
 }
 
 void AP_ExternalAHRS_MicroStrain7::update_thread(void)
@@ -83,12 +82,87 @@ void AP_ExternalAHRS_MicroStrain7::update_thread(void)
         uart->begin(baudrate);
     }
 
-    while (true) {
-        build_packet();
-        hal.scheduler->delay_microseconds(100);
+    if (!got_ping) {
+        if (do_ping()) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "MicroStrain7 ExternalAHRS is responsive.");
+            got_ping = true;
+        } else {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "MicroStrain7 ExternalAHRS is unresponsive.");
+        }
     }
+
+        hal.scheduler->delay(100);
+        build_packet();
+
 }
 
+
+bool AP_ExternalAHRS_MicroStrain7::do_ping()
+{
+
+    if (!uart->is_initialized()) {
+        return false;
+    }
+
+    // Clear input buffer before doing configuration
+    if (!uart->discard_input()) {
+        return false;
+    };
+
+    // See https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/dcp_content/introduction/Command%20Overview.htm?
+    // for "Example Command - Ping"
+    // constexpr uint8_t ping_cmd_sz = 8;
+    MicroStrain_Packet cmd;
+    cmd.header[0] = SYNC_ONE;
+    cmd.header[1] = SYNC_TWO;
+    cmd.descriptor_set(DescriptorSet::BaseCommand);
+    cmd.payload_length(0x02);
+
+    cmd.payload[0] = 0x02; // field byte length
+    cmd.payload[1] = 0x01; // field descriptor byte
+
+    cmd.populate_csum();
+
+    uart->write(cmd.header, sizeof(cmd.header));
+    uart->write(cmd.payload, cmd.payload_length());
+    uart->write(cmd.checksum, sizeof(cmd.checksum));
+
+    constexpr uint16_t expected_bytes = 10;
+    const auto start_wait = AP_HAL::millis();
+    auto now = AP_HAL::millis();
+    while (now  - start_wait <= 30) {
+        if (uart->available() >= expected_bytes) {
+            break;
+        }
+        constexpr uint16_t delay_ms = 1;
+        hal.scheduler->delay(delay_ms);
+        now = AP_HAL::millis();
+    }
+
+    const auto available_bytes = uart->available();
+    if (available_bytes != expected_bytes) {
+        return false;
+    }
+
+    message_in.state = ParseState::WaitingFor_SyncOne;
+    for (int i = 0; i < expected_bytes; i++) {
+        uint8_t b;
+        if (!uart->read(b)) {
+            break;
+        }
+        DescriptorSet descriptor;
+        if (handle_byte(b, descriptor)) {
+            switch (descriptor) {
+            case DescriptorSet::BaseCommand:
+                return true;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return false;
+}
 
 
 // Builds packets by looking at each individual byte, once a full packet has been read in it checks the checksum then handles the packet.
@@ -97,8 +171,8 @@ void AP_ExternalAHRS_MicroStrain7::build_packet()
     if (uart == nullptr) {
         return;
     }
-
     WITH_SEMAPHORE(sem);
+
     uint32_t nbytes = MIN(uart->available(), 2048u);
     while (nbytes--> 0) {
         uint8_t b;
@@ -150,8 +224,6 @@ void AP_ExternalAHRS_MicroStrain7::post_imu() const
         };
         // *INDENT-ON*
         AP::ins().handle_external(ins);
-    }
-
 #if AP_COMPASS_EXTERNALAHRS_ENABLED
     {
         // *INDENT-OFF*
@@ -176,6 +248,7 @@ void AP_ExternalAHRS_MicroStrain7::post_imu() const
         AP::baro().handle_external(baro);
     }
 #endif
+    }
 }
 
 void AP_ExternalAHRS_MicroStrain7::post_filter() const
@@ -225,7 +298,47 @@ void AP_ExternalAHRS_MicroStrain7::post_filter() const
                                     Location::AltFrame::ABSOLUTE};
             state.have_origin = true;
         }
-        AP::gps().handle_external(gps, instance);
+        // TODO use filter MSL alt
+        state.location = Location{filter_data.lat, filter_data.lon, gnss_data[0].msl_altitude, Location::AltFrame::ABSOLUTE};
+        state.have_location = true;
+    }
+
+    for (int instance = 0; instance < NUM_GNSS_INSTANCES; instance++) {
+        AP_ExternalAHRS::gps_data_message_t gps {
+            gps_week: filter_data.week,
+            ms_tow: filter_data.tow_ms,
+            fix_type: (uint8_t) gnss_data[instance].fix_type,
+            satellites_in_view: gnss_data[instance].satellites,
+
+            horizontal_pos_accuracy: gnss_data[instance].horizontal_position_accuracy,
+            vertical_pos_accuracy: gnss_data[instance].vertical_position_accuracy,
+            horizontal_vel_accuracy: gnss_data[instance].speed_accuracy,
+
+            hdop: gnss_data[instance].hdop,
+            vdop: gnss_data[instance].vdop,
+
+            longitude: filter_data.lon,
+            latitude: filter_data.lat,
+            msl_altitude: gnss_data[instance].msl_altitude,
+
+            ned_vel_north: filter_data.ned_velocity_north,
+            ned_vel_east: filter_data.ned_velocity_east,
+            ned_vel_down: filter_data.ned_velocity_down,
+        };
+
+
+        uint8_t gps_instance;
+        if (AP::gps().get_first_external_instance(gps_instance)) {
+            if (gps.fix_type >= 3 && !state.have_origin) {
+                WITH_SEMAPHORE(state.sem);
+                state.origin = Location{int32_t(filter_data.lat),
+                                        int32_t(filter_data.lon),
+                                        int32_t(gnss_data[gps_instance].msl_altitude),
+                                        Location::AltFrame::ABSOLUTE};
+                state.have_origin = true;
+            }
+            AP::gps().handle_external(gps, gps_instance);
+        }
     }
 }
 
@@ -278,7 +391,7 @@ bool AP_ExternalAHRS_MicroStrain7::initialised(void) const
 bool AP_ExternalAHRS_MicroStrain7::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
 {
     if (!healthy()) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain7 unhealthy");
+        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain7 unhealthy. Attempting ping");
         return false;
     }
     // TODO is this necessary?  hard coding the first instance.
