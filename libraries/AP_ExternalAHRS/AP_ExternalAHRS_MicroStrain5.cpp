@@ -34,6 +34,8 @@
 
 extern const AP_HAL::HAL &hal;
 
+static constexpr uint8_t gnss_instance = 0;
+
 AP_ExternalAHRS_MicroStrain5::AP_ExternalAHRS_MicroStrain5(AP_ExternalAHRS *_frontend,
         AP_ExternalAHRS::state_t &_state): AP_ExternalAHRS_backend(_frontend, _state)
 {
@@ -92,6 +94,8 @@ void AP_ExternalAHRS_MicroStrain5::build_packet()
                 post_imu();
                 break;
             case DescriptorSet::GNSSData:
+            case DescriptorSet::GNSSRecv1:
+            case DescriptorSet::GNSSRecv2:
                 break;
             case DescriptorSet::EstimationData:
                 post_filter();
@@ -157,26 +161,26 @@ void AP_ExternalAHRS_MicroStrain5::post_filter() const
         state.velocity = Vector3f{filter_data.ned_velocity_north, filter_data.ned_velocity_east, filter_data.ned_velocity_down};
         state.have_velocity = true;
 
-        state.location = Location{filter_data.lat, filter_data.lon, gnss_data.msl_altitude, Location::AltFrame::ABSOLUTE};
+        state.location = Location{filter_data.lat, filter_data.lon, gnss_data[gnss_instance].msl_altitude, Location::AltFrame::ABSOLUTE};
         state.have_location = true;
     }
 
     AP_ExternalAHRS::gps_data_message_t gps {
         gps_week: filter_data.week,
         ms_tow: filter_data.tow_ms,
-        fix_type: (uint8_t) gnss_data.fix_type,
-        satellites_in_view: gnss_data.satellites,
+        fix_type: (uint8_t) gnss_data[gnss_instance].fix_type,
+        satellites_in_view: gnss_data[gnss_instance].satellites,
 
-        horizontal_pos_accuracy: gnss_data.horizontal_position_accuracy,
-        vertical_pos_accuracy: gnss_data.vertical_position_accuracy,
-        horizontal_vel_accuracy: gnss_data.speed_accuracy,
+        horizontal_pos_accuracy: gnss_data[gnss_instance].horizontal_position_accuracy,
+        vertical_pos_accuracy: gnss_data[gnss_instance].vertical_position_accuracy,
+        horizontal_vel_accuracy: gnss_data[gnss_instance].speed_accuracy,
 
-        hdop: gnss_data.hdop,
-        vdop: gnss_data.vdop,
+        hdop: gnss_data[gnss_instance].hdop,
+        vdop: gnss_data[gnss_instance].vdop,
 
         longitude: filter_data.lon,
         latitude: filter_data.lat,
-        msl_altitude: gnss_data.msl_altitude,
+        msl_altitude: gnss_data[gnss_instance].msl_altitude,
 
         ned_vel_north: filter_data.ned_velocity_north,
         ned_vel_east: filter_data.ned_velocity_east,
@@ -187,14 +191,14 @@ void AP_ExternalAHRS_MicroStrain5::post_filter() const
         WITH_SEMAPHORE(state.sem);
         state.origin = Location{int32_t(filter_data.lat),
                                 int32_t(filter_data.lon),
-                                int32_t(gnss_data.msl_altitude),
+                                int32_t(gnss_data[gnss_instance].msl_altitude),
                                 Location::AltFrame::ABSOLUTE};
         state.have_origin = true;
     }
 
-    uint8_t instance;
-    if (AP::gps().get_first_external_instance(instance)) {
-        AP::gps().handle_external(gps, instance);
+    uint8_t gps_instance;
+    if (AP::gps().get_first_external_instance(gps_instance)) {
+        AP::gps().handle_external(gps, gps_instance);
     }
 }
 
@@ -229,7 +233,7 @@ bool AP_ExternalAHRS_MicroStrain5::pre_arm_check(char *failure_msg, uint8_t fail
         hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain unhealthy");
         return false;
     }
-    if (gnss_data.fix_type < 3) {
+    if (gnss_data[gnss_instance].fix_type < 3) {
         hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain no GPS lock");
         return false;
     }
@@ -252,7 +256,7 @@ void AP_ExternalAHRS_MicroStrain5::get_filter_status(nav_filter_status &status) 
         status.flags.vert_vel = 1;
         status.flags.vert_pos = 1;
 
-        if (gnss_data.fix_type >= 3) {
+        if (gnss_data[gnss_instance].fix_type >= 3) {
             status.flags.horiz_vel = 1;
             status.flags.horiz_pos_rel = 1;
             status.flags.horiz_pos_abs = 1;
@@ -309,7 +313,7 @@ void AP_ExternalAHRS_MicroStrain5::send_status_report(GCS_MAVLINK &link) const
     const float hgt_gate = 4; // represents hz value data is posted at
     const float mag_var = 0; //we may need to change this to be like the other gates, set to 0 because mag is ignored by the ins filter in vectornav
     mavlink_msg_ekf_status_report_send(link.get_chan(), flags,
-                                       gnss_data.speed_accuracy/vel_gate, gnss_data.horizontal_position_accuracy/pos_gate, gnss_data.vertical_position_accuracy/hgt_gate,
+                                       gnss_data[gnss_instance].speed_accuracy/vel_gate, gnss_data[gnss_instance].horizontal_position_accuracy/pos_gate, gnss_data[gnss_instance].vertical_position_accuracy/hgt_gate,
                                        mag_var, 0, 0);
 
 }

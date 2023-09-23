@@ -128,15 +128,17 @@ AP_MicroStrain::DescriptorSet AP_MicroStrain::handle_packet(const MicroStrain_Pa
     case DescriptorSet::IMUData:
         handle_imu(packet);
         break;
-    case DescriptorSet::GNSSData:
-        handle_gnss(packet);
-        break;
     case DescriptorSet::EstimationData:
         handle_filter(packet);
         break;
     case DescriptorSet::BaseCommand:
     case DescriptorSet::DMCommand:
     case DescriptorSet::SystemCommand:
+        break;
+    case DescriptorSet::GNSSData:
+    case DescriptorSet::GNSSRecv1:
+    case DescriptorSet::GNSSRecv2:
+        handle_gnss(packet);
         break;
     }
     return descriptor;
@@ -183,63 +185,68 @@ void AP_MicroStrain::handle_imu(const MicroStrain_Packet& packet)
 void AP_MicroStrain::handle_gnss(const MicroStrain_Packet &packet)
 {
     last_gps_pkt = AP_HAL::millis();
+    uint8_t gnss_instance;
+    const DescriptorSet descriptor  = DescriptorSet(packet.header[2]);
+    if (!get_gnss_instance(descriptor, gnss_instance)) {
+        return;
+    }
 
     // Iterate through fields of varying lengths in GNSS packet
     for (uint8_t i = 0; i < packet.header[3]; i += packet.payload[i]) {
         switch ((GNSSPacketField) packet.payload[i+1]) {
         // GPS Time
         case GNSSPacketField::GPS_TIME: {
-            gnss_data.tow_ms = double_to_uint32(be64todouble_ptr(packet.payload, i+2) * 1000); // Convert seconds to ms
-            gnss_data.week = be16toh_ptr(&packet.payload[i+10]);
+            gnss_data[gnss_instance].tow_ms = double_to_uint32(be64todouble_ptr(packet.payload, i+2) * 1000); // Convert seconds to ms
+            gnss_data[gnss_instance].week = be16toh_ptr(&packet.payload[i+10]);
             break;
         }
         // GNSS Fix Information
         case GNSSPacketField::FIX_INFO: {
             switch ((GNSSFixType) packet.payload[i+2]) {
             case (GNSSFixType::FIX_3D): {
-                gnss_data.fix_type = GPS_FIX_TYPE_3D_FIX;
+                gnss_data[gnss_instance].fix_type = GPS_FIX_TYPE_3D_FIX;
                 break;
             }
             case (GNSSFixType::FIX_2D): {
-                gnss_data.fix_type = GPS_FIX_TYPE_2D_FIX;
+                gnss_data[gnss_instance].fix_type = GPS_FIX_TYPE_2D_FIX;
                 break;
             }
             case (GNSSFixType::TIME_ONLY):
             case (GNSSFixType::NONE): {
-                gnss_data.fix_type = GPS_FIX_TYPE_NO_FIX;
+                gnss_data[gnss_instance].fix_type = GPS_FIX_TYPE_NO_FIX;
                 break;
             }
             default:
             case (GNSSFixType::INVALID): {
-                gnss_data.fix_type = GPS_FIX_TYPE_NO_GPS;
+                gnss_data[gnss_instance].fix_type = GPS_FIX_TYPE_NO_GPS;
                 break;
             }
             }
 
-            gnss_data.satellites = packet.payload[i+3];
+            gnss_data[gnss_instance].satellites = packet.payload[i+3];
             break;
         }
         // LLH Position
         case GNSSPacketField::LLH_POSITION: {
-            gnss_data.lat = be64todouble_ptr(packet.payload, i+2) * 1.0e7; // Decimal degrees to degrees
-            gnss_data.lon = be64todouble_ptr(packet.payload, i+10) * 1.0e7;
-            gnss_data.msl_altitude = be64todouble_ptr(packet.payload, i+26) * 1.0e2; // Meters to cm
-            gnss_data.horizontal_position_accuracy = be32tofloat_ptr(packet.payload, i+34);
-            gnss_data.vertical_position_accuracy = be32tofloat_ptr(packet.payload, i+38);
+            gnss_data[gnss_instance].lat = be64todouble_ptr(packet.payload, i+2) * 1.0e7; // Decimal degrees to degrees
+            gnss_data[gnss_instance].lon = be64todouble_ptr(packet.payload, i+10) * 1.0e7;
+            gnss_data[gnss_instance].msl_altitude = be64todouble_ptr(packet.payload, i+26) * 1.0e2; // Meters to cm
+            gnss_data[gnss_instance].horizontal_position_accuracy = be32tofloat_ptr(packet.payload, i+34);
+            gnss_data[gnss_instance].vertical_position_accuracy = be32tofloat_ptr(packet.payload, i+38);
             break;
         }
         // DOP Data
         case GNSSPacketField::DOP_DATA: {
-            gnss_data.hdop = be32tofloat_ptr(packet.payload, i+10);
-            gnss_data.vdop = be32tofloat_ptr(packet.payload, i+14);
+            gnss_data[gnss_instance].hdop = be32tofloat_ptr(packet.payload, i+10);
+            gnss_data[gnss_instance].vdop = be32tofloat_ptr(packet.payload, i+14);
             break;
         }
         // NED Velocity
         case GNSSPacketField::NED_VELOCITY: {
-            gnss_data.ned_velocity_north = be32tofloat_ptr(packet.payload, i+2);
-            gnss_data.ned_velocity_east = be32tofloat_ptr(packet.payload, i+6);
-            gnss_data.ned_velocity_down = be32tofloat_ptr(packet.payload, i+10);
-            gnss_data.speed_accuracy = be32tofloat_ptr(packet.payload, i+26);
+            gnss_data[gnss_instance].ned_velocity_north = be32tofloat_ptr(packet.payload, i+2);
+            gnss_data[gnss_instance].ned_velocity_east = be32tofloat_ptr(packet.payload, i+6);
+            gnss_data[gnss_instance].ned_velocity_down = be32tofloat_ptr(packet.payload, i+10);
+            gnss_data[gnss_instance].speed_accuracy = be32tofloat_ptr(packet.payload, i+26);
             break;
         }
         }
@@ -302,6 +309,26 @@ Quaternion AP_MicroStrain::populate_quaternion(const uint8_t *data, uint8_t offs
         be32tofloat_ptr(data, offset+12)
     };
 }
+
+bool AP_MicroStrain::get_gnss_instance(const DescriptorSet& descriptor, uint8_t& instance){
+    bool success = false;
+    
+    switch(descriptor) {
+    case DescriptorSet::GNSSData:
+    case DescriptorSet::GNSSRecv1:
+        instance = 0;
+        success = true;
+        break;
+    case DescriptorSet::GNSSRecv2:
+        instance = 1;
+        success = true;
+        break;
+    default:
+        break;
+    }
+    return success;
+}
+
 
 
 #endif // AP_MICROSTRAIN_ENABLED

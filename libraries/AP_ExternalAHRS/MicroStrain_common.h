@@ -61,6 +61,8 @@ protected:
         float pressure;
     } imu_data;
 
+    static constexpr uint8_t NUM_GNSS_INSTANCES = 2;
+
     struct {
         uint16_t week;
         uint32_t tow_ms;
@@ -77,7 +79,7 @@ protected:
         float ned_velocity_east;
         float ned_velocity_down;
         float speed_accuracy;
-    } gnss_data;
+    } gnss_data[NUM_GNSS_INSTANCES];
 
     struct {
         uint16_t state;
@@ -105,7 +107,9 @@ protected:
         SystemCommand = 0x7F,
         IMUData = 0x80,
         GNSSData = 0x81,
-        EstimationData = 0x82
+        EstimationData = 0x82,
+        GNSSRecv1 = 0x91,
+        GNSSRecv2 = 0x92
     };
 
     const uint8_t SYNC_ONE = 0x75;
@@ -129,6 +133,8 @@ protected:
     void handle_filter(const MicroStrain_Packet &packet);
     static Vector3f populate_vector3f(const uint8_t* data, uint8_t offset);
     static Quaternion populate_quaternion(const uint8_t* data, uint8_t offset);
+    // Depending on the descriptor, the data corresponds to a different GNSS instance.
+    static bool get_gnss_instance(const DescriptorSet& descriptor, uint8_t& instance);
 };
 
 #endif // AP_MICROSTRAIN_ENABLED
