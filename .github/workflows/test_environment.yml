@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
       image: ${{matrix.os}}:${{matrix.name}}
       options: --privileged
@@ -68,7 +68,7 @@ jobs:
           software-properties-common
           ;;
           *"archlinux"*)
-          pacman -Sy --noconfirm --needed git sudo
+          pacman -Syu --noconfirm --needed git sudo
           ;;
           esac
 

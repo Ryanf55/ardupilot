@@ -46,37 +46,6 @@ AP_GPS_Backend::AP_GPS_Backend(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::
     state.have_vertical_accuracy = false;
 }
 
-int32_t AP_GPS_Backend::swap_int32(int32_t v) const
-{
-    const uint8_t *b = (const uint8_t *)&v;
-    union {
-        int32_t v;
-        uint8_t b[4];
-    } u;
-
-    u.b[0] = b[3];
-    u.b[1] = b[2];
-    u.b[2] = b[1];
-    u.b[3] = b[0];
-
-    return u.v;
-}
-
-int16_t AP_GPS_Backend::swap_int16(int16_t v) const
-{
-    const uint8_t *b = (const uint8_t *)&v;
-    union {
-        int16_t v;
-        uint8_t b[2];
-    } u;
-
-    u.b[0] = b[1];
-    u.b[1] = b[0];
-
-    return u.v;
-}
-
-
 /**
    fill in time_week_ms and time_week from BCD date and time components
    assumes MTK19 millisecond form of bcd_time
@@ -467,6 +436,21 @@ good_yaw:
     return interim_state.have_gps_yaw;
 }
 #endif // GPS_MOVING_BASELINE
+
+/*
+  set altitude in location structure, honouring the driver option for
+  MSL vs ellipsoid height
+ */
+void AP_GPS_Backend::set_alt_amsl_cm(AP_GPS::GPS_State &_state, int32_t alt_amsl_cm)
+{
+    if (option_set(AP_GPS::HeightEllipsoid) && _state.have_undulation) {
+        // user has asked ArduPilot to use ellipsoid height in the
+        // canonical height for mission and navigation
+        _state.location.alt = alt_amsl_cm - _state.undulation*100;
+    } else {
+        _state.location.alt = alt_amsl_cm;
+    }
+}
 
 #if AP_GPS_DEBUG_LOGGING_ENABLED
 

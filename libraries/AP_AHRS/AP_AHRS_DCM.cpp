@@ -51,22 +51,6 @@ AP_AHRS_DCM::reset_gyro_drift(void)
     _omega_I_sum_time = 0;
 }
 
-
-/* if this was a watchdog reset then get home from backup registers */
-void AP_AHRS::load_watchdog_home()
-{
-    const AP_HAL::Util::PersistentData &pd = hal.util->persistent_data;
-    if (hal.util->was_watchdog_reset() && (pd.home_lat != 0 || pd.home_lon != 0)) {
-        _home.lat = pd.home_lat;
-        _home.lng = pd.home_lon;
-        _home.set_alt_cm(pd.home_alt_cm, Location::AltFrame::ABSOLUTE);
-        _home_is_set = true;
-        _home_locked = true;
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Restored watchdog home");
-    }
-}
-
-
 // run a full DCM update round
 void
 AP_AHRS_DCM::update()
@@ -124,6 +108,8 @@ void AP_AHRS_DCM::get_results(AP_AHRS_Backend::Estimates &results)
     results.gyro_estimate = _omega;
     results.gyro_drift = _omega_I;
     results.accel_ef = _accel_ef;
+
+    results.location_valid = get_location(results.location);
 }
 
 /*
@@ -1119,50 +1105,6 @@ bool AP_AHRS_DCM::get_unconstrained_airspeed_estimate(uint8_t airspeed_index, fl
     return false;
 }
 
-bool AP_AHRS::set_home(const Location &loc)
-{
-    WITH_SEMAPHORE(_rsem);
-    // check location is valid
-    if (loc.lat == 0 && loc.lng == 0 && loc.alt == 0) {
-        return false;
-    }
-    if (!loc.check_latlng()) {
-        return false;
-    }
-    // home must always be global frame at the moment as .alt is
-    // accessed directly by the vehicles and they may not be rigorous
-    // in checking the frame type.
-    Location tmp = loc;
-    if (!tmp.change_alt_frame(Location::AltFrame::ABSOLUTE)) {
-        return false;
-    }
-
-#if !APM_BUILD_TYPE(APM_BUILD_UNKNOWN)
-    if (!_home_is_set) {
-        // record home is set
-        AP::logger().Write_Event(LogEvent::SET_HOME);
-    }
-#endif
-
-    _home = tmp;
-    _home_is_set = true;
-
-    Log_Write_Home_And_Origin();
-
-#if HAL_GCS_ENABLED
-    // send new home and ekf origin to GCS
-    gcs().send_message(MSG_HOME);
-    gcs().send_message(MSG_ORIGIN);
-#endif
-
-    AP_HAL::Util::PersistentData &pd = hal.util->persistent_data;
-    pd.home_lat = loc.lat;
-    pd.home_lon = loc.lng;
-    pd.home_alt_cm = loc.alt;
-
-    return true;
-}
-
 /*
   check if the AHRS subsystem is healthy
 */
@@ -1183,6 +1125,74 @@ bool AP_AHRS_DCM::get_velocity_NED(Vector3f &vec) const
     }
     vec = _gps.velocity();
     return true;
+}
+
+// return a ground speed estimate in m/s
+Vector2f AP_AHRS_DCM::groundspeed_vector(void)
+{
+    // Generate estimate of ground speed vector using air data system
+    Vector2f gndVelADS;
+    Vector2f gndVelGPS;
+    float airspeed = 0;
+    const bool gotAirspeed = airspeed_estimate_true(airspeed);
+    const bool gotGPS = (AP::gps().status() >= AP_GPS::GPS_OK_FIX_2D);
+    if (gotAirspeed) {
+        const Vector2f airspeed_vector{_cos_yaw * airspeed, _sin_yaw * airspeed};
+        Vector3f wind;
+        UNUSED_RESULT(wind_estimate(wind));
+        gndVelADS = airspeed_vector + wind.xy();
+    }
+
+    // Generate estimate of ground speed vector using GPS
+    if (gotGPS) {
+        const float cog = radians(AP::gps().ground_course());
+        gndVelGPS = Vector2f(cosf(cog), sinf(cog)) * AP::gps().ground_speed();
+    }
+    // If both ADS and GPS data is available, apply a complementary filter
+    if (gotAirspeed && gotGPS) {
+        // The LPF is applied to the GPS and the HPF is applied to the air data estimate
+        // before the two are summed
+        //Define filter coefficients
+        // alpha and beta must sum to one
+        // beta = dt/Tau, where
+        // dt = filter time step (0.1 sec if called by nav loop)
+        // Tau = cross-over time constant (nominal 2 seconds)
+        // More lag on GPS requires Tau to be bigger, less lag allows it to be smaller
+        // To-Do - set Tau as a function of GPS lag.
+        const float alpha = 1.0f - beta;
+        // Run LP filters
+        _lp = gndVelGPS * beta  + _lp * alpha;
+        // Run HP filters
+        _hp = (gndVelADS - _lastGndVelADS) + _hp * alpha;
+        // Save the current ADS ground vector for the next time step
+        _lastGndVelADS = gndVelADS;
+        // Sum the HP and LP filter outputs
+        return _hp + _lp;
+    }
+    // Only ADS data is available return ADS estimate
+    if (gotAirspeed && !gotGPS) {
+        return gndVelADS;
+    }
+    // Only GPS data is available so return GPS estimate
+    if (!gotAirspeed && gotGPS) {
+        return gndVelGPS;
+    }
+
+    if (airspeed > 0) {
+        // we have a rough airspeed, and we have a yaw. For
+        // dead-reckoning purposes we can create a estimated
+        // groundspeed vector
+        Vector2f ret{_cos_yaw, _sin_yaw};
+        ret *= airspeed;
+        // adjust for estimated wind
+        Vector3f wind;
+        UNUSED_RESULT(wind_estimate(wind));
+        ret.x += wind.x;
+        ret.y += wind.y;
+        return ret;
+    }
+
+    return Vector2f(0.0f, 0.0f);
 }
 
 // Get a derivative of the vertical position in m/s which is kinematically consistent with the vertical position is required by some control loops.

@@ -572,7 +572,7 @@ protected:
     void handle_common_message(const mavlink_message_t &msg);
     void handle_set_gps_global_origin(const mavlink_message_t &msg);
     void handle_setup_signing(const mavlink_message_t &msg) const;
-    virtual MAV_RESULT handle_preflight_reboot(const mavlink_command_long_t &packet, const mavlink_message_t &msg);
+    virtual MAV_RESULT handle_preflight_reboot(const mavlink_command_int_t &packet, const mavlink_message_t &msg);
     struct {
         HAL_Semaphore sem;
         bool taken;
@@ -629,9 +629,9 @@ protected:
 
     // generally this should not be overridden; Plane overrides it to ensure
     // failsafe isn't triggered during calibration
-    virtual MAV_RESULT handle_command_preflight_calibration(const mavlink_command_long_t &packet, const mavlink_message_t &msg);
+    virtual MAV_RESULT handle_command_preflight_calibration(const mavlink_command_int_t &packet, const mavlink_message_t &msg);
 
-    virtual MAV_RESULT _handle_command_preflight_calibration(const mavlink_command_long_t &packet, const mavlink_message_t &msg);
+    virtual MAV_RESULT _handle_command_preflight_calibration(const mavlink_command_int_t &packet, const mavlink_message_t &msg);
     virtual MAV_RESULT _handle_command_preflight_calibration_baro(const mavlink_message_t &msg);
 
     virtual MAV_RESULT handle_command_do_set_mission_current(const mavlink_command_long_t &packet);
@@ -666,7 +666,9 @@ protected:
       handle MAV_CMD_CAN_FORWARD and CAN_FRAME messages for CAN over MAVLink
      */
     void can_frame_callback(uint8_t bus, const AP_HAL::CANFrame &);
-    MAV_RESULT handle_can_forward(const mavlink_command_long_t &packet, const mavlink_message_t &msg);
+#if HAL_CANMANAGER_ENABLED
+    MAV_RESULT handle_can_forward(const mavlink_command_int_t &packet, const mavlink_message_t &msg);
+#endif
     void handle_can_frame(const mavlink_message_t &msg) const;
 
     void handle_optical_flow(const mavlink_message_t &msg);
@@ -765,7 +767,7 @@ private:
 
     virtual void        handleMessage(const mavlink_message_t &msg) = 0;
 
-    MAV_RESULT handle_servorelay_message(const mavlink_command_long_t &packet);
+    MAV_RESULT handle_servorelay_message(const mavlink_command_int_t &packet);
     bool send_relay_status() const;
 
     static bool command_long_stores_location(const MAV_CMD command);
@@ -1329,6 +1331,8 @@ void can_printf(const char *fmt, ...);
 #define GCS_SEND_TEXT(severity, format, args...) (void)severity; can_printf(format, ##args)
 #endif
 
+#define GCS_SEND_MESSAGE(msg) gcs().send_message(msg)
+
 #elif defined(HAL_BUILD_AP_PERIPH) && !defined(STM32F1)
 
 // map send text to can_printf() on larger AP_Periph boards
@@ -1336,10 +1340,12 @@ extern "C" {
 void can_printf(const char *fmt, ...);
 }
 #define GCS_SEND_TEXT(severity, format, args...) can_printf(format, ##args)
+#define GCS_SEND_MESSAGE(msg)
 
 #else // HAL_GCS_ENABLED
 // empty send text when we have no GCS
 #define GCS_SEND_TEXT(severity, format, args...)
+#define GCS_SEND_MESSAGE(msg)
 
 #endif // HAL_GCS_ENABLED
 

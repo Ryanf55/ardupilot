@@ -82,6 +82,8 @@ public:
         k_param_sitl,
         k_param_ahrs,
         k_param_battery_balance,
+        k_param_battery_hide_mask,
+        k_param_can_mirror_ports,
     };
 
     AP_Int16 format_version;
@@ -115,7 +117,7 @@ public:
     AP_Int16 rangefinder_max_rate;
 #endif
 
-#if HAL_PROXIMITY_ENABLED
+#ifdef HAL_PERIPH_ENABLE_PROXIMITY
     AP_Int32 proximity_baud;
     AP_Int8 proximity_port;
     AP_Int16 proximity_max_rate;
@@ -183,10 +185,18 @@ public:
     AP_Int16 sysid_this_mav;
 #endif
 
+#ifdef HAL_PERIPH_ENABLE_BATTERY
+    AP_Int32 battery_hide_mask;
+#endif
+
 #ifdef HAL_PERIPH_ENABLE_EFI
     AP_Int32 efi_baudrate;
     AP_Int8 efi_port;
 #endif
+
+#if HAL_PERIPH_CAN_MIRROR
+    AP_Int8 can_mirror_ports;
+#endif // HAL_PERIPH_CAN_MIRROR
     
 #if HAL_CANFD_SUPPORTED
     AP_Int8 can_fdmode;

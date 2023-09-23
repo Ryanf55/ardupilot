@@ -155,7 +155,7 @@ public:
     // opposed to an IMU estimate
     bool airspeed_sensor_enabled(uint8_t airspeed_index) const {
         // FIXME: make this a method on the active backend
-        return dcm.airspeed_sensor_enabled(airspeed_index);
+        return AP_AHRS_Backend::airspeed_sensor_enabled(airspeed_index);
     }
 
     // return a synthetic airspeed estimate (one derived from sensors
@@ -243,6 +243,11 @@ public:
     // baro will be used for the _home relative one if the EKF isn't
     void get_relative_position_D_home(float &posD) const;
     bool get_relative_position_D_origin(float &posD) const WARN_IF_UNUSED;
+
+    // return location corresponding to vector relative to the
+    // vehicle's origin
+    bool get_location_from_origin_offset(Location &loc, const Vector3p &offset_ned) const WARN_IF_UNUSED;
+    bool get_location_from_home_offset(Location &loc, const Vector3p &offset_ned) const WARN_IF_UNUSED;
 
     // Get a derivative of the vertical position in m/s which is kinematically consistent with the vertical position is required by some control loops.
     // This is different to the vertical velocity from the EKF which is not always consistent with the vertical position due to the various errors that are being corrected for.
@@ -655,7 +660,7 @@ private:
     AP_Int8 _gps_minsats;
 
     enum class EKFType {
-        NONE = 0,
+        DCM = 0,
 #if HAL_NAVEKF3_AVAILABLE
         THREE = 3,
 #endif
@@ -721,9 +726,6 @@ private:
 
     EKFType ekf_type(void) const;
     void update_DCM();
-
-    // get the index of the current primary IMU
-    uint8_t get_primary_IMU_index(void) const { return state.primary_IMU; }
 
     /*
      * home-related state
@@ -806,25 +808,6 @@ private:
 
     // poke AP_Notify based on values from status
     void update_notify_from_filter_status(const nav_filter_status &status);
-
-    /*
-     *  backends (and their results)
-     */
-    AP_AHRS_DCM dcm{_kp_yaw, _kp, gps_gain, beta, _gps_use, _gps_minsats};
-    struct AP_AHRS_Backend::Estimates dcm_estimates;
-#if AP_AHRS_SIM_ENABLED
-#if HAL_NAVEKF3_AVAILABLE
-    AP_AHRS_SIM sim{EKF3};
-#else
-    AP_AHRS_SIM sim;
-#endif
-    struct AP_AHRS_Backend::Estimates sim_estimates;
-#endif
-
-#if HAL_EXTERNAL_AHRS_ENABLED
-    AP_AHRS_External external;
-    struct AP_AHRS_Backend::Estimates external_estimates;
-#endif
 
     /*
      * copy results from a backend over AP_AHRS canonical results.
@@ -952,6 +935,26 @@ private:
         Vector3f velocity_NED;
         bool velocity_NED_ok;
     } state;
+
+    /*
+     *  backends (and their results)
+     */
+    AP_AHRS_DCM dcm{_kp_yaw, _kp, gps_gain, beta, _gps_use, _gps_minsats};
+    struct AP_AHRS_Backend::Estimates dcm_estimates;
+#if AP_AHRS_SIM_ENABLED
+#if HAL_NAVEKF3_AVAILABLE
+    AP_AHRS_SIM sim{EKF3};
+#else
+    AP_AHRS_SIM sim;
+#endif
+    struct AP_AHRS_Backend::Estimates sim_estimates;
+#endif
+
+#if HAL_EXTERNAL_AHRS_ENABLED
+    AP_AHRS_External external;
+    struct AP_AHRS_Backend::Estimates external_estimates;
+#endif
+
 };
 
 namespace AP {

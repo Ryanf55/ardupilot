@@ -111,10 +111,6 @@ protected:
     uint32_t _last_itow_ms;
     bool _have_itow;
 
-    // common utility functions
-    int32_t swap_int32(int32_t v) const;
-    int16_t swap_int16(int16_t v) const;
-
     /*
       fill in 3D velocity from 2D components
      */
@@ -159,6 +155,9 @@ protected:
     // log some data for debugging
     void log_data(const uint8_t *data, uint16_t length);
 #endif
+
+    // set alt in location, honouring GPS driver option for ellipsoid height
+    void set_alt_amsl_cm(AP_GPS::GPS_State &_state, int32_t alt_amsl_cm);
 
 private:
     // itow from previous message

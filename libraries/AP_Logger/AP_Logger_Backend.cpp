@@ -1,3 +1,7 @@
+#include "AP_Logger_config.h"
+
+#if HAL_LOGGING_ENABLED
+
 #include "AP_Logger_Backend.h"
 
 #include "LoggerMessageWriter.h"
@@ -7,6 +11,7 @@
 #include <AP_Scheduler/AP_Scheduler.h>
 #include <AP_Rally/AP_Rally.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
+#include "AP_Logger.h"
 
 #if HAL_LOGGER_FENCE_ENABLED
     #include <AC_Fence/AC_Fence.h>
@@ -752,3 +757,5 @@ bool AP_Logger_RateLimiter::should_log(uint8_t msgid, bool writev_streaming)
     }
     return ret;
 }
+
+#endif  // HAL_LOGGING_ENABLED
