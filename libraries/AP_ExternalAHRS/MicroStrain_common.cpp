@@ -128,7 +128,7 @@ AP_MicroStrain::DescriptorSet AP_MicroStrain::handle_packet(const MicroStrain_Pa
     case DescriptorSet::IMUData:
         handle_imu(packet);
         break;
-    case DescriptorSet::EstimationData:
+    case DescriptorSet::FilterData:
         handle_filter(packet);
         break;
     case DescriptorSet::BaseCommand:

@@ -97,7 +97,7 @@ void AP_ExternalAHRS_MicroStrain5::build_packet()
             case DescriptorSet::GNSSRecv1:
             case DescriptorSet::GNSSRecv2:
                 break;
-            case DescriptorSet::EstimationData:
+            case DescriptorSet::FilterData:
                 post_filter();
                 break;
             case DescriptorSet::BaseCommand:

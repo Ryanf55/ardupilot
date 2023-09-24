@@ -107,7 +107,7 @@ protected:
         SystemCommand = 0x7F,
         IMUData = 0x80,
         GNSSData = 0x81,
-        EstimationData = 0x82,
+        FilterData = 0x82,
         GNSSRecv1 = 0x91,
         GNSSRecv2 = 0x92
     };

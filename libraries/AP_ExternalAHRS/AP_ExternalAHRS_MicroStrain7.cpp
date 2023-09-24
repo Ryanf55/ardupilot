@@ -34,6 +34,15 @@
 
 extern const AP_HAL::HAL &hal;
 
+// GQ7 Filter States
+// https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_status.htm
+enum class FilterState {
+    GQ7_INIT = 0x01,
+    GQ7_VERT_GYRO = 0x02,
+    GQ7_AHRS = 0x03,
+    GQ7_FULL_NAV = 0x04
+};
+
 AP_ExternalAHRS_MicroStrain7::AP_ExternalAHRS_MicroStrain7(AP_ExternalAHRS *_frontend,
         AP_ExternalAHRS::state_t &_state): AP_ExternalAHRS_backend(_frontend, _state)
 {
@@ -95,7 +104,7 @@ void AP_ExternalAHRS_MicroStrain7::build_packet()
             case DescriptorSet::GNSSRecv1:
             case DescriptorSet::GNSSRecv2:
                 break;
-            case DescriptorSet::EstimationData:
+            case DescriptorSet::FilterData:
                 post_filter();
                 break;
             case DescriptorSet::BaseCommand:
@@ -164,7 +173,7 @@ void AP_ExternalAHRS_MicroStrain7::post_filter() const
         state.have_location = true;
     }
 
-    for (int instance = 0; instance <= NUM_GNSS_INSTANCES; instance++) {
+    for (int instance = 0; instance < NUM_GNSS_INSTANCES; instance++) {
         AP_ExternalAHRS::gps_data_message_t gps {
             gps_week: filter_data.week,
             ms_tow: filter_data.tow_ms,
@@ -255,7 +264,8 @@ void AP_ExternalAHRS_MicroStrain7::get_filter_status(nav_filter_status &status) 
         status.flags.vert_pos = 1;
 
         // TODO use filter status instead
-        if (gnss_data[0].fix_type >= 3) {
+        const auto filter_state = static_cast<FilterState>(filter_status.state);
+        if (filter_state == FilterState::GQ7_FULL_NAV || filter_state == FilterState::GQ7_AHRS) {
             status.flags.horiz_vel = 1;
             status.flags.horiz_pos_rel = 1;
             status.flags.horiz_pos_abs = 1;
