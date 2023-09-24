@@ -165,10 +165,12 @@ void AP_ExternalAHRS_MicroStrain7::post_filter() const
 {
     {
         WITH_SEMAPHORE(state.sem);
-        state.velocity = Vector3f{filter_data.ned_velocity_north, filter_data.ned_velocity_east, filter_data.ned_velocity_down};
+        state.velocity = Vector3f{fi    lter_data.ned_velocity_north, filter_data.ned_velocity_east, filter_data.ned_velocity_down};
         state.have_velocity = true;
 
-        // TODO use filter MSL alt
+        // TODO the filter does not supply MSL altitude.
+        // The GNSS system has both MSL and WGS-84 ellipsoid height.
+        // Use GNSS 0 even though it may be bad.
         state.location = Location{filter_data.lat, filter_data.lon, gnss_data[0].msl_altitude, Location::AltFrame::ABSOLUTE};
         state.have_location = true;
     }
@@ -327,7 +329,8 @@ void AP_ExternalAHRS_MicroStrain7::send_status_report(GCS_MAVLINK &link) const
     const float hgt_gate = 4; // represents hz value data is posted at
     const float mag_var = 0; //we may need to change this to be like the other gates, set to 0 because mag is ignored by the ins filter in vectornav
 
-    // TODO fix to use filter speed accuracy instead of first gnss
+    // TODO fix to use NED filter speed accuracy instead of first gnss
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_ned_vel_uncertainty.htm
     mavlink_msg_ekf_status_report_send(link.get_chan(), flags,
                                        gnss_data[0].speed_accuracy/vel_gate, gnss_data[0].horizontal_position_accuracy/pos_gate, gnss_data[0].vertical_position_accuracy/hgt_gate,
                                        mag_var, 0, 0);
