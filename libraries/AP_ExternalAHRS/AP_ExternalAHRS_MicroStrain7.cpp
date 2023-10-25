@@ -165,7 +165,7 @@ void AP_ExternalAHRS_MicroStrain7::post_filter() const
 {
     {
         WITH_SEMAPHORE(state.sem);
-        state.velocity = Vector3f{fi    lter_data.ned_velocity_north, filter_data.ned_velocity_east, filter_data.ned_velocity_down};
+        state.velocity = Vector3f{filter_data.ned_velocity_north, filter_data.ned_velocity_east, filter_data.ned_velocity_down};
         state.have_velocity = true;
 
         // TODO the filter does not supply MSL altitude.
@@ -244,16 +244,16 @@ bool AP_ExternalAHRS_MicroStrain7::initialised(void) const
 bool AP_ExternalAHRS_MicroStrain7::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
 {
     if (!healthy()) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain unhealthy");
+        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain7 unhealthy");
         return false;
     }
     // TODO is this necessary?  hard coding the first instance.
     if (gnss_data[0].fix_type < 3) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain no GPS lock");
+        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain7 no GPS lock");
         return false;
     }
     if (filter_status.state != 0x02) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain filter not running");
+        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain7 filter not running");
         return false;
     }
 

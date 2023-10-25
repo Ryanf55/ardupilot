@@ -230,15 +230,15 @@ bool AP_ExternalAHRS_MicroStrain5::initialised(void) const
 bool AP_ExternalAHRS_MicroStrain5::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
 {
     if (!healthy()) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain unhealthy");
+        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain5 unhealthy");
         return false;
     }
     if (gnss_data[gnss_instance].fix_type < 3) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain no GPS lock");
+        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain5 no GPS lock");
         return false;
     }
     if (filter_status.state != 0x02) {
-        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain filter not running");
+        hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain5 filter not running");
         return false;
     }
 
