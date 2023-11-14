@@ -493,6 +493,14 @@ uint8_t crc_sum8(const uint8_t *p, uint8_t len)
     return sum;
 }
 
+uint8_t crc_additive_sum8(const uint8_t *p, uint8_t len) {
+    uint8_t sum = 0;
+    for (uint8_t i=0; i<len; i++) {
+        sum += p[i];
+    }
+    return sum;
+}
+
 // CRC-16 (IBM/ANSI)
 // Polynomial : x16 + x15 + x2 + 1 (polynomial representation : 0x8005)
 // Initial Value : 0
