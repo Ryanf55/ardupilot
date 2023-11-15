@@ -20,6 +20,7 @@
 //  Usage in SITL with hardware for debugging: 
 //    sim_vehicle.py -v Plane -A "--serial3=uart:/dev/ttyUSB0" --console --map -DG
 //    param set GPS_TYPE 11 // GSOF
+//    param set SIM_GPS_TYPE 11 // GSOF
 //    param set SERIAL3_PROTOCOL 5 // GPS
 //
 
