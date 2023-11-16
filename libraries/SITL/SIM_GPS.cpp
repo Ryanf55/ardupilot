@@ -1674,9 +1674,6 @@ rewind_file:
 
 void GPS::check_backend_allocation()
 {
-    if (!init_sitl_pointer()) {
-        return;
-    }
     const Type configured_type = Type(_sitl->gps_type[instance].get());
     if (allocated_type == configured_type) {
         return;
@@ -1737,6 +1734,10 @@ void GPS::check_backend_allocation()
  */
 void GPS::update()
 {
+    if (!init_sitl_pointer()) {
+        return;
+    }
+    
     check_backend_allocation();
     if (backend == nullptr) {
         return;
