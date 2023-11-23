@@ -142,31 +142,37 @@ void AP_ExternalAHRS_MicroStrain7::post_imu() const
     }
 
     {
+        // *INDENT-OFF*
         AP_ExternalAHRS::ins_data_message_t ins {
-accel: imu_data.accel,
-gyro: imu_data.gyro,
-temperature: -300
+            accel: imu_data.accel,
+            gyro: imu_data.gyro,
+            temperature: -300
         };
+        // *INDENT-ON*
         AP::ins().handle_external(ins);
     }
 
 #if AP_COMPASS_EXTERNALAHRS_ENABLED
     {
+        // *INDENT-OFF*
         AP_ExternalAHRS::mag_data_message_t mag {
-field: imu_data.mag
+            field: imu_data.mag
         };
+        // *INDENT-ON*
         AP::compass().handle_external(mag);
     }
 #endif
 
 #if AP_BARO_EXTERNALAHRS_ENABLED
     {
+        // *INDENT-OFF*
         const AP_ExternalAHRS::baro_data_message_t baro {
             instance: 0,
-pressure_pa: imu_data.pressure,
+            pressure_pa: imu_data.pressure,
             // setting temp to 25 effectively disables barometer temperature calibrations - these are already performed by MicroStrain
             temperature: 25,
         };
+        // *INDENT-ON*
         AP::baro().handle_external(baro);
     }
 #endif
@@ -187,27 +193,29 @@ void AP_ExternalAHRS_MicroStrain7::post_filter() const
     }
 
     for (int instance = 0; instance < NUM_GNSS_INSTANCES; instance++) {
+        // *INDENT-OFF*
         AP_ExternalAHRS::gps_data_message_t gps {
-gps_week: filter_data.week,
-ms_tow: filter_data.tow_ms,
-fix_type: (uint8_t) gnss_data[instance].fix_type,
-satellites_in_view: gnss_data[instance].satellites,
+            gps_week: filter_data.week,
+            ms_tow: filter_data.tow_ms,
+            fix_type: (uint8_t) gnss_data[instance].fix_type,
+            satellites_in_view: gnss_data[instance].satellites,
 
-horizontal_pos_accuracy: gnss_data[instance].horizontal_position_accuracy,
-vertical_pos_accuracy: gnss_data[instance].vertical_position_accuracy,
-horizontal_vel_accuracy: gnss_data[instance].speed_accuracy,
+            horizontal_pos_accuracy: gnss_data[instance].horizontal_position_accuracy,
+            vertical_pos_accuracy: gnss_data[instance].vertical_position_accuracy,
+            horizontal_vel_accuracy: gnss_data[instance].speed_accuracy,
 
-hdop: gnss_data[instance].hdop,
-vdop: gnss_data[instance].vdop,
+            hdop: gnss_data[instance].hdop,
+            vdop: gnss_data[instance].vdop,
 
-longitude: filter_data.lon,
-latitude: filter_data.lat,
-msl_altitude: gnss_data[instance].msl_altitude,
+            longitude: filter_data.lon,
+            latitude: filter_data.lat,
+            msl_altitude: gnss_data[instance].msl_altitude,
 
-ned_vel_north: filter_data.ned_velocity_north,
-ned_vel_east: filter_data.ned_velocity_east,
-ned_vel_down: filter_data.ned_velocity_down,
+            ned_vel_north: filter_data.ned_velocity_north,
+            ned_vel_east: filter_data.ned_velocity_east,
+            ned_vel_down: filter_data.ned_velocity_down,
         };
+        // *INDENT-ON*
 
         if (gps.fix_type >= 3 && !state.have_origin) {
             WITH_SEMAPHORE(state.sem);
