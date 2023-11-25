@@ -179,3 +179,8 @@ template <typename T> void BIT_CLEAR (T& value, uint8_t bitnumber) noexcept {
      ((value) &= ~((T)(1U) << (bitnumber)));
  }
 
+template <typename T> bool IS_BIT_SET (const T& value, const uint8_t bitnumber) noexcept {
+     static_assert(std::is_integral<T>::value, "Integral required.");
+     return value & ((T)(1U) << (bitnumber));
+ }
+

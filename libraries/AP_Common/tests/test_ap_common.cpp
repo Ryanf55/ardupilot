@@ -39,20 +39,26 @@ TEST(AP_Common, BitSet)
     uint16_t test_value1 = 128;
     BIT_SET(test_value1, 3);
     EXPECT_EQ(test_value1, 136u);
+    EXPECT_TRUE(IS_BIT_SET(test_value1, 3));
     BIT_CLEAR(test_value1, 7);
     EXPECT_EQ(test_value1, 8u);
+    EXPECT_FALSE(IS_BIT_SET(test_value1, 7));
 
     uint32_t test_value2 = 128;
     BIT_SET(test_value2, 3);
     EXPECT_EQ(test_value2, 136u);
+    EXPECT_TRUE(IS_BIT_SET(test_value2, 3));
     BIT_CLEAR(test_value2, 7);
     EXPECT_EQ(test_value2, 8u);
+    EXPECT_FALSE(IS_BIT_SET(test_value2, 7));
 
     unsigned long test_value3 = 128;
     BIT_SET(test_value3, 3);
     EXPECT_EQ(test_value3, 136u);
+    EXPECT_TRUE(IS_BIT_SET(test_value2, 3));
     BIT_CLEAR(test_value3, 7);
     EXPECT_EQ(test_value3, 8u);
+    EXPECT_FALSE(IS_BIT_SET(test_value2, 7));
 }
 
 
