@@ -51,16 +51,6 @@ enum class FilterPacketField {
     GPS_TIMESTAMP = 0xD3,
 };
 
-// https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Commands/base_command/base_command_links.htm
-enum class BaseCommandPacketFieldCmd {
-    PING = 0x01,
-};
-
-// The same as BaseCommandPacketFieldCmd but add 0x80 
-enum class BaseCommandPacketFieldRsp {
-    PING = 0xF1,
-};
-
 
 // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_1/data/mip_field_gnss_fix_info.htm
 enum class GNSSFixType {
@@ -341,8 +331,12 @@ void AP_MicroStrain::handle_base_command(const MicroStrain_Packet &packet)
             const auto error_code = packet.payload[i+3];
 
             if (command_echo == (uint8_t)BaseCommandPacketFieldCmd::PING && 
-                error_code == (uint8_t)AckNackReplyCode::SUCCESS) {
-                got_ping_rsp = true;
+                error_code == (uint8_t)AckNackReplyCode::SUCCESS && 
+                expected_rsp.desc_and_field.header_descriptor == DescriptorSet::BaseCommand && 
+                expected_rsp.desc_and_field.field_descriptor.base_cmd_rsp == BaseCommandPacketFieldRsp::PING
+                ) {
+                    expected_rsp.expecting = false;
+                    expected_rsp.received = true;
                 }
             break;
         }

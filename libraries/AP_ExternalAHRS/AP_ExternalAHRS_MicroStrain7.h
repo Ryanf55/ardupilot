@@ -46,8 +46,8 @@ public:
 
     // check for new data
     void update() override {
-        build_packet();
-    };
+        // check timeouts, set unhealthy
+    }
 
 private:
 
@@ -58,12 +58,24 @@ private:
     // At runtime, while it's flag, the driver attempts to ping the MicroStrain hardware.
     // Upon response, this flag will remain true for the lifetime of the driver class object.
     // It does NOT support failure detection, hotplugging, or software restarts.
-    bool got_ping = false;
     
-    // Send ping, return true if the device responds
-    bool do_ping() WARN_IF_UNUSED;
 
-    void build_packet();
+    // The last time a configuration packet was sent.
+    // Used for configuration throttling.
+    uint32_t last_cmd_send_ms;
+    
+    // Send ping request to MicroStrain device
+    void send_ping();
+
+    void parse_input();
+
+    // Use these bits to check that configuration is done, mark as done over time.
+    // If device goes unhealthy, assume a power cycle and reset the bits.
+    enum class config_bits {
+        imu_time,
+        gps_time,
+        gps_pos,
+    };
 
     void post_imu() const;
     void post_gnss() const;

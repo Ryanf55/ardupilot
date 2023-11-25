@@ -99,6 +99,25 @@ protected:
         GNSSRecv2 = 0x92
     };
 
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Commands/base_command/base_command_links.htm
+    enum class BaseCommandPacketFieldCmd: uint8_t {
+        PING = 0x01,
+        ENABLE_STREAMING = 0x02,
+    };
+
+    // The same as BaseCommandPacketFieldCmd but add 0x80 
+    enum class BaseCommandPacketFieldRsp: uint8_t {
+        PING = 0xF1,
+    };
+
+    struct DescriptorAndField {
+       DescriptorSet header_descriptor;
+       union FieldDescriptor {
+           BaseCommandPacketFieldRsp base_cmd_rsp;
+           // Add all of the packets here
+       } field_descriptor;
+    };
+  
     const uint8_t SYNC_ONE = 0x75;
     const uint8_t SYNC_TWO = 0x65;
 
@@ -160,12 +179,31 @@ protected:
         uint8_t index;
     } message_in;
 
+    // TODO add ms unit
     uint32_t last_imu_pkt;
     uint32_t last_gps_pkt;
     uint32_t last_filter_pkt;
 
-    // Flag for if ping response was received
-    bool got_ping_rsp = false;
+    // Used for handling a single expected response.
+    // To handle multiple concurrent responses, this could be extended to a queue.
+
+    // semaphore for multi-thread use of expected_rsp and avoidance_result
+    // HAL_Semaphore _rsem;
+    struct ExpectedResponse {
+        DescriptorAndField desc_and_field;
+        bool expecting {false};
+        bool received {true};
+    };
+    ExpectedResponse expected_rsp;
+
+    // bitmask of options
+    enum class CmdReplyBit : uint8_t {
+        PING = (1U<<0),
+    };
+    bool got_response(CmdReplyBit cmd) const { return (cmd_reply_bits & uint8_t(cmd)) != 0; }
+    bool got_all_responses() const {
+        return got_response(CmdReplyBit::PING);
+    }
 
     // Handle a single byte.
     // If the byte matches a descriptor, it returns true and that type should be handled.
@@ -182,6 +220,8 @@ protected:
     static Quaternion populate_quaternion(const uint8_t* data, uint8_t offset);
     // Depending on the descriptor, the data corresponds to a different GNSS instance.
     static bool get_gnss_instance(const DescriptorSet& descriptor, uint8_t& instance);
+private:
+    uint8_t cmd_reply_bits;
 };
 
 #endif // AP_MICROSTRAIN_ENABLED

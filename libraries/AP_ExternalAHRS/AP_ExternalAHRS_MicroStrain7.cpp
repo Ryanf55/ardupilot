@@ -77,38 +77,41 @@ AP_ExternalAHRS_MicroStrain7::AP_ExternalAHRS_MicroStrain7(AP_ExternalAHRS *_fro
 
 void AP_ExternalAHRS_MicroStrain7::update_thread(void)
 {
-    if (!port_open) {
-        port_open = true;
-        uart->begin(baudrate);
-    }
+    uart->begin(baudrate);
 
-    if (!got_ping) {
-        if (do_ping()) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "MicroStrain7 ExternalAHRS is responsive.");
-            got_ping = true;
-        } else {
-            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "MicroStrain7 ExternalAHRS is unresponsive.");
+    while (true) {
+        hal.scheduler->delay_microseconds(100);
+        parse_input();
+
+        // Attempt config at lower rate
+        const auto now = AP_HAL::millis();
+        if (last_cmd_send_ms - now > 100) {
+            if (!got_all_responses()) {
+                // TODO refactor into send_config which handles all of the configs
+                send_ping();
+            }
         }
-    }
 
-        hal.scheduler->delay(100);
-        build_packet();
+        // if (not fully configured)
+        //    then send microstrain unconfigured notice
+        // if (!got_ping) {
+        //     if (do_ping()) {
+        //         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "MicroStrain7 ExternalAHRS is responsive.");
+        //         got_ping = true;
+        //     } else {
+        //         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "MicroStrain7 ExternalAHRS is unresponsive.");
+        //     }
+        // }
+    }
 
 }
 
 
-bool AP_ExternalAHRS_MicroStrain7::do_ping()
+void AP_ExternalAHRS_MicroStrain7::send_ping()
 {
-
     if (!uart->is_initialized()) {
-        return false;
+        return;
     }
-
-    // Clear input buffer before doing configuration
-    if (!uart->discard_input()) {
-        return false;
-    };
-
     // See https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/dcp_content/introduction/Command%20Overview.htm?
     // for "Example Command - Ping"
     // constexpr uint8_t ping_cmd_sz = 8;
@@ -127,46 +130,46 @@ bool AP_ExternalAHRS_MicroStrain7::do_ping()
     uart->write(cmd.payload, cmd.payload_length());
     uart->write(cmd.checksum, sizeof(cmd.checksum));
 
-    constexpr uint16_t expected_bytes = 10;
-    const auto start_wait = AP_HAL::millis();
-    auto now = AP_HAL::millis();
-    while (now  - start_wait <= 30) {
-        if (uart->available() >= expected_bytes) {
-            break;
-        }
-        constexpr uint16_t delay_ms = 1;
-        hal.scheduler->delay(delay_ms);
-        now = AP_HAL::millis();
-    }
+    // constexpr uint16_t expected_bytes = 10;
+    // const auto start_wait = AP_HAL::millis();
+    // auto now = AP_HAL::millis();
+    // while (now  - start_wait <= 30) {
+    //     if (uart->available() >= expected_bytes) {
+    //         break;
+    //     }
+    //     constexpr uint16_t delay_ms = 1;
+    //     hal.scheduler->delay(delay_ms);
+    //     now = AP_HAL::millis();
+    // }
 
-    const auto available_bytes = uart->available();
-    if (available_bytes != expected_bytes) {
-        return false;
-    }
+    // const auto available_bytes = uart->available();
+    // if (available_bytes != expected_bytes) {
+    //     return false;
+    // }
 
-    message_in.state = ParseState::WaitingFor_SyncOne;
-    for (int i = 0; i < expected_bytes; i++) {
-        uint8_t b;
-        if (!uart->read(b)) {
-            break;
-        }
-        DescriptorSet descriptor;
-        if (handle_byte(b, descriptor)) {
-            switch (descriptor) {
-            case DescriptorSet::BaseCommand:
-                return true;
-                break;
-            default:
-                break;
-            }
-        }
-    }
-    return false;
+    // message_in.state = ParseState::WaitingFor_SyncOne;
+    // for (int i = 0; i < expected_bytes; i++) {
+    //     uint8_t b;
+    //     if (!uart->read(b)) {
+    //         break;
+    //     }
+    //     DescriptorSet descriptor;
+    //     if (handle_byte(b, descriptor)) {
+    //         switch (descriptor) {
+    //         case DescriptorSet::BaseCommand:
+    //             return true;
+    //             break;
+    //         default:
+    //             break;
+    //         }
+    //     }
+    // }
+    // return false;
 }
 
 
 // Builds packets by looking at each individual byte, once a full packet has been read in it checks the checksum then handles the packet.
-void AP_ExternalAHRS_MicroStrain7::build_packet()
+void AP_ExternalAHRS_MicroStrain7::parse_input()
 {
     if (uart == nullptr) {
         return;
@@ -255,13 +258,16 @@ void AP_ExternalAHRS_MicroStrain7::post_filter() const
 {
     {
         WITH_SEMAPHORE(state.sem);
-        state.velocity = Vector3f{filter_data.ned_velocity_north, filter_data.ned_velocity_east, filter_data.ned_velocity_down};
+        const auto & filter_data_interim = filter_data;
+        const auto & gnss_data_interim = gnss_data;
+
+        state.velocity = Vector3f{filter_data_interim.ned_velocity_north, filter_data_interim.ned_velocity_east, filter_data_interim.ned_velocity_down};
         state.have_velocity = true;
 
         // TODO the filter does not supply MSL altitude.
         // The GNSS system has both MSL and WGS-84 ellipsoid height.
         // Use GNSS 0 even though it may be bad.
-        state.location = Location{filter_data.lat, filter_data.lon, gnss_data[0].msl_altitude, Location::AltFrame::ABSOLUTE};
+        state.location = Location{filter_data_interim.lat, filter_data_interim.lon, gnss_data_interim[0].msl_altitude, Location::AltFrame::ABSOLUTE};
         state.have_location = true;
     }
 
@@ -358,6 +364,9 @@ const char* AP_ExternalAHRS_MicroStrain7::get_name() const
 
 bool AP_ExternalAHRS_MicroStrain7::healthy(void) const
 {
+    // TODO take copy first, and use copy to handle multithreading.
+    // If healthy() is called from lower priority thread, this can happen.
+    const auto last_imu = last_imu_pkt;
     uint32_t now = AP_HAL::millis();
 
     // Expect the following rates:
@@ -383,8 +392,6 @@ bool AP_ExternalAHRS_MicroStrain7::healthy(void) const
 bool AP_ExternalAHRS_MicroStrain7::initialised(void) const
 {
     const bool got_packets = last_imu_pkt != 0 && last_gps_pkt != 0 && last_filter_pkt != 0;
-    const auto filter_state = static_cast<FilterState>(filter_status.state);
-    const bool filter_healthy = (filter_state == FilterState::GQ7_FULL_NAV || filter_state == FilterState::GQ7_AHRS);
     return got_packets && filter_healthy;
 }
 
