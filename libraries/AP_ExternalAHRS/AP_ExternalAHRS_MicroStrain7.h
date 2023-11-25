@@ -66,6 +66,9 @@ private:
     
     // Send ping request to MicroStrain device
     void send_ping();
+    // Conduct build in test.
+    // DO NOT DO THIS WHILE IN MOTION
+    void send_built_in_test();
 
     void parse_input();
 

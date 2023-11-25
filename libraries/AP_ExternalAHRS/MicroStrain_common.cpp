@@ -331,12 +331,24 @@ void AP_MicroStrain::handle_base_command(const MicroStrain_Packet &packet)
             const auto error_code = packet.payload[i+3];
 
             if (command_echo == (uint8_t)BaseCommandPacketFieldCmd::PING && 
-                error_code == (uint8_t)AckNackReplyCode::SUCCESS && 
-                expected_rsp.desc_and_field.header_descriptor == DescriptorSet::BaseCommand && 
-                expected_rsp.desc_and_field.field_descriptor.base_cmd_rsp == BaseCommandPacketFieldRsp::PING
+                error_code == (uint8_t)AckNackReplyCode::SUCCESS
+                // expected_rsp.desc_and_field.header_descriptor == DescriptorSet::BaseCommand && 
+                // expected_rsp.desc_and_field.field_descriptor.base_cmd_rsp == BaseCommandPacketFieldRsp::PING
                 ) {
-                    expected_rsp.expecting = false;
-                    expected_rsp.received = true;
+                    BIT_SET(cmd_reply_bits, (uint8_t)CmdReplyBit::PING);
+                }
+            break;
+        }
+        case BaseCommandPacketFieldRsp::BUILT_IN_TEST: {
+            const auto command_echo = packet.payload[i+2];
+            const auto error_code = packet.payload[i+3];
+
+            if (command_echo == (uint8_t)BaseCommandPacketFieldCmd::BUILT_IN_TEST && 
+                error_code == (uint8_t)AckNackReplyCode::SUCCESS
+                ) {
+                    BIT_SET(cmd_reply_bits, (uint8_t)CmdReplyBit::BUILT_IN_TEST);
+                    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/user_manual_content/additional_features/Built-in%20Test.htm?Highlight=built%20in%20test
+                    memcpy(&built_in_test_rsp, &packet.payload[i+3], sizeof(built_in_test_rsp));
                 }
             break;
         }

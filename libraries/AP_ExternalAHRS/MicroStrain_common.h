@@ -102,12 +102,13 @@ protected:
     // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Commands/base_command/base_command_links.htm
     enum class BaseCommandPacketFieldCmd: uint8_t {
         PING = 0x01,
-        ENABLE_STREAMING = 0x02,
+        BUILT_IN_TEST = 0x05,
     };
 
     // The same as BaseCommandPacketFieldCmd but add 0x80 
     enum class BaseCommandPacketFieldRsp: uint8_t {
         PING = 0xF1,
+        BUILT_IN_TEST = 0xF5,
     };
 
     struct DescriptorAndField {
@@ -189,21 +190,27 @@ protected:
 
     // semaphore for multi-thread use of expected_rsp and avoidance_result
     // HAL_Semaphore _rsem;
-    struct ExpectedResponse {
-        DescriptorAndField desc_and_field;
-        bool expecting {false};
-        bool received {true};
-    };
-    ExpectedResponse expected_rsp;
+    // struct ExpectedResponse {
+    //     DescriptorAndField desc_and_field;
+    //     bool expecting {false};
+    //     bool received {true};
+    // };
+    // ExpectedResponse expected_rsp;
 
-    // bitmask of options
+    // bitmask of command replies
     enum class CmdReplyBit : uint8_t {
         PING = (1U<<0),
+        BUILT_IN_TEST = (1U << 1),
     };
-    bool got_response(CmdReplyBit cmd) const { return (cmd_reply_bits & uint8_t(cmd)) != 0; }
-    bool got_all_responses() const {
-        return got_response(CmdReplyBit::PING);
+
+    bool got_response(CmdReplyBit cmd) const WARN_IF_UNUSED { return IS_BIT_SET(cmd_reply_bits, (uint8_t)cmd); }
+    bool got_all_responses() const WARN_IF_UNUSED {
+        return got_response(CmdReplyBit::PING) &&
+            got_response(CmdReplyBit::BUILT_IN_TEST);
     }
+
+    // The stored built in test value
+    uint32_t built_in_test_rsp;
 
     // Handle a single byte.
     // If the byte matches a descriptor, it returns true and that type should be handled.

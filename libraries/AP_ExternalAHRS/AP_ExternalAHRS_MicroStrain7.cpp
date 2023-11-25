@@ -83,12 +83,17 @@ void AP_ExternalAHRS_MicroStrain7::update_thread(void)
         hal.scheduler->delay_microseconds(100);
         parse_input();
 
+
+
         // Attempt config at lower rate
         const auto now = AP_HAL::millis();
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "now:%u", now);
         if (last_cmd_send_ms - now > 100) {
             if (!got_all_responses()) {
                 // TODO refactor into send_config which handles all of the configs
+                // and only sends what's required.
                 send_ping();
+                send_built_in_test();
             }
         }
 
@@ -114,7 +119,6 @@ void AP_ExternalAHRS_MicroStrain7::send_ping()
     }
     // See https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/dcp_content/introduction/Command%20Overview.htm?
     // for "Example Command - Ping"
-    // constexpr uint8_t ping_cmd_sz = 8;
     MicroStrain_Packet cmd;
     cmd.header[0] = SYNC_ONE;
     cmd.header[1] = SYNC_TWO;
@@ -122,7 +126,7 @@ void AP_ExternalAHRS_MicroStrain7::send_ping()
     cmd.payload_length(0x02);
 
     cmd.payload[0] = 0x02; // field byte length
-    cmd.payload[1] = 0x01; // field descriptor byte
+    cmd.payload[1] = (uint8_t)BaseCommandPacketFieldCmd::PING; // field descriptor byte
 
     cmd.populate_csum();
 
@@ -130,41 +134,29 @@ void AP_ExternalAHRS_MicroStrain7::send_ping()
     uart->write(cmd.payload, cmd.payload_length());
     uart->write(cmd.checksum, sizeof(cmd.checksum));
 
-    // constexpr uint16_t expected_bytes = 10;
-    // const auto start_wait = AP_HAL::millis();
-    // auto now = AP_HAL::millis();
-    // while (now  - start_wait <= 30) {
-    //     if (uart->available() >= expected_bytes) {
-    //         break;
-    //     }
-    //     constexpr uint16_t delay_ms = 1;
-    //     hal.scheduler->delay(delay_ms);
-    //     now = AP_HAL::millis();
-    // }
+}
 
-    // const auto available_bytes = uart->available();
-    // if (available_bytes != expected_bytes) {
-    //     return false;
-    // }
+void AP_ExternalAHRS_MicroStrain7::send_built_in_test()
+{
+    if (!uart->is_initialized()) {
+        return;
+    }
+    // See https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Commands/base_command/data/mip_cmd_base_built_in_test.htm
+    MicroStrain_Packet cmd;
+    cmd.header[0] = SYNC_ONE;
+    cmd.header[1] = SYNC_TWO;
+    cmd.descriptor_set(DescriptorSet::BaseCommand);
+    cmd.payload_length(0x02);
 
-    // message_in.state = ParseState::WaitingFor_SyncOne;
-    // for (int i = 0; i < expected_bytes; i++) {
-    //     uint8_t b;
-    //     if (!uart->read(b)) {
-    //         break;
-    //     }
-    //     DescriptorSet descriptor;
-    //     if (handle_byte(b, descriptor)) {
-    //         switch (descriptor) {
-    //         case DescriptorSet::BaseCommand:
-    //             return true;
-    //             break;
-    //         default:
-    //             break;
-    //         }
-    //     }
-    // }
-    // return false;
+    cmd.payload[0] = 0x02; // field byte length
+    cmd.payload[1] = (uint8_t)BaseCommandPacketFieldCmd::BUILT_IN_TEST; // field descriptor byte
+
+    cmd.populate_csum();
+
+    uart->write(cmd.header, sizeof(cmd.header));
+    uart->write(cmd.payload, cmd.payload_length());
+    uart->write(cmd.checksum, sizeof(cmd.checksum));
+
 }
 
 
@@ -364,9 +356,11 @@ const char* AP_ExternalAHRS_MicroStrain7::get_name() const
 
 bool AP_ExternalAHRS_MicroStrain7::healthy(void) const
 {
-    // TODO take copy first, and use copy to handle multithreading.
-    // If healthy() is called from lower priority thread, this can happen.
+    // Take a copy first for handling multithreading.
+    // If healthy() is called from lower priority thread, this can cause syncronization problems.
     const auto last_imu = last_imu_pkt;
+    const auto last_gps = last_gps_pkt;
+    const auto last_filter = last_gps_pkt;
     uint32_t now = AP_HAL::millis();
 
     // Expect the following rates:
@@ -381,18 +375,20 @@ bool AP_ExternalAHRS_MicroStrain7::healthy(void) const
     constexpr uint32_t expected_gps_time_delta_ms = 500;
     constexpr uint32_t expected_imu_time_delta_ms = 40;
 
-    const bool times_healthy = (now - last_imu_pkt < expected_imu_time_delta_ms * RateFoS && \
-                                now - last_gps_pkt < expected_gps_time_delta_ms * RateFoS && \
-                                now - last_filter_pkt < expected_filter_time_delta_ms * RateFoS);
-    const auto filter_state = static_cast<FilterState>(filter_status.state);
-    const bool filter_healthy = (filter_state == FilterState::GQ7_FULL_NAV || filter_state == FilterState::GQ7_AHRS);
-    return times_healthy && filter_healthy;
+    const bool imu_recent = now - last_imu < expected_imu_time_delta_ms * RateFoS;
+    const bool gps_recent = now - last_gps < expected_gps_time_delta_ms * RateFoS;
+    const bool filter_recent = now - last_filter < expected_filter_time_delta_ms * RateFoS;
+
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "i=%u, g=%u, f=%u", now - last_imu, now - last_gps, now - last_filter);
+    return imu_recent && gps_recent && filter_recent;
 }
 
 bool AP_ExternalAHRS_MicroStrain7::initialised(void) const
 {
     const bool got_packets = last_imu_pkt != 0 && last_gps_pkt != 0 && last_filter_pkt != 0;
-    return got_packets && filter_healthy;
+
+    // TODO device disconnected failure (no recent data, needs reinitialised)
+    return got_packets;
 }
 
 bool AP_ExternalAHRS_MicroStrain7::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
