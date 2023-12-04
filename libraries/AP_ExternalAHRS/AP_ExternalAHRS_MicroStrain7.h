@@ -52,6 +52,15 @@ public:
 
 private:
 
+    // GQ7 Filter States
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_status.htm
+    enum class FilterState {
+        GQ7_INIT = 0x01,
+        GQ7_VERT_GYRO = 0x02,
+        GQ7_AHRS = 0x03,
+        GQ7_FULL_NAV = 0x04
+    };
+
     uint32_t baudrate;
     int8_t port_num;
     bool port_open = false;
@@ -65,6 +74,11 @@ private:
     void post_filter() const;
 
     void update_thread();
+
+    // Only some of the fix types satisfy a healthy filter.
+    // GQ7_VERT_GYRO is NOT considered healthy for now.
+    // This may be vehicle-dependent in the future.
+    static bool filter_state_healthy(FilterState state) WARN_IF_UNUSED;
 
     AP_HAL::UARTDriver *uart;
     HAL_Semaphore sem;

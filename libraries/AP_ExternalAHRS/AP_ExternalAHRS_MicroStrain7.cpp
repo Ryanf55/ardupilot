@@ -47,15 +47,6 @@
 
 extern const AP_HAL::HAL &hal;
 
-// GQ7 Filter States
-// https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_status.htm
-enum class FilterState {
-    GQ7_INIT = 0x01,
-    GQ7_VERT_GYRO = 0x02,
-    GQ7_AHRS = 0x03,
-    GQ7_FULL_NAV = 0x04
-};
-
 AP_ExternalAHRS_MicroStrain7::AP_ExternalAHRS_MicroStrain7(AP_ExternalAHRS *_frontend,
         AP_ExternalAHRS::state_t &_state): AP_ExternalAHRS_backend(_frontend, _state)
 {
@@ -273,7 +264,7 @@ bool AP_ExternalAHRS_MicroStrain7::initialised(void) const
 {
     const bool got_packets = last_imu_pkt != 0 && last_gps_pkt != 0 && last_filter_pkt != 0;
     const auto filter_state = static_cast<FilterState>(filter_status.state);
-    const bool filter_healthy = (filter_state == FilterState::GQ7_FULL_NAV || filter_state == FilterState::GQ7_AHRS);
+    const bool filter_healthy = filter_state_healthy(filter_state);
     return got_packets && filter_healthy;
 }
 
@@ -288,7 +279,7 @@ bool AP_ExternalAHRS_MicroStrain7::pre_arm_check(char *failure_msg, uint8_t fail
         hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain7 no GPS lock");
         return false;
     }
-    if (filter_status.state != 0x02) {
+    if (!filter_state_healthy(FilterState(filter_status.state))) {
         hal.util->snprintf(failure_msg, failure_msg_len, "MicroStrain7 filter not running");
         return false;
     }
@@ -308,7 +299,7 @@ void AP_ExternalAHRS_MicroStrain7::get_filter_status(nav_filter_status &status) 
         status.flags.vert_pos = true;
 
         const auto filter_state = static_cast<FilterState>(filter_status.state);
-        if (filter_state == FilterState::GQ7_FULL_NAV || filter_state == FilterState::GQ7_AHRS) {
+        if (filter_state_healthy(filter_state)) {
             status.flags.horiz_vel = true;
             status.flags.horiz_pos_rel = true;
             status.flags.horiz_pos_abs = true;
@@ -373,5 +364,15 @@ void AP_ExternalAHRS_MicroStrain7::send_status_report(GCS_MAVLINK &link) const
 
 }
 
+bool AP_ExternalAHRS_MicroStrain7::filter_state_healthy(FilterState state) {
+    switch(state) {
+    case FilterState::GQ7_FULL_NAV:
+    case FilterState::GQ7_AHRS:
+        return true;
+    default:
+        return false;
+    }
+    // return state == FilterState::GQ7_FULL_NAV || state == FilterState::GQ7_AHRS;
+}
 
 #endif // AP_EXTERNAL_AHRS_MICROSTRAIN7_ENABLED
