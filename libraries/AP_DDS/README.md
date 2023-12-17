@@ -414,3 +414,21 @@ python3 -m serial.tools.miniterm /dev/serial/by-id/usb-ArduPilot_Pixhawk6X_21002
 ```
 
 The same steps can be done for physical serial ports once the above works to isolate software and hardware issues.
+
+For ethernet, set:
+```bash
+# Enable networking
+param set NET_ENABLED 1
+
+# Set autopilot address
+param set NET_IPADDR0 192
+param set NET_IPADDR1 168
+param set NET_IPADDR2 1
+param set NET_IPADDR3 6
+
+# Set MicroROS agent address
+param set DDS_IP0 192
+param set DDS_IP1 168
+param set DDS_IP2 1
+param set DDS_IP3 5
+```

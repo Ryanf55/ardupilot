@@ -7,7 +7,6 @@
 #define AP_DDS_ENABLED 1
 #endif
 
-// UDP only on SITL for now
 #ifndef AP_DDS_UDP_ENABLED
 #define AP_DDS_UDP_ENABLED AP_DDS_ENABLED && AP_NETWORKING_ENABLED
 #endif

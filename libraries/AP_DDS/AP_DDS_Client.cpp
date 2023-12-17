@@ -434,6 +434,7 @@ bool AP_DDS_Client::start(void)
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_DDS_Client::main_loop, void),
                                       "DDS",
                                       8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
+        // TODO reduce stack at some point
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Thread create failed", msg_prefix);
         return false;
     }
@@ -588,9 +589,17 @@ void AP_DDS_Client::on_request(uxrSession* uxr_session, uxrObjectId object_id, u
  */
 void AP_DDS_Client::main_loop(void)
 {
+
+    // Wait for IMU, Gyro, Network (DHCP) before starting
+    AP::network().startup_wait();
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "DDS Client: Network up, resuming main_loop");
+
     if (!init_transport()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: transport init failed, exiting");
         return;
     }
+
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s:%u", __FILE__, __LINE__);
 
     //! @todo check for request to stop task
     while (true) {
@@ -733,7 +742,7 @@ bool AP_DDS_Client::create()
     constexpr uint8_t nRequestsParticipant = 1;
     const uint16_t requestsParticipant[nRequestsParticipant] = {participant_req_id};
 
-    constexpr uint16_t maxTimeMsPerRequestMs = 500;
+    constexpr uint16_t maxTimeMsPerRequestMs = 1000;
     constexpr uint16_t requestTimeoutParticipantMs = (uint16_t) nRequestsParticipant * maxTimeMsPerRequestMs;
     uint8_t statusParticipant[nRequestsParticipant];
     if (!uxr_run_session_until_all_status(&session, requestTimeoutParticipantMs, requestsParticipant, statusParticipant, nRequestsParticipant)) {
