@@ -252,9 +252,10 @@ bool AP_ExternalAHRS_MicroStrain7::healthy(void) const
     constexpr uint32_t expected_gps_time_delta_ms = 500;
     constexpr uint32_t expected_imu_time_delta_ms = 40;
 
-    const bool times_healthy = (now - last_imu_pkt < expected_imu_time_delta_ms * RateFoS && \
-                                now - last_gps_pkt < expected_gps_time_delta_ms * RateFoS && \
-                                now - last_filter_pkt < expected_filter_time_delta_ms * RateFoS);
+    const bool imu_times_healthy = now - last_imu_pkt < expected_imu_time_delta_ms * RateFoS;
+    const bool gps_times_healthy = now - last_gps_pkt < expected_gps_time_delta_ms * RateFoS;
+    const bool filter_times_healthy = now - last_filter_pkt < expected_filter_time_delta_ms * RateFoS;
+    const bool times_healthy = imu_times_healthy && gps_times_healthy && filter_times_healthy;
     const auto filter_state = static_cast<FilterState>(filter_status.state);
     const bool filter_healthy = (filter_state == FilterState::GQ7_FULL_NAV || filter_state == FilterState::GQ7_AHRS);
     return times_healthy && filter_healthy;
