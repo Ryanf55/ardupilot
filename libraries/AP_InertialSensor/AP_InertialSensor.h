@@ -569,6 +569,9 @@ private:
     // accelerometer position offset in body frame
     AP_Vector3f _accel_pos_old_param[INS_MAX_INSTANCES-INS_AUX_INSTANCES];
 
+    // Used for ExternalAHRS that supplies values already temperature compensated
+    bool _accel_precompensated[INS_MAX_INSTANCES];
+
     // Use Accessor methods to access above variables
 #if INS_AUX_INSTANCES
     #define INS_PARAM_WRAPPER(var) \

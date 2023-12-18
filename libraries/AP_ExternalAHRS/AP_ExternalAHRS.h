@@ -128,6 +128,7 @@ public:
         uint8_t instance;
         float pressure_pa;
         float temperature;
+        bool is_temperature_compensated;
     } baro_data_message_t;
 
     typedef struct {
@@ -156,11 +157,13 @@ public:
         Vector3f accel;
         Vector3f gyro;
         float temperature;
+        bool is_temperature_compensated;
     } ins_data_message_t;
 
     typedef struct {
         float differential_pressure; // Pa
         float temperature; // degC
+        bool is_temperature_compensated;
     } airspeed_data_message_t;
     
 protected:

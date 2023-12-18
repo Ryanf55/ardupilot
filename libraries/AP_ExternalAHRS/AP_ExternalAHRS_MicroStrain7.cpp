@@ -139,7 +139,8 @@ void AP_ExternalAHRS_MicroStrain7::post_imu() const
         AP_ExternalAHRS::ins_data_message_t ins {
             accel: imu_data.accel,
             gyro: imu_data.gyro,
-            temperature: -300
+            temperature: NAN,
+            is_temperature_compensated: true
         };
         // *INDENT-ON*
         AP::ins().handle_external(ins);
