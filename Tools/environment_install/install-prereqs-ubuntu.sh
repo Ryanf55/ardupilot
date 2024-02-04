@@ -14,10 +14,12 @@ ARDUPILOT_TOOLS="Tools/autotest"
 
 ASSUME_YES=false
 QUIET=false
-sep="##############################################"
+PREFER_VENV=false # Tell the installer to prefer a python virtual environment
+
+# sep="##############################################"
 
 OPTIND=1  # Reset in case getopts has been used previously in the shell.
-while getopts "yq" opt; do
+while getopts "yqp" opt; do
     case "$opt" in
         \?)
             exit 1
@@ -26,8 +28,12 @@ while getopts "yq" opt; do
             ;;
         q)  QUIET=true
             ;;
+        p)  PREFER_VENV=true
+            ;;
     esac
 done
+
+echo "VENV? $PREFER_VENV"
 
 APT_GET="sudo apt-get"
 if $ASSUME_YES; then
@@ -344,10 +350,11 @@ fi
 
 PIP_USER_ARGUMENT="--user"
 
-# create a Python venv on more recent releases:
+# create a Python venv on more recent releases or if requested:
 if [ ${RELEASE_CODENAME} == 'lunar' ] ||
-   [ ${RELEASE_CODENAME} == 'mantic' ]; then
-    $APT_GET install python3.11-venv
+   [ ${RELEASE_CODENAME} == 'mantic' ] ||
+   [ ${PREFER_VENV} ]; then
+    $APT_GET install python3-venv
     python3 -m venv $HOME/venv-ardupilot
 
     # activate it:
