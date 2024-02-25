@@ -188,9 +188,12 @@ void AP_ExternalAHRS_MicroStrain7::post_filter() const
         // Use GNSS 0 even though it may be bad.
         state.location = Location{filter_data.lat, filter_data.lon, gnss_data[0].msl_altitude, Location::AltFrame::ABSOLUTE};
         state.have_location = true;
+
+        // TODO add uncertainty to EAHRS
+        // https://discord.com/channels/674039678562861068/708104439231152191/1211431508854964224
     }
 
-    for (int instance = 0; instance < NUM_GNSS_INSTANCES; instance++) {
+    for (uint8_t instance = 0; instance < NUM_GNSS_INSTANCES; instance++) {
         // *INDENT-OFF*
         AP_ExternalAHRS::gps_data_message_t gps {
             gps_week: filter_data.week,
@@ -262,7 +265,12 @@ bool AP_ExternalAHRS_MicroStrain7::healthy(void) const
                                 now - last_filter_pkt < expected_filter_time_delta_ms * RateFoS);
     const auto filter_state = static_cast<FilterState>(filter_status.state);
     const bool filter_healthy = (filter_state == FilterState::GQ7_FULL_NAV || filter_state == FilterState::GQ7_AHRS);
-    return times_healthy && filter_healthy;
+    bool gnss_aiding_healthy = false;
+    for (uint8_t i = 0; i < NUM_GNSS_INSTANCES; i++) {
+        // As long as the filter reports healthy aiding from one GNSS system, treat the EAHRS as healthy.
+        gnss_aiding_healthy |= filter_status.aiding_healthy[i];
+    }
+    return times_healthy && filter_healthy && gnss_aiding_healthy;
 }
 
 bool AP_ExternalAHRS_MicroStrain7::initialised(void) const

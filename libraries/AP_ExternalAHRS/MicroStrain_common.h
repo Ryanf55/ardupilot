@@ -72,6 +72,7 @@ protected:
         uint16_t state;
         uint16_t mode;
         uint16_t flags;
+        bool aiding_healthy[NUM_GNSS_INSTANCES];
     } filter_status;
 
     struct {
@@ -79,6 +80,9 @@ protected:
         uint32_t tow_ms;
         float horizontal_position_accuracy;
         float vertical_position_accuracy;
+        float north_position_uncertainty;
+        float east_position_uncertainty;
+        float down_position_uncertainty;
         int32_t lon;
         int32_t lat;
         int32_t hae_altitude;

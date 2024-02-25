@@ -37,6 +37,7 @@ enum class GNSSPacketField {
     LLH_POSITION = 0x03,
     NED_VELOCITY = 0x05,
     DOP_DATA = 0x07,
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/0x91/data/0x0b.htm?
     FIX_INFO = 0x0B,
     // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/shared_data/data/mip_field_shared_gps_timestamp.htm
     GPS_TIMESTAMP = 0xD3,
@@ -58,6 +59,10 @@ enum class FilterPacketField {
     FILTER_STATUS = 0x10,
     LLH_POSITION = 0x01,
     NED_VELOCITY = 0x02,
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_llh_pos_uncertainty.htm
+    LLH_POSITION_UNCERTAINTY = 0x08,
+    // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/0x82/data/0x43.htm
+    POSITION_AIDING_STATUS = 0x43,
     // https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/shared_data/data/mip_field_shared_gps_timestamp.htm
     GPS_TIMESTAMP = 0xD3,
 };
@@ -288,12 +293,30 @@ void AP_MicroStrain::handle_filter(const MicroStrain_Packet &packet)
             filter_data.ned_velocity_down = be32tofloat_ptr(packet.payload, i+10);
             break;
         }
+        case FilterPacketField::LLH_POSITION_UNCERTAINTY: {
+            filter_data.north_position_uncertainty = be32tofloat_ptr(packet.payload, i+2);
+            filter_data.east_position_uncertainty = be32tofloat_ptr(packet.payload, i+6);
+            filter_data.down_position_uncertainty = be32tofloat_ptr(packet.payload, i+10);
+            break;
+        }
+        case FilterPacketField::POSITION_AIDING_STATUS: {
+            const auto receiver_id = packet.payload[i+2];
+            const auto status = be16toh(packet.payload[i+3]);
+            const auto is_tight_coupling = BIT_IS_SET(status, 0);
+            const auto is_differential = BIT_IS_SET(status, 1);
+            const auto is_integer_fix = BIT_IS_SET(status, 2);
+            const auto is_no_fix = BIT_IS_SET(status, 14);
+            const auto is_healthy = is_tight_coupling & is_differential & is_integer_fix & (!is_no_fix);
+            filter_status.aiding_healthy[receiver_id] = is_healthy;
+            break;
+        }
         case FilterPacketField::FILTER_STATUS: {
             filter_status.state = be16toh_ptr(&packet.payload[i+2]);
             filter_status.mode = be16toh_ptr(&packet.payload[i+4]);
             filter_status.flags = be16toh_ptr(&packet.payload[i+6]);
             break;
         }
+
         }
     }
 }
