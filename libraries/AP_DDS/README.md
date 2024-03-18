@@ -401,7 +401,7 @@ For example, build, flash, and set up OTG2 for DDS
 ./waf plane --upload
 mavproxy.py --console
 param set DDS_ENABLE 1
-# Check the hwdef file for which port is OTG2
+# Check the hwdef file for which port is OTG2 for SERIAL Comms
 param set SERIAL8_PROTOCOL 45
 param set SERIAL8_BAUD 115
 reboot
@@ -410,6 +410,7 @@ reboot
 Then run the Micro ROS agent
 ```bash
 cd /path/to/ros2_ws
+colcon build --packages-up-to micro_ros_agent
 source install/setup.bash
 cd src/ardupilot/libraries/AP_DDS
 ros2 run micro_ros_agent micro_ros_agent serial -b 115200  -r dds_xrce_profile.xml -D /dev/serial/by-id/usb-ArduPilot_Pixhawk6X_210028000151323131373139-if02
