@@ -65,10 +65,11 @@ AP_ExternalAHRS_MicroStrain7::AP_ExternalAHRS_MicroStrain7(AP_ExternalAHRS *_fro
         AP_BoardConfig::allocation_error("MicroStrain7 failed to allocate ExternalAHRS update thread");
     }
 
-    // don't offer IMU by default, at 100Hz it is too slow for many aircraft
+    // Don't offer IMU by default, at 100Hz it is too slow for many aircraft.
     set_default_sensors(uint16_t(AP_ExternalAHRS::AvailableSensor::GPS) |
                         uint16_t(AP_ExternalAHRS::AvailableSensor::BARO) |
                         uint16_t(AP_ExternalAHRS::AvailableSensor::COMPASS));
+    // Users can consider exposing IMU on fixed wing, or very large multirotors, assuming they can enable 1KHz IMU.
 
     hal.scheduler->delay(5000);
     if (!initialised()) {
