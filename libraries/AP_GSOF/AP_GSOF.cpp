@@ -1,15 +1,13 @@
-#define ALLOW_DOUBLE_MATH_FUNCTIONS
-
 #include "AP_GSOF_config.h"
-#include "AP_GSOF.h"
 
 #if AP_GSOF_ENABLED
 
-
+#define ALLOW_DOUBLE_MATH_FUNCTIONS
 
 #include <AP_Logger/AP_Logger.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <GCS_MAVLink/GCS.h>
+#include <AP_GSOF/AP_GSOF.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -31,10 +29,12 @@ int
 AP_GSOF::parse(const uint8_t temp, MsgTypes& parsed_msgs)
 {
     // https://receiverhelp.trimble.com/oem-gnss/index.html#API_DataCollectorFormatPacketStructure.html
-    switch (msg.state) {
+    switch (msg.state)
+    {
     default:
     case Msg_Parser::State::STARTTX:
-        if (temp == STX) {
+        if (temp == STX)
+        {
             msg.state = Msg_Parser::State::STATUS;
             msg.read = 0;
             msg.checksumcalc = 0;
@@ -59,7 +59,8 @@ AP_GSOF::parse(const uint8_t temp, MsgTypes& parsed_msgs)
         msg.data[msg.read] = temp;
         msg.read++;
         msg.checksumcalc += temp;
-        if (msg.read >= msg.length) {
+        if (msg.read >= msg.length)
+        {
             msg.state = Msg_Parser::State::CHECKSUM;
         }
         break;
