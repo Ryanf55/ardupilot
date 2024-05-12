@@ -34,6 +34,7 @@
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_GSOF/AP_GSOF.h>
+#include <AP_Networking/AP_Networking.h>
 
 class AP_ExternalAHRS_GSOF: public AP_ExternalAHRS_backend, public AP_GSOF
 {
@@ -78,6 +79,14 @@ private:
     void post_gnss() const;
     void post_filter() const;
 
+    struct {
+        // The GSOF EAHRS's IP address (unicast or multicast).
+        AP_Networking_IPV4 remote_ip{AP_EXTERNAL_AHRS_GSOF_IP};
+        // // The port for streamed data.
+        // AP_Int32 remote_data_port{0};
+        // // The port for configuration command/responses.
+        // AP_Int32 remote_cfg_port{0};
+    } param;
     uint32_t baudrate;
     int8_t port_num;
     bool port_open = false;

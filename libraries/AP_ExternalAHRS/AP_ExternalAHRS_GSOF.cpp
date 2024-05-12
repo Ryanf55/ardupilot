@@ -64,6 +64,9 @@ AP_ExternalAHRS_GSOF::AP_ExternalAHRS_GSOF(AP_ExternalAHRS *_frontend,
 
 void AP_ExternalAHRS_GSOF::update_thread(void)
 {
+    auto& network = AP::network();
+    [[maybe_unused]] const char *dest_ip = param.remote_ip.get_str();
+    network.startup_wait();
     if (!port_open) {
         port_open = true;
         uart->begin(baudrate);
