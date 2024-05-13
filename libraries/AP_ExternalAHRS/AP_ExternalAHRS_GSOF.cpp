@@ -11,6 +11,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+//   Usage in SITL with hardware for debugging:
+//     $ sim_vehicle.py -v Plane -A --console --map -DG
+//     param set AHRS_EKF_TYPE 11
+//     param set EAHRS_TYPE 6
+//
+
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
 
 #include "AP_ExternalAHRS_config.h"
@@ -27,7 +33,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Logger/AP_Logger.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
-#include <AP_SerialManager/AP_SerialManager.h>
+#include <AP_HAL/utility/Socket.h>
 
 static const char* LOG_FMT = "%s ExternalAHRS: %s";
 
@@ -36,25 +42,13 @@ extern const AP_HAL::HAL &hal;
 AP_ExternalAHRS_GSOF::AP_ExternalAHRS_GSOF(AP_ExternalAHRS *_frontend,
         AP_ExternalAHRS::state_t &_state): AP_ExternalAHRS_backend(_frontend, _state)
 {
-    auto &sm = AP::serialmanager();
-    uart = sm.find_serial(AP_SerialManager::SerialProtocol_AHRS, 0);
-
-    baudrate = sm.find_baudrate(AP_SerialManager::SerialProtocol_AHRS, 0);
-    port_num = sm.find_portnum(AP_SerialManager::SerialProtocol_AHRS, 0);
-
-    if (!uart) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, LOG_FMT, get_name(), "no UART");
-        return;
-    }
 
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_ExternalAHRS_GSOF::update_thread, void), "AHRS", 2048, AP_HAL::Scheduler::PRIORITY_SPI, 0)) {
         AP_BoardConfig::allocation_error("GSOF ExternalAHRS failed to allocate ExternalAHRS update thread");
     }
 
-    // don't offer IMU by default, at 100Hz it is too slow for many aircraft
-    set_default_sensors(uint16_t(AP_ExternalAHRS::AvailableSensor::GPS) |
-                        uint16_t(AP_ExternalAHRS::AvailableSensor::BARO) |
-                        uint16_t(AP_ExternalAHRS::AvailableSensor::COMPASS));
+    // Don't offer any sensors because the only data exposed is the tightly coupled solution.
+    set_default_sensors(0);
 
     hal.scheduler->delay(5000);
     if (!initialised()) {
@@ -65,15 +59,32 @@ AP_ExternalAHRS_GSOF::AP_ExternalAHRS_GSOF(AP_ExternalAHRS *_frontend,
 void AP_ExternalAHRS_GSOF::update_thread(void)
 {
     auto& network = AP::network();
-    [[maybe_unused]] const char *dest_ip = param.remote_ip.get_str();
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, LOG_FMT, get_name(), "starting network");
     network.startup_wait();
-    if (!port_open) {
-        port_open = true;
-        uart->begin(baudrate);
+    // const char *dest_ip = param.remote_ip.get_str();
+    auto *sock = new SocketAPM(true);
+    if (sock == nullptr) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, LOG_FMT, get_name(), "failed to create socket");
+        return;
     }
 
+    // const char* data = "foo";
+    // Can use sendto to send config data to address without binding:
+    // sock->sendto((const void*)data, strlen(data), dest_ip, 44448);
+    
+    sock->bind("0.0.0.0", 44445);
+    uint8_t data[AP_GSOF::MAX_PACKET_SIZE];
+
+    
     while (true) {
-        // TODO read data
+        if (sock->pollin(1)) {
+            auto const recv_res = sock->recv(data, AP_GSOF::MAX_PACKET_SIZE, 1000);
+            if (recv_res != -1) {
+                [[maybe_unused]] const auto parse_res = parse_buf(data, recv_res, 2);
+            }
+        }
+        
+  
         hal.scheduler->delay_microseconds(100);
         check_initialise_state();
     }
@@ -93,33 +104,24 @@ void AP_ExternalAHRS_GSOF::check_initialise_state(void)
 // Builds packets by looking at each individual byte, once a full packet has been read in it checks the checksum then handles the packet.
 void AP_ExternalAHRS_GSOF::build_packet()
 {
-    if (uart == nullptr) {
-        return;
-    }
 
-    WITH_SEMAPHORE(sem);
-    uint32_t nbytes = MIN(uart->available(), 2048u);
-    while (nbytes--> 0) {
-        uint8_t b;
-        if (!uart->read(b)) {
-            break;
-        }
-        // TODO handle bytes
-    }
+    // TODO check network socket is not null.
+
+    // WITH_SEMAPHORE(sem);
+    // uint32_t nbytes = MIN(uart->available(), 2048u);
+    // while (nbytes--> 0) {
+    //     uint8_t b;
+    //     if (!uart->read(b)) {
+    //         break;
+    //     }
+    //     // TODO handle bytes
+    // }
 }
 
 void AP_ExternalAHRS_GSOF::post_filter() const
 {
 
 }
-
-int8_t AP_ExternalAHRS_GSOF::get_port(void) const
-{
-    if (!uart) {
-        return -1;
-    }
-    return port_num;
-};
 
 // Get model/type name
 const char* AP_ExternalAHRS_GSOF::get_name() const
