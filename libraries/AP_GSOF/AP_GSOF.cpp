@@ -9,11 +9,11 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_GSOF/AP_GSOF.h>
 
-extern const AP_HAL::HAL& hal;
 
 #define gsof_DEBUGGING 0
 
 #if gsof_DEBUGGING
+extern const AP_HAL::HAL& hal;
 # define Debug(fmt, args ...)                  \
 do {                                            \
     hal.console->printf("%s:%d: " fmt "\n",     \
@@ -81,6 +81,19 @@ AP_GSOF::parse(const uint8_t temp, MsgTypes& parsed_msgs)
     }
 
     return NO_GSOF_DATA;
+}
+
+bool
+AP_GSOF::parse_buf(const uint8_t* buf, const uint8_t n_bytes, const uint8_t n_expected)
+{
+    int res;
+    for (uint8_t i = 0; i < n_bytes; i++) {
+        res = parse(buf[i], n_expected);
+        if (res != NO_GSOF_DATA) {
+            break;
+        }
+    }
+    return res;
 }
 
 bool
