@@ -86,6 +86,19 @@ AP_GSOF::parse(const uint8_t temp, const uint8_t n_expected)
     return NO_GSOF_DATA;
 }
 
+int
+AP_GSOF::parse_buf(const uint8_t* buf, const uint8_t n_bytes, const uint8_t n_expected)
+{
+    int res;
+    for (uint8_t i = 0; i < n_bytes; i++) {
+        res = parse(buf[i], n_expected);
+        if (res != NO_GSOF_DATA) {
+            break;
+        }
+    }
+    return res;
+}
+
 double
 AP_GSOF::SwapDouble(const uint8_t* src, const uint32_t pos) const
 {

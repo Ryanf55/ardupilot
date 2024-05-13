@@ -10,8 +10,9 @@ class AP_GSOF
 {
 public:
 
-    static constexpr int NO_GSOF_DATA = 0;
-    static constexpr int UNEXPECTED_NUM_GSOF_PACKETS = -1;
+    static constexpr uint8_t MAX_PACKET_SIZE {255};
+    static constexpr int NO_GSOF_DATA {0};
+    static constexpr int UNEXPECTED_NUM_GSOF_PACKETS {-1};
 
     // Parse a single byte into the buffer.
     // When enough data has arrived, it returns the number of GSOF packets parsed in the GENOUT packet.
@@ -19,6 +20,7 @@ public:
     // This means there is no fix.
     // If it returns NO_GSOF_DATA, the parser just needs more data.
     int parse(const uint8_t temp, const uint8_t n_expected) WARN_IF_UNUSED;
+    int parse_buf(const uint8_t* buf, const uint8_t n_bytes, const uint8_t n_expected) WARN_IF_UNUSED;
 
     // GSOF packet numbers.
     enum msg_idx_t {
@@ -123,7 +125,7 @@ private:
         uint8_t status;
         uint8_t packettype;
         uint8_t length;
-        uint8_t data[256];
+        uint8_t data[MAX_PACKET_SIZE];
         uint8_t checksum;
         uint8_t endtx;
         uint8_t read;
