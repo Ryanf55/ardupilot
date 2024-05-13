@@ -16,12 +16,11 @@
   GSOF EAHRS is implemented over UDP networking because:
   1) Packetized data is easier to parse because it's already packed in nice buffers.
   2) The single 8-bit summing checksum in GSOF is not very robust to corruption on serial,
-     while networking already provides a 16-bit checkum.
-  3) The DCOL configuration is impossible to verify when interleaved with stream data,
-     so, but UDP allows dedicated ports for streaming and config.
+     while networking already provides a 16-bit checksum.
+  3) The DCOL configuration is impossible to verify ACK when interleaved with stream data,
+     but UDP allows dedicated ports for streaming and config.
+  4) Networking allows for wireshark debugging.
  */
-
-
 
 
 #pragma once
@@ -41,9 +40,6 @@ class AP_ExternalAHRS_GSOF: public AP_ExternalAHRS_backend, public AP_GSOF
 public:
 
     AP_ExternalAHRS_GSOF(AP_ExternalAHRS *frontend, AP_ExternalAHRS::state_t &state);
-
-    // get serial port number, -1 for not enabled
-    int8_t get_port(void) const override;
 
     // Get model/type name
     const char* get_name() const override;
@@ -65,7 +61,7 @@ protected:
 
     uint8_t num_gps_sensors(void) const override
     {
-        return 1;
+        return 0;
     }
 
 private:
@@ -87,11 +83,7 @@ private:
         // // The port for configuration command/responses.
         // AP_Int32 remote_cfg_port{0};
     } param;
-    uint32_t baudrate;
-    int8_t port_num;
-    bool port_open = false;
 
-    AP_HAL::UARTDriver *uart;
     HAL_Semaphore sem;
 
     // Used to monitor initialization state.
