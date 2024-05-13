@@ -11,19 +11,31 @@ class AP_GSOF
 {
 public:
 
+<<<<<<< HEAD
     static constexpr int NO_GSOF_DATA = 0;
     static constexpr int UNEXPECTED_NUM_GSOF_PACKETS = -1;
     static constexpr int PARSED_AS_EXPECTED = 1;
 
     // A type alias for which packets have been parsed.
     using MsgTypes = Bitmask<70>;
+=======
+    static constexpr uint8_t MAX_PACKET_SIZE {255};
+    static constexpr int NO_GSOF_DATA {0};
+    static constexpr int UNEXPECTED_NUM_GSOF_PACKETS {-1};
+>>>>>>> 9f4c983fda (AP_GSOF: Add message buffer parser)
 
     // Parse a single byte into the buffer.
     // When enough data has arrived, it populates a bitmask of which GSOF packets were parsed in the GENOUT packet.
     // If an unexpected number of GSOF packets were parsed, returns UNEXPECTED_NUM_GSOF_PACKETS.
     // If it returns NO_GSOF_DATA, the parser just needs more data.
+<<<<<<< HEAD
     // Upon parsing the expected message contents, it returns PARSED_AS_EXPECTED.
     int parse(const uint8_t temp, MsgTypes& message_types) WARN_IF_UNUSED;
+=======
+    int parse(const uint8_t temp, const uint8_t n_expected) WARN_IF_UNUSED;
+    // Parse a buffer of data
+    int parse_buf(const uint8_t* buf, const uint8_t n_bytes, const uint8_t n_expected) WARN_IF_UNUSED;
+>>>>>>> 9f4c983fda (AP_GSOF: Add message buffer parser)
 
     // GSOF packet numbers.
     enum msg_idx_t {
@@ -124,7 +136,7 @@ private:
         uint8_t status;
         uint8_t packettype;
         uint8_t length;
-        uint8_t data[256];
+        uint8_t data[MAX_PACKET_SIZE];
         uint8_t checksum;
         uint8_t endtx;
         uint8_t read;
