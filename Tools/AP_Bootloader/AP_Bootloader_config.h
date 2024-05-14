@@ -10,3 +10,8 @@
 #ifndef AP_BOOTLOADER_NETWORK_ENABLED
 #define AP_BOOTLOADER_NETWORK_ENABLED AP_NETWORKING_ENABLED
 #endif
+
+#ifndef AP_BOOTLOADER_NETWORK_USE_AUTOIP
+// Treat link-local addressing as opt-in for the bootloader.
+#define AP_BOOTLOADER_NETWORK_USE_AUTOIP 0
+#endif

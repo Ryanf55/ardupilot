@@ -65,6 +65,11 @@ void BL_Network::link_up_cb(void *p)
 #if AP_BOOTLOADER_NETWORK_USE_DHCP
     dhcp_start(driver->thisif);
 #endif
+#if AP_BOOTLOADER_NETWORK_USE_AUTOIP
+    if (driver->thisif->ip_addr.addr == 0) {
+        autoip_start(driver->thisif);
+    }
+#endif
     char ipstr[IP4_STR_LEN];
     can_printf("IP %s", SocketAPM::inet_addr_to_str(ntohl(driver->thisif->ip_addr.addr), ipstr, sizeof(ipstr)));
 }
