@@ -130,7 +130,6 @@ Next, follow the associated section for your chosen transport, and finally you c
 
 - Run the microROS agent
   ```console
-  cd ardupilot/libraries/AP_DDS
   ros2 run micro_ros_agent micro_ros_agent udp4 -p 2019
   ```
 - Run SITL (remember to kill any terminals running ardupilot SITL beforehand)

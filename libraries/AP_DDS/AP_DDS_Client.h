@@ -206,6 +206,12 @@ public:
     //! @brief Update the internally stored DDS messages with latest data
     void update();
 
+    // Helper to convert from AP AHRS to ROS quaterionion.
+    // AP AHRS quaternion is NED
+    // translation is in NED
+    // static void ahrs_orientation_to_enu_quat(const Quaternion& ap_quat, const geometry_msgs_msg_Quaterion& ros_quat, Vector3f& translation, );
+
+
     //! @brief GCS message prefix
     static constexpr const char* msg_prefix = "DDS:";
 

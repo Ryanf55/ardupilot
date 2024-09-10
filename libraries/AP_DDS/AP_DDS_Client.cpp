@@ -347,6 +347,7 @@ void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
     // for x to point forward
     Quaternion orientation;
     if (ahrs.get_quaternion(orientation)) {
+        auto const yaw_ahrs = orientation.get_euler_yaw() * 180. / 3.14;
         Quaternion aux(orientation[0], orientation[2], orientation[1], -orientation[3]); //NED to ENU transformation
         Quaternion transformation (sqrtF(2) * 0.5,0,0,sqrtF(2) * 0.5); // Z axis 90 degree rotation
         orientation = aux * transformation;
@@ -354,6 +355,12 @@ void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
         msg.pose.orientation.x = orientation[1];
         msg.pose.orientation.y = orientation[2];
         msg.pose.orientation.z = orientation[3];
+        auto const& q = msg.pose.orientation;
+
+        double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+        double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+        auto const ros_yaw = atan2(siny_cosp, cosy_cosp) * 180. / 3.14;
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%f, %f", yaw_ahrs, ros_yaw);
     } else {
         initialize(msg.pose.orientation);
     }
