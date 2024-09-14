@@ -18,9 +18,9 @@
 #include <AP_Math/AP_Math.h>
 #include "AP_HAL.h"
 #include "DSP.h"
-#ifndef HAL_NO_UARTDRIVER
-#include <GCS_MAVLink/GCS.h>
-#endif
+// #ifndef HAL_NO_UARTDRIVER
+// #include <GCS_MAVLink/GCS.h>
+// #endif
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <assert.h>
 #endif

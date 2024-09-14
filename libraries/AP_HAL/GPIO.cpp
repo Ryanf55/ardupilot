@@ -2,7 +2,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 
-#include <GCS_MAVLink/GCS.h>
+// #include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -24,10 +24,10 @@ bool AP_HAL::PWMSource::set_pin(int16_t new_pin, const char *subsystem)
 
     if (interrupt_attached) {
         if (!hal.gpio->detach_interrupt(_pin)) {
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING,
-                          "%s: Failed to detach interrupt from %d",
-                          subsystem,
-                          _pin);
+            // GCS_SEND_TEXT(MAV_SEVERITY_WARNING,
+            //               "%s: Failed to detach interrupt from %d",
+            //               subsystem,
+            //               _pin);
         }
         interrupt_attached = false;
     }
@@ -51,10 +51,10 @@ bool AP_HAL::PWMSource::set_pin(int16_t new_pin, const char *subsystem)
                                 uint32_t),
             AP_HAL::GPIO::INTERRUPT_BOTH)) {
         // failed to attach interrupt
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING,
-                      "%s: Failed to attach interrupt to %d",
-                      subsystem,
-                      _pin);
+        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING,
+        //               "%s: Failed to attach interrupt to %d",
+        //               subsystem,
+        //               _pin);
         return false;
     }
 
