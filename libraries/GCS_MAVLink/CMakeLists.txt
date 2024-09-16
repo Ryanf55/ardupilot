@@ -65,17 +65,27 @@ cmake_print_properties(TARGETS ${_lib_name} PROPERTIES
 
 # target_link_libraries(${_lib_name} PUBLIC common.xml-v2.0) # This doesn't work
 
-add_dependencies(${_lib_name} _mavlink_intermediate)
+# add_dependencies(${_lib_name} _mavlink_intermediate)
 
-add_custom_target(_mavlink_intermediate DEPENDS common.xml-v2.0 all-xml-v1.0) # Unclear how to get all.xml
+# add_custom_target(_mavlink_intermediate DEPENDS common.xml-v1.0 ) # Unclear how to get all.xml linked
+# all-xml-v1.0 might be the target.
 
-add_custom_command(
-  TARGET _mavlink_intermediate
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${_mavlink_bindir}/include
-    ${_mavlink_incdir}/include/mavlink # The weird include path in ArduPilot source code.
-)
+# add_custom_command(
+#     TARGET _v2xml
+#     POST_BUILD
+    
+# )
+
+# add_custom_command(
+#   TARGET _mavlink_intermediate
+#   POST_BUILD
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     ${_mavlink_bindir}/include
+#     ${_mavlink_incdir}/include/mavlink # The weird include path in ArduPilot source code.
+# )
+
+generateMavlink(1.0 all.xml)
+# cmake --build build --target all.xml-v1.0
 
 # have build/modules/mavlink/ include/v2.0/common/version.h
 # need build/modules/mavlink/ include/mavlink/v2.0/common/version.h
