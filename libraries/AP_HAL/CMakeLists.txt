@@ -60,12 +60,14 @@ PRIVATE
 )
 
 # option(CONFIG_HAL_BOARD "Which board type" "CONFIG_HAL_LINUX")
-target_compile_definitions(${_lib_name}
-    PUBLIC
-        # CONFIG_HAL_BOARD=3
-        CONFIG_HAL_BOARD=HAL_BOARD_SITL
-        CONFIG_HAL_BOARD_SUBTYPE=HAL_BOARD_SUBTYPE_LINUX_NONE
-        __AP_LINE__=__LINE__
-        HAL_LOGGING_ENABLED=0
-        ENABLE_HEAP=1
-)
+#target_compile_definitions(${_lib_name}
+#    PUBLIC
+#        # CONFIG_HAL_BOARD=3
+#        CONFIG_HAL_BOARD=HAL_BOARD_SITL
+#        CONFIG_HAL_BOARD_SUBTYPE=HAL_BOARD_SUBTYPE_LINUX_NONE
+#        __AP_LINE__=__LINE__
+#        HAL_LOGGING_ENABLED=0
+#        ENABLE_HEAP=1
+#)
+
+target_link_libraries(${_lib_name} PUBLIC ${PROJECT_NAME}::GCS_MAVLink)

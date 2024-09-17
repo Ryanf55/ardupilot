@@ -128,7 +128,10 @@
 
 /* DEFINITIONS FOR BOARDS */
 
-#define CONFIG_HAL_BOARD HAL_BOARD_SITL
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
+// #define CONFIG_HAL_BOARD HAL_BOARD_SITL
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     #include <AP_HAL/board/sitl.h>
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
@@ -144,12 +147,11 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_QURT
     #include <AP_HAL/board/qurt.h>
 #else
-#define XSTR(x) STR(x)
-#define STR(x) #x
+
 #error "Unknown CONFIG_HAL_BOARD type of " XSTR(CONFIG_HAL_BOARD)
 #endif
 
-#define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_LINUX_NONE
+// #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_LINUX_NONE
 #ifndef CONFIG_HAL_BOARD_SUBTYPE
 #error "No CONFIG_HAL_BOARD_SUBTYPE set"
 #endif

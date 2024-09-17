@@ -55,8 +55,8 @@ set(_mavlink_bindir ${PROJECT_BINARY_DIR}/modules/mavlink)
 set(_mavlink_incdir ${_mavlink_bindir}/ardu_include)
 target_include_directories(${_lib_name}
     PUBLIC
-        ${_mavlink_incdir}
-        # $<BUILD_INTERFACE:>
+        #${_mavlink_incdir}
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/sitl/libraries/GCS_MAVLink> # This is created if you build with waf first.
 )
 include(CMakePrintHelpers)
 
@@ -84,7 +84,7 @@ cmake_print_properties(TARGETS ${_lib_name} PROPERTIES
 #     ${_mavlink_incdir}/include/mavlink # The weird include path in ArduPilot source code.
 # )
 
-generateMavlink(1.0 all.xml)
+# generateMavlink(1.0 all.xml)
 # cmake --build build --target all.xml-v1.0
 
 # have build/modules/mavlink/ include/v2.0/common/version.h
