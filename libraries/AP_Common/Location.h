@@ -14,8 +14,6 @@ public:
     uint8_t origin_alt   : 1;           // this altitude is above ekf origin
     uint8_t loiter_xtrack : 1;          // 0 to crosstrack from center of waypoint, 1 to crosstrack from tangent exit location
 
-    // note that mission storage only stores 24 bits of altitude (~ +/- 83km)
-    int32_t alt; // in cm
     int32_t lat; // in 1E7 degrees
     int32_t lng; // in 1E7 degrees
 
@@ -168,6 +166,9 @@ public:
     static int32_t diff_longitude(int32_t lon1, int32_t lon2);
 
 private:
+
+    // Note that mission storage only stores 24 bits of altitude (~ +/- 83km).
+    int32_t alt; // in cm
 
     // scaling factor from 1e-7 degrees to meters at equator
     // == 1.0e-7 * DEG_TO_RAD * RADIUS_OF_EARTH
