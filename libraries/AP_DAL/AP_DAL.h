@@ -233,7 +233,8 @@ public:
         _RFRN = msg;
         _home.lat = msg.lat;
         _home.lng = msg.lng;
-        _home.alt = msg.alt;
+        // TODO which frame?
+        _home.set_alt_cm(msg.alt, Location::AltFrame::ABSOLUTE);
     }
     void handle_message(const log_RFRF &msg, NavEKF2 &ekf2, NavEKF3 &ekf3);
 

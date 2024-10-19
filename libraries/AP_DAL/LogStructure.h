@@ -57,7 +57,7 @@ struct log_RFRF {
 };
 
 // @LoggerMessage: RFRN
-// @Description: Replay FRame - aNother frame header
+// @Description: Replay FRame - another frame header
 struct log_RFRN {
     int32_t lat;
     int32_t lng;

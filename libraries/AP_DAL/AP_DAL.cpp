@@ -65,7 +65,7 @@ void AP_DAL::start_frame(AP_DAL::FrameType frametype)
     _home = ahrs.get_home();
     _RFRN.lat = _home.lat;
     _RFRN.lng = _home.lng;
-    _RFRN.alt = _home.alt;
+    _RFRN.set_alt_cm(_home.get_alt_cm, _home.get_alt_frame());
     _RFRN.EAS2TAS = ahrs.get_EAS2TAS();
     _RFRN.vehicle_class = (uint8_t)ahrs.get_vehicle_class();
     _RFRN.fly_forward = ahrs.get_fly_forward();
