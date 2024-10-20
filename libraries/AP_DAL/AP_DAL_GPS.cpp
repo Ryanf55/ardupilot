@@ -52,6 +52,6 @@ void AP_DAL_GPS::start_frame()
 
         tmp_location[i].lat = RGPJ.lat;
         tmp_location[i].lng = RGPJ.lng;
-        tmp_location[i].alt = RGPJ.alt;
+        tmp_location[i].set_alt_cm(RGPJ.alt, Location::AltFrame::ABSOLUTE);
     }
 }
