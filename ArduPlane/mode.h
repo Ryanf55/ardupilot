@@ -325,6 +325,7 @@ protected:
 
 private:
     float active_radius_m;
+    float active_radius_smoothed_m;
 };
 
 class ModeCircle: public Mode

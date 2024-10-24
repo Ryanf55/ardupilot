@@ -22,8 +22,9 @@ bool ModeGuided::_enter()
 
     // set guided radius to WP_LOITER_RAD on mode change.
     active_radius_m = 0;
+    active_radius_smoothed_m = active_radius_m;
 
-    plane.set_guided_WP(loc);
+    plane.set_guided_WP(loc);    
     return true;
 }
 
@@ -103,7 +104,14 @@ void ModeGuided::update()
 
 void ModeGuided::navigate()
 {
-    plane.update_loiter(active_radius_m);
+    if (active_radius_m <= 0) {
+        active_radius_smoothed_m = active_radius_m;
+    } else {
+        const float LPF_coef = 0.9;
+        active_radius_smoothed_m = (LPF_coef * active_radius_smoothed_m) + (1-LPF_coef) * active_radius_m;
+    }
+
+    plane.update_loiter(active_radius_smoothed_m);
 }
 
 bool ModeGuided::handle_guided_request(Location target_loc)
