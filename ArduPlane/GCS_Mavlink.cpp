@@ -1249,6 +1249,10 @@ void GCS_MAVLINK_Plane::handle_message(const mavlink_message_t &msg)
 #endif
         break;
 
+    case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
+        handle_trajectory_representation_waypoints(msg);
+        break;
+
     case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
         handle_set_attitude_target(msg);
         break;
@@ -1266,6 +1270,14 @@ void GCS_MAVLINK_Plane::handle_message(const mavlink_message_t &msg)
         break;
     } // end switch
 } // end handle mavlink
+
+void GCS_MAVLINK_Plane::handle_trajectory_representation_waypoints(const mavlink_message_t &msg)
+{
+    mavlink_trajectory_representation_waypoints_t packet;
+    mavlink_msg_trajectory_representation_waypoints_decode(&msg, &packet);
+
+    (void)packet;
+}
 
 void GCS_MAVLINK_Plane::handle_set_attitude_target(const mavlink_message_t &msg)
     {
