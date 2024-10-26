@@ -16,6 +16,11 @@ public:
         Sets the target global position for a loiter point.
     */
     bool set_global_position(const Location& loc) override WARN_IF_UNUSED;
+
+    /*
+        Sets the trajectory target.
+    */
+    bool set_trajectory(const Location trajectory[5]) override WARN_IF_UNUSED;
 };
 
 #endif // AP_EXTERNAL_CONTROL_ENABLED

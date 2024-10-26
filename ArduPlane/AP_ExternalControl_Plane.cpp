@@ -19,4 +19,16 @@ bool AP_ExternalControl_Plane::set_global_position(const Location& loc)
     return plane.set_target_location(loc);
 }
 
+bool AP_ExternalControl_Plane::set_trajectory(const Location trajectory[5])
+{
+  plane.mode_guided.trajectory.clear();
+  for (size_t i = 0; i < 5; i++) {
+    plane.mode_guided.trajectory.push_back(trajectory[i]);
+  }
+  plane.mode_guided.trajectory_start();
+
+  return true; 
+}
+
+
 #endif // AP_EXTERNAL_CONTROL_ENABLED
