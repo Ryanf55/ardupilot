@@ -134,22 +134,18 @@ void ModeGuided::navigate_trajectory()
 
     trajectory.pop_front();
 
-    if (trajectory.empty()) {
-        // we just reached the last point
+    if (!trajectory_start()) {
+        // we just reached the last point or something went wrong
         // act as if we just entered Guided and loiter around the last waypoint
-        trajectory_exit();
         plane.set_guided_WP(mission_cmd.content.location);
-        return;
     }
-
-    trajectory_start();
 }
 
-void ModeGuided::trajectory_start()
+bool ModeGuided::trajectory_start()
 {
     if (trajectory.empty()) {
         trajectory_exit(); // this changes the loiter point so maybe we dont' want this?
-        return;
+        return false;
     }
 
     AP_Mission::Mission_Command mission_cmd;
@@ -161,7 +157,7 @@ void ModeGuided::trajectory_start()
         if (!plane.mission.is_nav_cmd(mission_cmd)) {
             // if it's not a nav command what are we doing anyway!?!?!?
             trajectory_exit();
-            return;
+            return false;
         }
     }
 #endif
@@ -171,13 +167,15 @@ void ModeGuided::trajectory_start()
     if (!plane.mission.is_nav_cmd(mission_cmd)) {
         // if it's not a nav command what are we doing anyway!?!?!?
         trajectory_exit();
-        return;
+        return false;
     }
 
     if (!plane.start_command(mission_cmd)) {
         trajectory_exit();  // start failed, start loitering where we're at
-        return;
+        return false;
     }
+
+    return true;
 }
 
 void ModeGuided::trajectory_exit()

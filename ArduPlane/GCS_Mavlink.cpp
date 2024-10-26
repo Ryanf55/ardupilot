@@ -1315,7 +1315,7 @@ void GCS_MAVLINK_Plane::handle_trajectory_representation_waypoints(const mavlink
         plane.mode_guided.trajectory.push_back(loc);
     }
 
-    plane.mode_guided.trajectory_start();
+    UNUSED_RESULT(plane.mode_guided.trajectory_start());
 }
 
 void GCS_MAVLINK_Plane::handle_set_attitude_target(const mavlink_message_t &msg)

@@ -320,7 +320,7 @@ public:
     void update_target_altitude() override;
 
     void trajectory_exit();
-    void trajectory_start();
+    bool trajectory_start();
     AP_Mission::Mission_Command trajectory_to_mission_cmd(const uint8_t index = 0) const;
     std::list<Location> trajectory;
 
