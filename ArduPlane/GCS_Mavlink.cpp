@@ -1276,7 +1276,40 @@ void GCS_MAVLINK_Plane::handle_trajectory_representation_waypoints(const mavlink
     mavlink_trajectory_representation_waypoints_t packet;
     mavlink_msg_trajectory_representation_waypoints_decode(&msg, &packet);
 
-    (void)packet;
+    plane.mode_guided.trajectory.clear();
+
+    // values in packet are in MAV_FRAME_LOCAL_NED but that's annoying to use
+    // so lets convert to MAV_FRAME_GLOBAL /w ABSOLUTE altitude
+
+    for (uint8_t i=0; i<MIN(packet.valid_points,5); i++) {
+        // Check for NaN and Infinity 
+        if (isnan(packet.pos_x[i]) || isnan(packet.pos_y[i]) || isnan(packet.pos_z[i])) {
+            break;
+        }
+        if (isinf(packet.pos_x[i]) || isinf(packet.pos_y[i]) || isinf(packet.pos_z[i])) {
+            break;
+        }
+        // TODO: convert packet.pos_x from MAV_FRAME_LOCAL_NED to MAV_FRAME_GLOBAL
+
+        Location loc = Location(packet.pos_x[i]*1e-7,
+                                packet.pos_y[i]*1e-7,
+                                packet.pos_z[i]*1e-7,
+                                Location::AltFrame::ABSOLUTE);
+
+        // sanitize your inputs
+        if (!loc.check_latlng() || (loc.lat == 0 && loc.lng == 0)) {
+            // check for invalid (0,0) and out of range values
+            break;
+        }
+
+        // Load it into mode_guided
+        plane.mode_guided.trajectory.push_back(loc);
+    }
+
+    if (plane.mode_guided.is_doing_trajectory()) {
+        // start it
+        plane.do_nav_wp(plane.mode_guided.trajectory_to_mission_cmd());
+    }
 }
 
 void GCS_MAVLINK_Plane::handle_set_attitude_target(const mavlink_message_t &msg)

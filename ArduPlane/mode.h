@@ -10,6 +10,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Mission/AP_Mission.h>
 #include "pullup.h"
+#include <list>
 
 class AC_PosControl;
 class AC_AttitudeControl_Multi;
@@ -318,6 +319,11 @@ public:
 
     void update_target_altitude() override;
 
+    // void set_trajectory_locations(Location locations[5], const uint8_t len);
+    bool is_doing_trajectory() const { return !trajectory.empty(); }
+    AP_Mission::Mission_Command trajectory_to_mission_cmd() const;
+    std::list<Location> trajectory;
+
 protected:
 
     bool _enter() override;
@@ -325,6 +331,8 @@ protected:
 
 private:
     float active_radius_m;
+
+    void navigate_trajectory();
 };
 
 class ModeCircle: public Mode

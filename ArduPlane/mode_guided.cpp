@@ -23,6 +23,10 @@ bool ModeGuided::_enter()
     // set guided radius to WP_LOITER_RAD on mode change.
     active_radius_m = 0;
 
+    // clear trajectory tracking
+    // trajectory.reserve(5);
+    trajectory.clear();
+
     plane.set_guided_WP(loc);
     return true;
 }
@@ -103,7 +107,68 @@ void ModeGuided::update()
 
 void ModeGuided::navigate()
 {
-    plane.update_loiter(active_radius_m);
+    if (is_doing_trajectory()) {
+        navigate_trajectory();
+    } else {
+        // typical case
+        plane.update_loiter(active_radius_m);
+    }
+}
+
+void ModeGuided::navigate_trajectory()
+{
+    plane.auto_state.next_wp_crosstrack = (AP::boardConfig()->get_serial_number() == 1);
+
+    const AP_Mission::Mission_Command mission_cmd = trajectory_to_mission_cmd();
+    const bool wp_has_been_reached = plane.verify_nav_wp(mission_cmd);
+    
+    if (wp_has_been_reached) {
+        // we have reached it, remove the first index
+        trajectory.pop_front();
+        plane.gcs().send_mission_item_reached_message(0);
+
+        if (is_doing_trajectory()) {
+            // start the next one
+            plane.do_nav_wp(trajectory_to_mission_cmd());
+        } else {
+            // act as if we just entered Guided and loiter acount current point
+            _enter();
+        }
+    }
+}
+
+AP_Mission::Mission_Command ModeGuided::trajectory_to_mission_cmd() const
+{
+    AP_Mission::Mission_Command mission_cmd {};
+
+#if 0
+    // Support for FUll Mission items as stated in the mavlink spec for trajectory_representation_waypoints
+
+    // mavlink_mission_item_int_t mavlink_packet = {};
+
+
+    // mavlink_packet.seq = 0;
+    // mavlink_packet.command = MAV_CMD_NAV_WAYPOINT;
+    // mavlink_packet.param2 = 1;  // acceptance radius in meters
+    // mavlink_packet.param3 = 0;  // pass by distance in meters
+
+    // mavlink_packet.x = trajectory.loc[index].lat;
+    // mavlink_packet.y = trajectory.loc[index].lng;
+    // mavlink_packet.z = trajectory.loc[index].alt;
+
+    // // uint16_t acp = 1;       // acceptance radius in meters is held in low p1
+    // // uint16_t passby = 0;    
+    // // mission_cmd.p1 = (passby << 8) | (acp & 0x00FF);
+
+    // mavlink_int_to_mission_cmd(mavlink_packet, mission_cmd);
+
+#else
+    mission_cmd.id = MAV_CMD_NAV_WAYPOINT;
+    mission_cmd.p1 = 1;  // acceptance radius in meters is lowest, no pass by distance
+    mission_cmd.content.location = trajectory.front();
+#endif
+
+    return mission_cmd;
 }
 
 bool ModeGuided::handle_guided_request(Location target_loc)
