@@ -1302,7 +1302,7 @@ void GCS_MAVLINK_Plane::handle_trajectory_representation_waypoints(const mavlink
 
         Location loc = Location(packet.pos_x[i]*1e-7,
                                 packet.pos_y[i]*1e-7,
-                                packet.pos_z[i]*1e-7,
+                                packet.pos_z[i]*100,
                                 Location::AltFrame::ABSOLUTE);
 
         // sanitize your inputs
