@@ -123,16 +123,21 @@ void ModeGuided::navigate_trajectory()
     const bool wp_has_been_reached = plane.verify_nav_wp(mission_cmd);
     
     if (wp_has_been_reached) {
-        // we have reached it, remove the first index
-        trajectory.pop_front();
+        // we have reached it.
         plane.gcs().send_mission_item_reached_message(0);
 
+        // TODO: notify AP_DDS of waypoint reached
+
+        // remove it from the list
+        const Location prev_loc = trajectory.front();
+        trajectory.pop_front();
+
         if (is_doing_trajectory()) {
-            // start the next one
+            // there are more point(s), start the next one
             plane.do_nav_wp(trajectory_to_mission_cmd());
         } else {
-            // act as if we just entered Guided and loiter acount current point
-            _enter();
+            // act as if we just entered Guided and loiter around the last waypoint
+            plane.set_guided_WP(prev_loc);
         }
     }
 }
