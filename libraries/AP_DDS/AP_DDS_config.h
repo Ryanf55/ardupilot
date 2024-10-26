@@ -118,6 +118,10 @@
 #define AP_DDS_DYNAMIC_TF_SUB 1
 #endif
 
+#ifndef AP_DDS_TRAJ_SUB_ENABLED
+#define AP_DDS_TRAJ_SUB_ENABLED 1
+#endif
+
 // Whether to include Twist support
 #define AP_DDS_NEEDS_TWIST AP_DDS_VEL_CTRL_ENABLED || AP_DDS_LOCAL_VEL_PUB_ENABLED
 

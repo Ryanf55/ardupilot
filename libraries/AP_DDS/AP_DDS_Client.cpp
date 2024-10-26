@@ -73,6 +73,9 @@ geometry_msgs_msg_TwistStamped AP_DDS_Client::rx_velocity_control_topic {};
 #if AP_DDS_GLOBAL_POS_CTRL_ENABLED
 ardupilot_msgs_msg_GlobalPosition AP_DDS_Client::rx_global_position_control_topic {};
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
+#if AP_DDS_TRAJ_SUB_ENABLED
+ardupilot_msgs_msg_Trajectory AP_DDS_Client::rx_traj_topic {};
+#endif // AP_DDS_TRAJ_SUB_ENABLED
 
 const AP_Param::GroupInfo AP_DDS_Client::var_info[] {
 
@@ -714,6 +717,16 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
         break;
     }
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
+    case topics[to_underlying(TopicIndex::TRAJ_SUB)].dr_id.id: {
+        const bool success = ardupilot_msgs_msg_Trajectory_deserialize_topic(ub, &rx_traj_topic);
+        if (success == false) {
+            break;
+        }
+        // TODO send rx_traj_topic to guided trajectory
+        break;
+    }
+#if AP_DDS_TRAJ_SUB_ENABLED
+#endif 
     }
 
 }

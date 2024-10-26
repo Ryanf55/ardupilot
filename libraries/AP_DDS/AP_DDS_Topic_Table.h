@@ -60,6 +60,9 @@ enum class TopicIndex: uint8_t {
 #if AP_DDS_GLOBAL_POS_CTRL_ENABLED
     GLOBAL_POSITION_SUB,
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
+#if AP_DDS_TRAJ_SUB_ENABLED
+    TRAJ_SUB,
+#endif // AP_DDS_TRAJ_SUB_ENABLED
 };
 
 static inline constexpr uint8_t to_underlying(const TopicIndex index)
@@ -340,4 +343,22 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
         },
     },
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
+#if AP_DDS_TRAJ_SUB_ENABLED
+    {
+        .topic_id = to_underlying(TopicIndex::TRAJ_SUB),
+        .pub_id = to_underlying(TopicIndex::TRAJ_SUB),
+        .sub_id = to_underlying(TopicIndex::TRAJ_SUB),
+        .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::TRAJ_SUB), .type=UXR_DATAWRITER_ID},
+        .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::TRAJ_SUB), .type=UXR_DATAREADER_ID},
+        .topic_rw = Topic_rw::DataReader,
+        .topic_name = "rt/ap/cmd_traj",
+        .type_name = "ardupilot_msgs::msg::dds_::Trajectory_",
+        .qos = {
+            .durability = UXR_DURABILITY_VOLATILE,
+            .reliability = UXR_RELIABILITY_RELIABLE,
+            .history = UXR_HISTORY_KEEP_LAST,
+            .depth = 1,
+        },
+    },
+#endif // AP_DDS_TRAJ_SUB_ENABLED
 };

@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from ardupilot_msgs/msg/Trajectory.msg
+// generated code does not contain a copyright notice
+
+
+module ardupilot_msgs {
+  module msg {
+    typedef double double__5[5];
+    struct Trajectory {
+      double__5 lats;
+
+      double__5 lons;
+
+      double__5 alts;
+    };
+  };
+};
