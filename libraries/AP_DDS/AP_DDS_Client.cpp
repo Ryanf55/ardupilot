@@ -722,7 +722,9 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
         if (success == false) {
             break;
         }
-        // TODO send rx_traj_topic to guided trajectory
+        if (!AP_DDS_External_Control::handle_trajectory_control(rx_traj_topic)) {
+            // TODO #23430 handle trajectory control failure through rosout, throttled.
+        }
         break;
     }
 #if AP_DDS_TRAJ_SUB_ENABLED

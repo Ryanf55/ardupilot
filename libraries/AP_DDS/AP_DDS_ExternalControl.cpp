@@ -85,6 +85,22 @@ bool AP_DDS_External_Control::handle_velocity_control(geometry_msgs_msg_TwistSta
     return false;
 }
 
+bool AP_DDS_External_Control::handle_trajectory_control(ardupilot_msgs_msg_Trajectory& trajectory) {
+    auto *external_control = AP::externalcontrol();
+    if (external_control == nullptr) {
+        return false;
+    }
+
+    Location locs[5];
+    for (size_t i = 0; i < 5; i++) {
+        locs[i].alt = trajectory.alts[i] * 100;
+        locs[i].lng = trajectory.alts[i] * 1e7;
+        locs[i].lat = trajectory.alts[i] * 1e7;
+    }
+
+    return external_control->set_trajectory(locs);
+}
+
 bool AP_DDS_External_Control::convert_alt_frame(const uint8_t frame_in,  Location::AltFrame& frame_out)
 {
 
