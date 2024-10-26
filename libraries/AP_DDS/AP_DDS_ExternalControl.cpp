@@ -92,13 +92,17 @@ bool AP_DDS_External_Control::handle_trajectory_control(ardupilot_msgs_msg_Traje
     }
 
     Location locs[5];
-    for (size_t i = 0; i < 5; i++) {
+    // lats, lons, and alts must be the same size.
+    if (trajectory.lats_size != trajectory.lons_size || trajectory.lons_size != trajectory.alts_size) {
+        return false;
+    }
+    for (size_t i = 0; i < trajectory.lats_size; i++) {
         locs[i].alt = trajectory.alts[i] * 100;
-        locs[i].lng = trajectory.alts[i] * 1e7;
-        locs[i].lat = trajectory.alts[i] * 1e7;
+        locs[i].lng = trajectory.lons[i] * 1e7;
+        locs[i].lat = trajectory.lats[i] * 1e7;
     }
 
-    return external_control->set_trajectory(locs, 5);
+    return external_control->set_trajectory(locs, trajectory.lats_size);
 }
 
 bool AP_DDS_External_Control::convert_alt_frame(const uint8_t frame_in,  Location::AltFrame& frame_out)

@@ -5,13 +5,12 @@
 
 module ardupilot_msgs {
   module msg {
-    typedef double double__5[5];
     struct Trajectory {
-      double__5 lats;
+      sequence<double, 5> lats;
 
-      double__5 lons;
+      sequence<double, 5> lons;
 
-      double__5 alts;
+      sequence<double, 5> alts;
     };
   };
 };
