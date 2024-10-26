@@ -32,6 +32,13 @@ public:
         return false;
     }
 
+    /*
+        Sets the trajectory target.
+    */
+    virtual bool set_trajectory(const Location trajectory[5]) WARN_IF_UNUSED {
+        return false;
+    }
+
     static AP_ExternalControl *get_singleton(void) WARN_IF_UNUSED {
         return singleton;
     }
