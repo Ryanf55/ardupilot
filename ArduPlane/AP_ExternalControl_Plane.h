@@ -20,7 +20,7 @@ public:
     /*
         Sets the trajectory target.
     */
-    bool set_trajectory(const Location trajectory[5]) override WARN_IF_UNUSED;
+    bool set_trajectory(const Location trajectory[5], const uint8_t count) override WARN_IF_UNUSED;
 };
 
 #endif // AP_EXTERNAL_CONTROL_ENABLED

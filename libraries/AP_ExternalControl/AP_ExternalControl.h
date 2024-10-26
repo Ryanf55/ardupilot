@@ -35,7 +35,7 @@ public:
     /*
         Sets the trajectory target.
     */
-    virtual bool set_trajectory(const Location trajectory[5]) WARN_IF_UNUSED {
+    virtual bool set_trajectory(const Location trajectory[5], const uint8_t count) WARN_IF_UNUSED {
         return false;
     }
 

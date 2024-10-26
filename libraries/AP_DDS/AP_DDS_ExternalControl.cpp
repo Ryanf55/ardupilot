@@ -98,7 +98,7 @@ bool AP_DDS_External_Control::handle_trajectory_control(ardupilot_msgs_msg_Traje
         locs[i].lat = trajectory.alts[i] * 1e7;
     }
 
-    return external_control->set_trajectory(locs);
+    return external_control->set_trajectory(locs, 5);
 }
 
 bool AP_DDS_External_Control::convert_alt_frame(const uint8_t frame_in,  Location::AltFrame& frame_out)
