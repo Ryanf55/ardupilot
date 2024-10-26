@@ -1273,6 +1273,15 @@ void GCS_MAVLINK_Plane::handle_message(const mavlink_message_t &msg)
 
 void GCS_MAVLINK_Plane::handle_trajectory_representation_waypoints(const mavlink_message_t &msg)
 {
+    if (plane.control_mode != &plane.mode_guided) {
+#if 0
+        // if not in guided mode, reject
+        return;
+    } else {
+#endif
+        plane.set_mode(plane.mode_guided, ModeReason::GCS_COMMAND);
+    }
+
     mavlink_trajectory_representation_waypoints_t packet;
     mavlink_msg_trajectory_representation_waypoints_decode(&msg, &packet);
 
@@ -1306,10 +1315,7 @@ void GCS_MAVLINK_Plane::handle_trajectory_representation_waypoints(const mavlink
         plane.mode_guided.trajectory.push_back(loc);
     }
 
-    if (plane.mode_guided.is_doing_trajectory()) {
-        // start it
-        plane.do_nav_wp(plane.mode_guided.trajectory_to_mission_cmd());
-    }
+    plane.mode_guided.trajectory_start();
 }
 
 void GCS_MAVLINK_Plane::handle_set_attitude_target(const mavlink_message_t &msg)

@@ -319,9 +319,9 @@ public:
 
     void update_target_altitude() override;
 
-    // void set_trajectory_locations(Location locations[5], const uint8_t len);
-    bool is_doing_trajectory() const { return !trajectory.empty(); }
-    AP_Mission::Mission_Command trajectory_to_mission_cmd() const;
+    void trajectory_exit();
+    void trajectory_start();
+    AP_Mission::Mission_Command trajectory_to_mission_cmd(const uint8_t index = 0) const;
     std::list<Location> trajectory;
 
 protected:

@@ -21,11 +21,10 @@ bool ModeGuided::_enter()
 #endif
 
     // set guided radius to WP_LOITER_RAD on mode change.
-    active_radius_m = 0;
+    // active_radius_m = 0;
 
-    // clear trajectory tracking
-    // trajectory.reserve(5);
-    trajectory.clear();
+    // reset the trajectory state
+    trajectory_exit();
 
     plane.set_guided_WP(loc);
     return true;
@@ -107,7 +106,7 @@ void ModeGuided::update()
 
 void ModeGuided::navigate()
 {
-    if (is_doing_trajectory()) {
+    if (!trajectory.empty()) {
         navigate_trajectory();
     } else {
         // typical case
@@ -120,31 +119,82 @@ void ModeGuided::navigate_trajectory()
     plane.auto_state.next_wp_crosstrack = (AP::boardConfig()->get_serial_number() == 1);
 
     const AP_Mission::Mission_Command mission_cmd = trajectory_to_mission_cmd();
-    const bool wp_has_been_reached = plane.verify_nav_wp(mission_cmd);
-    
-    if (wp_has_been_reached) {
-        // we have reached it.
-        plane.gcs().send_mission_item_reached_message(0);
 
-        // TODO: notify AP_DDS of waypoint reached
+    // perform the AUTO command for navgation
+    const bool wp_has_been_reached = plane.verify_command(mission_cmd);
+    if (!wp_has_been_reached) {
+        // still going...
+        return;
+    }
 
-        // remove it from the list
-        const Location prev_loc = trajectory.front();
-        trajectory.pop_front();
+    // we have reached it
+    plane.gcs().send_mission_item_reached_message(0);
 
-        if (is_doing_trajectory()) {
-            // there are more point(s), start the next one
-            plane.do_nav_wp(trajectory_to_mission_cmd());
-        } else {
-            // act as if we just entered Guided and loiter around the last waypoint
-            plane.set_guided_WP(prev_loc);
+    // TODO: notify AP_DDS of waypoint reached
+
+    trajectory.pop_front();
+
+    if (trajectory.empty()) {
+        // we just reached the last point
+        // act as if we just entered Guided and loiter around the last waypoint
+        trajectory_exit();
+        plane.set_guided_WP(mission_cmd.content.location);
+        return;
+    }
+
+    trajectory_start();
+}
+
+void ModeGuided::trajectory_start()
+{
+    if (trajectory.empty()) {
+        trajectory_exit(); // this changes the loiter point so maybe we dont' want this?
+        return;
+    }
+
+    AP_Mission::Mission_Command mission_cmd;
+
+#if 0
+    // verify that all mission items are NAV commands
+    for (uint8_t i = 0; i < trajectory.size(); i++) {
+        mission_cmd = trajectory_to_mission_cmd(i);
+        if (!plane.mission.is_nav_cmd(mission_cmd)) {
+            // if it's not a nav command what are we doing anyway!?!?!?
+            trajectory_exit();
+            return;
         }
+    }
+#endif
+
+    mission_cmd = trajectory_to_mission_cmd();
+
+    if (!plane.mission.is_nav_cmd(mission_cmd)) {
+        // if it's not a nav command what are we doing anyway!?!?!?
+        trajectory_exit();
+        return;
+    }
+
+    if (!plane.start_command(mission_cmd)) {
+        trajectory_exit();  // start failed, start loitering where we're at
+        return;
     }
 }
 
-AP_Mission::Mission_Command ModeGuided::trajectory_to_mission_cmd() const
+void ModeGuided::trajectory_exit()
+{
+    // there are either no more cmds or starting the next cmd failed
+    trajectory.clear();
+
+    plane.set_guided_WP(plane.current_loc);
+}
+
+AP_Mission::Mission_Command ModeGuided::trajectory_to_mission_cmd(const uint8_t index) const
 {
     AP_Mission::Mission_Command mission_cmd {};
+
+    if (index >= trajectory.size()) {
+        return mission_cmd;
+    }
 
 #if 0
     // Support for FUll Mission items as stated in the mavlink spec for trajectory_representation_waypoints
