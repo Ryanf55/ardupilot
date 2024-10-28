@@ -1428,6 +1428,13 @@ void GCS_MAVLINK_Plane::handle_set_position_target_global_int(const mavlink_mess
             cmd.content.location.alt = pos_target.alt * 100;
             cmd.content.location.relative_alt = false;
             cmd.content.location.terrain_alt = false;
+
+            Location::AltFrame frame;
+            if (mavlink_coordinate_frame_to_location_alt_frame((MAV_FRAME)pos_target.coordinate_frame, frame) && 
+                frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+                // unknown coordinate frame
+                break;
+            }
             switch (pos_target.coordinate_frame) 
             {
                 case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
