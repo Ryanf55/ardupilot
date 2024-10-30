@@ -2,6 +2,10 @@
 
 
 import pathlib
+from dataclasses import dataclass
+from collections import defaultdict
+
+CONTAINER_PREALLOC_SIZE = 8
 
 
 def configure(cfg):
@@ -75,25 +79,58 @@ def build(bld):
     idl_files = bld.srcnode.ant_glob('libraries/AP_DDS/Idl/**/*.idl')
     idl_include_path = bld.srcnode.make_node(str(pathlib.PurePath(gen_path, "Idl"))).abspath()
 
-    for idl in idl_files:
-        container_prealloc_size = 8
+    # idl_src = " ".join([f.abspath() for f in idl_files])
 
-        idl_path = pathlib.PurePath(idl.abspath())
-        b = idl_path.name
+    @dataclass
+    class IdlGenerator:
+        # The name of the IDL (without the .idl)
+        name: str
+        # The name of the .h
+        h_name: str
+        # The name of the .c
+        c_name: str
+        # The name of the .idl
+        idl_abspath: str
+        # The absolute path to the IDL
+        idl_abspath: pathlib.PurePath
 
-        gen_h = idl_path.with_suffix('.h').name
-        gen_c = idl_path.with_suffix('.c').name
-
+    folder_to_files = defaultdict(list)
+    # gen_files = []
+    for f in idl_files:
+        idl_path = pathlib.PurePath(f.abspath())
+        # gen_files.append(idl_path.with_suffix('.h').name)
+        # gen_files.append(idl_path.with_suffix('.c').name)
         idl_folder = idl_path.parts[-3:-1]
-        dst_dir = pathlib.PurePath(gen_path, "generated", *idl_folder)
-        gen = [bld.bldnode.find_or_declare(str(dst_dir / name)) for name in [gen_h, gen_c]]
-        gen_cmd = f"{bld.env.MICROXRCEDDSGEN[0]} -cs -replace -default-container-prealloc-size {container_prealloc_size} -d {dst_dir} -I {idl_include_path} {idl}"
+        # dst_dir = pathlib.PurePath(gen_path, "generated", *idl_folder)
+        folder_to_files[pathlib.PurePath(*idl_folder)].append(
+            IdlGenerator(
+                name=idl_path.name,
+                h_name=idl_path.with_suffix('.h').name,
+                c_name=idl_path.with_suffix('.c').name,
+                idl_abspath=idl_path,
+            )
+        )
+        pass
+
+    for folder, idls in folder_to_files.items():
+        headers = [gen.h_name for gen in idls]
+        impls = [gen.c_name for gen in idls]
+        gen_sources_list = [*headers, *impls]
+        # Waf need a space-separated list of .h and .c files.
+        gen_sources_str = ' '.join(gen_sources_list)
+        dst_dir = pathlib.PurePath(gen_path, "generated", folder)
+        # MicroXRCEDDSGen needs the IDL files as a space seperated list.
+        idl_abspaths_str = ' '.join([str(idl.idl_abspath) for idl in idls])
+
+        gen = [bld.bldnode.find_or_declare(str(dst_dir / gen.name)) for gen in idls]
+        gen_cmd = f"{bld.env.MICROXRCEDDSGEN[0]} -cs -replace -default-container-prealloc-size {CONTAINER_PREALLOC_SIZE} -d {dst_dir} -I {idl_include_path} {idl_abspaths_str}"
+
+        # Build the generated .h and .c files
         bld(
-            # build IDL file
-            source=idl,
+            source=gen_sources_str,
             target=gen,
             rule=gen_cmd,
             group='dynamic_sources',
         )
 
-        bld.env.AP_LIB_EXTRA_SOURCES['AP_DDS'] += [str(gen[1])]
+        bld.env.AP_LIB_EXTRA_SOURCES['AP_DDS'] += [str(impl) for impl in impls]
