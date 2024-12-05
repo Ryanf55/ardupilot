@@ -37,6 +37,7 @@ public:
         POS_SIGMA = 12,
         INS_FULL_NAV = 49,
         INS_RMS = 50,
+        LLH_MSL = 70,
     };
 
     // GSOF1
@@ -163,6 +164,15 @@ public:
     };
     ins_rms_t ins_rms;
 
+    // GSOF70
+    struct PACKED llh_msl_t {
+        double latitude;
+        double longitude;
+        double altitude_msl;
+        char model[12];
+    };
+    llh_msl_t llh_msl;
+
 private:
 
     // Parses current data.
@@ -178,6 +188,8 @@ private:
     void parse_pos_sigma(uint32_t a);
     void parse_ins_full_nav(uint32_t a);
     void parse_ins_rms(uint32_t a);
+    void parse_llh_msl(uint32_t a);
+
 
     struct Msg_Parser {
 
