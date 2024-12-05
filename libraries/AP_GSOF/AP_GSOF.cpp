@@ -133,6 +133,8 @@ AP_GSOF::process_message(const MsgTypes& expected_msgs)
             case INS_RMS:
                 parse_ins_rms(a);
                 break;
+            case LLH_MSL:
+                parse_llh_msl(a);
             default:
                 break;
             }
@@ -149,7 +151,7 @@ AP_GSOF::process_message(const MsgTypes& expected_msgs)
 
 void AP_GSOF::parse_pos_time(uint32_t a)
 {
-    // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_TIME.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____25
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-time.html
     pos_time.time_week_ms = be32toh_ptr(msg.data + a);
     pos_time.time_week = be32toh_ptr(msg.data + a + 4);
     pos_time.num_sats = msg.data[a + 6];
@@ -168,8 +170,7 @@ void AP_GSOF::parse_pos(uint32_t a)
 
 void AP_GSOF::parse_vel(uint32_t a)
 {
-    // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_Velocity.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____32
-    vel.velocity_flags = msg.data[a];
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-velocity.html
 
     constexpr uint8_t BIT_VELOCITY_VALID = 0;
     if (BIT_IS_SET(vel.velocity_flags, BIT_VELOCITY_VALID)) {
@@ -185,14 +186,14 @@ void AP_GSOF::parse_vel(uint32_t a)
 
 void AP_GSOF::parse_dop(uint32_t a)
 {
-    // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_PDOP.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____12
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-pdop.html
     // Skip pdop.
     dop.hdop = be32tofloat_ptr(msg.data, a + 4);
 }
 
 void AP_GSOF::parse_pos_sigma(uint32_t a)
 {
-    // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_SIGMA.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____24
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-sigma.html
     // Skip pos_rms
     pos_sigma.sigma_east = be32tofloat_ptr(msg.data, a + 4);
     pos_sigma.sigma_north = be32tofloat_ptr(msg.data, a + 8);
@@ -216,5 +217,15 @@ void AP_GSOF::parse_ins_rms(uint32_t a)
     // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-ins-rms.html
 
 }
+
+void AP_GSOF::parse_llh_msl(uint32_t a)
+{
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-llmsl.html
+    llh_msl.latitude = be64todouble_ptr(msg.data, a);
+    llh_msl.longitude = be64todouble_ptr(msg.data, a + 8);
+    llh_msl.altitude_msl = be64todouble_ptr(msg.data, a + 16);
+    // Assume the model is EGM96.
+}
+
 #endif // AP_GSOF_ENABLED
 
