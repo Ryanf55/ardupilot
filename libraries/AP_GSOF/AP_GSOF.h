@@ -96,7 +96,11 @@ private:
     // Parses current data.
     // Returns true if, and only if, the expected packets were parsed.
     // Unexpected/unparsed data will make this return false.
+<<<<<<< HEAD
     bool process_message(MsgTypes& parsed_msgs) WARN_IF_UNUSED;
+=======
+    bool process_message(const MsgTypes& expected_msgs) WARN_IF_UNUSED;
+>>>>>>> 6fcb9a1cdc (AP_GSOF: refactor GSOF to expect packets by ID)
 
     void parse_pos_time(uint32_t a);
     void parse_pos(uint32_t a);
