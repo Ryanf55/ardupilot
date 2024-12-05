@@ -52,7 +52,7 @@ public:
 #endif
         // 3 reserved for AdNav
         // 4 reserved for CINS
-#if AP_EXTERNAL_AHRS_INERTIAL_LABS_ENABLED
+#if AP_EXTERNAL_AHRS_INERTIALLABS_ENABLED
         InertialLabs = 5,
 #endif
 #if AP_EXTERNAL_AHRS_GSOF_ENABLED
@@ -80,6 +80,7 @@ public:
     const char* get_name() const;
 
     enum class AvailableSensor {
+        NONE = 0, // No sensors available
         GPS = (1U<<0),
         IMU = (1U<<1),
         BARO = (1U<<2),

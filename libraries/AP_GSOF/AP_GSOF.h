@@ -1,4 +1,6 @@
 // Trimble GSOF protocol parser library.
+// https://receiverhelp.trimble.com/oem-gnss/gsof-messages-overview.html
+// GSOF packets are assumed to be inside DCOL packets.
 
 #pragma once
 
@@ -11,31 +13,23 @@ class AP_GSOF
 {
 public:
 
-<<<<<<< HEAD
+    static constexpr uint8_t MAX_PACKET_SIZE {255};
     static constexpr int NO_GSOF_DATA = 0;
     static constexpr int UNEXPECTED_NUM_GSOF_PACKETS = -1;
     static constexpr int PARSED_AS_EXPECTED = 1;
 
     // A type alias for which packets have been parsed.
     using MsgTypes = Bitmask<70>;
-=======
-    static constexpr uint8_t MAX_PACKET_SIZE {255};
-    static constexpr int NO_GSOF_DATA {0};
-    static constexpr int UNEXPECTED_NUM_GSOF_PACKETS {-1};
->>>>>>> 9f4c983fda (AP_GSOF: Add message buffer parser)
 
     // Parse a single byte into the buffer.
     // When enough data has arrived, it populates a bitmask of which GSOF packets were parsed in the GENOUT packet.
     // If an unexpected number of GSOF packets were parsed, returns UNEXPECTED_NUM_GSOF_PACKETS.
     // If it returns NO_GSOF_DATA, the parser just needs more data.
-<<<<<<< HEAD
     // Upon parsing the expected message contents, it returns PARSED_AS_EXPECTED.
     int parse(const uint8_t temp, MsgTypes& message_types) WARN_IF_UNUSED;
-=======
-    int parse(const uint8_t temp, const uint8_t n_expected) WARN_IF_UNUSED;
+
     // Parse a buffer of data
-    int parse_buf(const uint8_t* buf, const uint8_t n_bytes, const uint8_t n_expected) WARN_IF_UNUSED;
->>>>>>> 9f4c983fda (AP_GSOF: Add message buffer parser)
+    int parse_buf(const uint8_t* buf, const uint8_t n_bytes, MsgTypes& expected_msgs) WARN_IF_UNUSED;
 
     // GSOF packet numbers.
     enum msg_idx_t {
@@ -43,7 +37,9 @@ public:
         POS = 2,
         VEL = 8,
         DOP = 9,
-        POS_SIGMA = 12
+        POS_SIGMA = 12,
+        INS_FULL_NAV = 49,
+        INS_RMS = 50,
     };
 
     // GSOF1
@@ -106,6 +102,70 @@ public:
     };
     pos_sigma_t pos_sigma;
 
+    // GSOF49
+    struct PACKED ins_full_nav_t {
+        // GPS week number since Jan 1980
+        uint16_t gps_week;
+        // GPS Time in msec of current week
+        uint32_t gps_time_ms;
+        uint8_t ins_quality;
+        uint8_t gnss_quality;
+        double latitude;
+        double longitude;
+        // Altitude is in ITRF 2020.
+        double altitude;
+        float vel_n;
+        float vel_e;
+        float vel_d;
+        float speed;
+        double roll_deg;
+        double pitch_deg;
+        double heading_deg;
+        double track_angle_deg;
+        // [deg/s, longitudinal axis]
+        float ang_rate_x;
+        // [deg/s, transverse axis]
+        float ang_rate_y;
+        // [m/s, down axis]
+        float ang_rate_z;
+        // [m/s^2, longitudinal axis]
+        float acc_x;
+        // [m/s^2, transverse axis]
+        float acc_y;
+        // [m/s^2, down axis]
+        float acc_z;
+    };
+    ins_full_nav_t ins_full_nav;
+
+    // GSOF50
+    struct PACKED ins_rms_t {
+        // GPS week number since Jan 1980
+        uint16_t gps_week;
+        // GPS Time in msec of current week
+        uint32_t gps_time_ms;
+        uint8_t ins_quality;
+        uint8_t gnss_quality;
+        // North Position RMS [meters]
+        float pos_rms_n;
+        // East Position RMS [meters]
+        float pos_rms_e;
+        // Down Position RMS [meters]
+        float pos_rms_d;
+        // North Velocity RMS [meters/sec]
+        float vel_rms_n;
+        // East Velocity RMS [meters/sec]
+        float vel_rms_e;
+        // Down Velocity RMS [meters/sec]
+        float vel_rms_d;
+        // Roll RMS [deg]
+        float roll_rms_deg;
+        // Pitch RMS [deg]
+        float pitch_rms_deg;
+        // Yaw RMS [deg]
+        float yaw_rms_deg;
+    };
+    ins_rms_t ins_rms;
+
 private:
 
     // Parses current data.
@@ -118,6 +178,8 @@ private:
     void parse_vel(uint32_t a);
     void parse_dop(uint32_t a);
     void parse_pos_sigma(uint32_t a);
+    void parse_ins_full_nav(uint32_t a);
+    void parse_ins_rms(uint32_t a);
 
     struct Msg_Parser {
 

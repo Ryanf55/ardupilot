@@ -49,7 +49,7 @@ public:
     bool initialised(void) const override;
     bool pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const override;
     void get_filter_status(nav_filter_status &status) const override;
-    void send_status_report(class GCS_MAVLINK &link) const override;
+    // void send_status_report(class GCS_MAVLINK &link) const override;
 
     // check for new data
     void update() override
@@ -89,8 +89,9 @@ private:
     // Used to monitor initialization state.
     bool last_init_state = false;
 
-    uint32_t last_gsof49_time;
-    uint32_t last_gsof50_time;
+    // The last time we received a message from the GNSS
+    // containing the expected packets.
+    uint32_t last_rx_time;
 
 };
 

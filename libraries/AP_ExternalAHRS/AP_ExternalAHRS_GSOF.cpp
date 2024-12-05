@@ -48,7 +48,7 @@ AP_ExternalAHRS_GSOF::AP_ExternalAHRS_GSOF(AP_ExternalAHRS *_frontend,
     }
 
     // Don't offer any sensors because the only data exposed is the tightly coupled solution.
-    set_default_sensors(0);
+    set_default_sensors(uint16_t(AP_ExternalAHRS::AvailableSensor::NONE));
 
     hal.scheduler->delay(5000);
     if (!initialised()) {
@@ -75,15 +75,20 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
     sock->bind("0.0.0.0", 44445);
     uint8_t data[AP_GSOF::MAX_PACKET_SIZE];
 
+    AP_GSOF::MsgTypes expected;
+    expected.set(AP_GSOF::INS_FULL_NAV);
+    expected.set(AP_GSOF::INS_RMS);
     
     while (true) {
         if (sock->pollin(1)) {
             auto const recv_res = sock->recv(data, AP_GSOF::MAX_PACKET_SIZE, 1000);
             if (recv_res != -1) {
-                [[maybe_unused]] const auto parse_res = parse_buf(data, recv_res, 2);
+                [[maybe_unused]] const auto parse_res = parse_buf(data, recv_res, expected);
+                if (parse_res == PARSED_AS_EXPECTED) {
+                    last_rx_time = AP_HAL::millis();
+                }
             }
         }
-        
   
         hal.scheduler->delay_microseconds(100);
         check_initialise_state();
@@ -120,7 +125,13 @@ void AP_ExternalAHRS_GSOF::build_packet()
 
 void AP_ExternalAHRS_GSOF::post_filter() const
 {
+    WITH_SEMAPHORE(state.sem);
+    state.velocity = Vector3f{ins_full_nav.vel_n, ins_full_nav.vel_e, ins_full_nav.vel_d};
+    state.have_velocity = true;
 
+    // TODO check the altitude datum conversion.
+    state.location = Location(ins_full_nav.latitude * 1E7, ins_full_nav.longitude * 1E7, ins_full_nav.altitude * 1E2, Location::AltFrame::ABSOLUTE);
+    state.have_location = true;
 }
 
 // Get model/type name
@@ -136,8 +147,7 @@ bool AP_ExternalAHRS_GSOF::healthy(void) const
 
 bool AP_ExternalAHRS_GSOF::initialised(void) const
 {
-    const bool got_packets = last_gsof49_time != 0 && last_gsof50_time != 0;
-    return got_packets;
+    return last_rx_time != 0;
 }
 
 bool AP_ExternalAHRS_GSOF::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
@@ -165,11 +175,7 @@ bool AP_ExternalAHRS_GSOF::pre_arm_check(char *failure_msg, uint8_t failure_msg_
 void AP_ExternalAHRS_GSOF::get_filter_status(nav_filter_status &status) const
 {
     memset(&status, 0, sizeof(status));
-}
-
-void AP_ExternalAHRS_GSOF::send_status_report(GCS_MAVLINK &link) const
-{
-    // TODO
+    status.flags.initalized = initialised();
 }
 
 bool AP_ExternalAHRS_GSOF::times_healthy() const
