@@ -9,9 +9,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_GSOF/AP_GSOF.h>
 
-
 #define gsof_DEBUGGING 0
-
 #if gsof_DEBUGGING
 extern const AP_HAL::HAL& hal;
 # define Debug(fmt, args ...)                  \
@@ -83,12 +81,12 @@ AP_GSOF::parse(const uint8_t temp, MsgTypes& parsed_msgs)
     return NO_GSOF_DATA;
 }
 
-bool
-AP_GSOF::parse_buf(const uint8_t* buf, const uint8_t n_bytes, const uint8_t n_expected)
+int
+AP_GSOF::parse_buf(const uint8_t* buf, const uint8_t n_bytes, MsgTypes& expected_msgs)
 {
     int res;
     for (uint8_t i = 0; i < n_bytes; i++) {
-        res = parse(buf[i], n_expected);
+        res = parse(buf[i], expected_msgs);
         if (res != NO_GSOF_DATA) {
             break;
         }
@@ -101,14 +99,6 @@ AP_GSOF::process_message(MsgTypes& parsed_msgs)
 {
     if (msg.packettype == 0x40) { // GSOF
         // https://receiverhelp.trimble.com/oem-gnss/index.html#GSOFmessages_TIME.html?TocPath=Output%2520Messages%257CGSOF%2520Messages%257C_____25
-#if gsof_DEBUGGING
-        const uint8_t trans_number = msg.data[0];
-        const uint8_t pageidx = msg.data[1];
-        const uint8_t maxpageidx = msg.data[2];
-
-        Debug("GSOF page: %u of %u (trans_number=%u)",
-              pageidx, maxpageidx, trans_number);
-#endif
 
         for (uint32_t a = 3; a < msg.length; a++) {
             const uint8_t output_type = msg.data[a];
@@ -133,6 +123,12 @@ AP_GSOF::process_message(MsgTypes& parsed_msgs)
                 break;
             case POS_SIGMA:
                 parse_pos_sigma(a);
+                break;
+            case INS_FULL_NAV:
+                parse_ins_full_nav(a);
+                break;
+            case INS_RMS:
+                parse_ins_rms(a);
                 break;
             default:
                 break;
@@ -160,9 +156,10 @@ void AP_GSOF::parse_pos_time(uint32_t a)
 
 void AP_GSOF::parse_pos(uint32_t a)
 {
-    // This packet is not documented in Trimble's receiver help as of May 18, 2023
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-llh.html
     position.latitude_rad = be64todouble_ptr(msg.data, a);
     position.longitude_rad = be64todouble_ptr(msg.data, a + 8);
+    // Altitude is "Height from WGS-84 datum" -> Likely ellipsoid
     position.altitude = be64todouble_ptr(msg.data, a + 16);
 }
 
@@ -197,6 +194,24 @@ void AP_GSOF::parse_pos_sigma(uint32_t a)
     pos_sigma.sigma_east = be32tofloat_ptr(msg.data, a + 4);
     pos_sigma.sigma_north = be32tofloat_ptr(msg.data, a + 8);
     pos_sigma.sigma_up = be32tofloat_ptr(msg.data, a + 16);
+}
+
+void AP_GSOF::parse_ins_full_nav(uint32_t a)
+{
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-ins-full-nav.html
+    ins_full_nav.gps_week = be16toh_ptr(msg.data + a);
+    ins_full_nav.gps_time_ms = be32toh_ptr(msg.data + a + 2);
+    ins_full_nav.ins_quality = msg.data[a + 6];
+    ins_full_nav.gnss_quality = msg.data[a + 7];
+    ins_full_nav.latitude = be64todouble_ptr(msg.data, a + 8);
+    ins_full_nav.longitude = be64todouble_ptr(msg.data, a + 16);
+    ins_full_nav.altitude = be64todouble_ptr(msg.data, a + 24);
+}
+
+void AP_GSOF::parse_ins_rms(uint32_t a)
+{
+    // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-ins-rms.html
+
 }
 #endif // AP_GSOF_ENABLED
 
