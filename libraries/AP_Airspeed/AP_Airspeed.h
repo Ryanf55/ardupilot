@@ -98,10 +98,14 @@ public:
     // return the current airspeed in m/s
     float get_airspeed(uint8_t i) const;
     float get_airspeed(void) const { return get_airspeed(primary); }
+    void get_airspeed(uint8_t i, Vector3f& airspeed_3d);
+    void get_airspeed(Vector3f& airspeed_3d) { get_airspeed(primary, airspeed_3d); }
 
     // return the unfiltered airspeed in m/s
     float get_raw_airspeed(uint8_t i) const;
     float get_raw_airspeed(void) const { return get_raw_airspeed(primary); }
+    void get_raw_airspeed(uint8_t i, Vector3f& airspeed_3d);
+    void get_raw_airspeed(Vector3f& airspeed_3d) { get_raw_airspeed(primary, airspeed_3d); }
 
     // return the current airspeed ratio (dimensionless)
     float get_airspeed_ratio(uint8_t i) const {

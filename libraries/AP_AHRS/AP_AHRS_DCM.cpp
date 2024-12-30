@@ -727,7 +727,8 @@ AP_AHRS_DCM::drift_correction(float deltat)
         float airspeed = _last_airspeed;
 #if AP_AIRSPEED_ENABLED
         if (airspeed_sensor_enabled()) {
-            airspeed = AP::airspeed()->get_airspeed();
+            Vector3f airspeed;
+            AP::airspeed()->get_airspeed(airspeed);
         }
 #endif
 

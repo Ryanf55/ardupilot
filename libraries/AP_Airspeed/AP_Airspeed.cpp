@@ -896,6 +896,15 @@ float AP_Airspeed::get_airspeed(uint8_t i) const {
     return state[i].airspeed;
 }
 
+// return the current airspeed in m/s
+void AP_Airspeed::get_airspeed(uint8_t i, Vector3f& airspeed_3d) const {
+    if (!enabled(i)) {
+        // we can't have negative airspeed so sending an obviously invalid value
+        return -1.0;
+    }
+    return state[i].airspeed;
+}
+
 // return the unfiltered airspeed in m/s
 float AP_Airspeed::get_raw_airspeed(uint8_t i) const {
     if (!enabled(i)) {
