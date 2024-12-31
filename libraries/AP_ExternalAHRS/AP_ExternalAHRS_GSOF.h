@@ -66,7 +66,6 @@ protected:
 
 private:
 
-    void build_packet();
     void update_thread();
     void check_initialise_state();
     bool times_healthy() const;
@@ -90,6 +89,9 @@ private:
     bool last_init_state = false;
 
     // The last time we received a message from the GNSS
+    // containing AP_GSOF::POS_TIME.
+    uint32_t last_pos_time_ms;
+    // The last time we received a message from the GNSS
     // containing AP_GSOF::INS_FULL_NAV.
     uint32_t last_ins_full_nav_ms;
     // The last time we received a message from the GNSS
@@ -98,6 +100,8 @@ private:
     // The last time we received a message from the GNSS
     // containing AP_GSOF::LLH_MSL.
     uint32_t last_llh_msl_ms;
+
+    AP_ExternalAHRS::gps_data_message_t gps_data;
 
 };
 

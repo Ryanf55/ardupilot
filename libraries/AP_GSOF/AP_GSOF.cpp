@@ -23,6 +23,27 @@ do {                                            \
 # define Debug(fmt, args ...)
 #endif
 
+AP_GPS_FixType AP_GSOF::pos_flags_to_fix_type(const uint8_t pos_flags1, const uint8_t pos_flags2)
+{
+    AP_GPS_FixType fix_type;
+    if ((pos_flags1 & 1)) { // New position
+        fix_type = AP_GPS_FixType::FIX_3D;
+        if ((pos_flags2 & 1)) { // Differential position 
+            fix_type = AP_GPS_FixType::DGPS;
+            if (pos_flags2 & 2) { // Differential position method
+                if (pos_flags2 & 4) {// Differential position method
+                    fix_type = AP_GPS_FixType::RTK_FIXED;
+                } else {
+                    fix_type = AP_GPS_FixType::RTK_FLOAT;
+                }
+            }
+        }
+    } else {
+        fix_type = AP_GPS_FixType::NONE;
+    }
+    return fix_type;
+}
+
 int
 AP_GSOF::parse(const uint8_t temp, MsgTypes& parsed_msgs)
 {

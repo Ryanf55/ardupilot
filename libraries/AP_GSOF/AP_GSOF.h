@@ -6,6 +6,7 @@
 
 #include "AP_GSOF_config.h"
 #include <AP_Common/Bitmask.h>
+#include <AP_GPS/AP_GPS_FixType.h>
 
 #if AP_GSOF_ENABLED
 
@@ -172,6 +173,8 @@ public:
         char model[12];
     };
     llh_msl_t llh_msl;
+
+    static AP_GPS_FixType pos_flags_to_fix_type(const uint8_t pos_flags1, const uint8_t pos_flags2);
 
 private:
 

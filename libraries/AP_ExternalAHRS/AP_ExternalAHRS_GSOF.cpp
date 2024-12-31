@@ -47,8 +47,8 @@ AP_ExternalAHRS_GSOF::AP_ExternalAHRS_GSOF(AP_ExternalAHRS *_frontend,
         AP_BoardConfig::allocation_error("GSOF ExternalAHRS failed to allocate ExternalAHRS update thread");
     }
 
-    // Don't offer any sensors because the only data exposed is the tightly coupled solution.
-    set_default_sensors(uint16_t(AP_ExternalAHRS::AvailableSensor::NONE));
+    // Offer GPS even through it's a tightly coupled EKF.
+    set_default_sensors(uint16_t(AP_ExternalAHRS::AvailableSensor::GPS));
 
     hal.scheduler->delay(5000);
     if (!initialised()) {
@@ -76,9 +76,11 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
     uint8_t data[AP_GSOF::MAX_PACKET_SIZE];
 
     AP_GSOF::MsgTypes expected;
+    expected.set(AP_GSOF::POS_TIME);
     expected.set(AP_GSOF::INS_FULL_NAV);
     expected.set(AP_GSOF::INS_RMS);
     expected.set(AP_GSOF::LLH_MSL);
+    // TODO configure receiver to output expected data.
     
     while (true) {
         if (sock->pollin(1)) {
@@ -86,18 +88,52 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
             if (recv_res != -1) {
                 AP_GSOF::MsgTypes parsed;
                 const auto parse_res = parse_buf(data, recv_res, parsed);
-                if (parse_res == PARSED_GSOF_DATA) {
-                    auto const now = AP_HAL::millis();
-                    if (parsed.get(AP_GSOF::INS_FULL_NAV)) {
-                        last_ins_full_nav_ms = now;
-                    }
-                    if (parsed.get(AP_GSOF::INS_RMS)) {
-                        last_ins_rms_ms = now;
-                    }
-                    if (parsed.get(AP_GSOF::LLH_MSL)) {
-                        last_llh_msl_ms = now;
-                    }
+                if (parse_res != PARSED_GSOF_DATA) {
+                    continue;
                 }
+
+                auto const now = AP_HAL::millis();
+
+                if (parsed.get(AP_GSOF::POS_TIME)) {
+                    last_pos_time_ms = now;
+
+                    gps_data.satellites_in_view = pos_time.num_sats;
+                    gps_data.fix_type = AP_GSOF::pos_flags_to_fix_type(pos_time.pos_flags1, pos_time.pos_flags2);
+                }
+
+                if (parsed.get(AP_GSOF::INS_FULL_NAV)) {
+                    last_ins_full_nav_ms = now;
+
+                    gps_data.gps_week = ins_full_nav.gps_week;
+                    gps_data.ms_tow = ins_full_nav.gps_time_ms;
+                    gps_data.ned_vel_north = ins_full_nav.vel_n;
+                    gps_data.ned_vel_east = ins_full_nav.vel_e;
+                    gps_data.ned_vel_down = ins_full_nav.vel_d;
+                }
+                if (parsed.get(AP_GSOF::INS_RMS)) {
+                    last_ins_rms_ms = now;
+
+                    gps_data.horizontal_pos_accuracy = Vector2d(ins_rms.pos_rms_n, ins_rms.pos_rms_e).length();
+                    gps_data.vertical_pos_accuracy = ins_rms.pos_rms_d;
+                    gps_data.horizontal_vel_accuracy = Vector2d(ins_rms.vel_rms_n, ins_rms.vel_rms_e).length();
+
+
+                }
+                if (parsed.get(AP_GSOF::LLH_MSL)) {
+                    last_llh_msl_ms = now;
+
+                    gps_data.longitude = static_cast<int32_t>(llh_msl.longitude * 1E-7);
+                    gps_data.latitude = static_cast<int32_t>(llh_msl.latitude * 1E-7);
+                    gps_data.msl_altitude = static_cast<int32_t>(llh_msl.altitude_msl * 1E-2);
+                    
+                }
+
+                // TODO only send GNSS data if we got what we needed.
+                uint8_t instance;
+                if (AP::gps().get_first_external_instance(instance)) {
+                    AP::gps().handle_external(gps_data, instance);
+                }
+                
             }
         }
   
@@ -114,24 +150,6 @@ void AP_ExternalAHRS_GSOF::check_initialise_state(void)
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, LOG_FMT, get_name(), "initialised.");
         last_init_state = new_init_state;
     }
-}
-
-
-// Builds packets by looking at each individual byte, once a full packet has been read in it checks the checksum then handles the packet.
-void AP_ExternalAHRS_GSOF::build_packet()
-{
-
-    // TODO check network socket is not null.
-
-    // WITH_SEMAPHORE(sem);
-    // uint32_t nbytes = MIN(uart->available(), 2048u);
-    // while (nbytes--> 0) {
-    //     uint8_t b;
-    //     if (!uart->read(b)) {
-    //         break;
-    //     }
-    //     // TODO handle bytes
-    // }
 }
 
 void AP_ExternalAHRS_GSOF::post_filter() const
