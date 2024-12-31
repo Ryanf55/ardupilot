@@ -18,7 +18,7 @@ public:
     static constexpr uint8_t MAX_PACKET_SIZE {255};
 
     // A type alias for which packets have been parsed.
-    using MsgTypes = Bitmask<71>;
+    using MsgTypes = Bitmask<71>; // one more than GSOF70.
 
     // Parse a single byte into the buffer.
     // When enough data has arrived, it populates a bitmask of which GSOF packets were parsed in the GENOUT packet and returns PARSED_GSOF_DATA.
