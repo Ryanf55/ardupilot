@@ -90,8 +90,14 @@ private:
     bool last_init_state = false;
 
     // The last time we received a message from the GNSS
-    // containing the expected packets.
-    uint32_t last_rx_time;
+    // containing AP_GSOF::INS_FULL_NAV.
+    uint32_t last_ins_full_nav_ms;
+    // The last time we received a message from the GNSS
+    // containing AP_GSOF::INS_RMS.
+    uint32_t last_ins_rms_ms;
+    // The last time we received a message from the GNSS
+    // containing AP_GSOF::LLH_MSL.
+    uint32_t last_llh_msl_ms;
 
 };
 

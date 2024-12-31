@@ -12,7 +12,7 @@
  */
 
 //   Usage in SITL with hardware for debugging:
-//     $ sim_vehicle.py -v Plane -A --console --map -DG
+//     $ sim_vehicle.py -v Plane --console --map -DG
 //     param set AHRS_EKF_TYPE 11
 //     param set EAHRS_TYPE 6
 //
@@ -72,20 +72,31 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
     // Can use sendto to send config data to address without binding:
     // sock->sendto((const void*)data, strlen(data), dest_ip, 44448);
     
-    sock->bind("0.0.0.0", 44445);
+    sock->bind("0.0.0.0", 44444);
     uint8_t data[AP_GSOF::MAX_PACKET_SIZE];
 
     AP_GSOF::MsgTypes expected;
     expected.set(AP_GSOF::INS_FULL_NAV);
     expected.set(AP_GSOF::INS_RMS);
+    expected.set(AP_GSOF::LLH_MSL);
     
     while (true) {
         if (sock->pollin(1)) {
             auto const recv_res = sock->recv(data, AP_GSOF::MAX_PACKET_SIZE, 1000);
             if (recv_res != -1) {
-                [[maybe_unused]] const auto parse_res = parse_buf(data, recv_res, expected);
-                if (parse_res == PARSED_AS_EXPECTED) {
-                    last_rx_time = AP_HAL::millis();
+                AP_GSOF::MsgTypes parsed;
+                const auto parse_res = parse_buf(data, recv_res, parsed);
+                if (parse_res == PARSED_GSOF_DATA) {
+                    auto const now = AP_HAL::millis();
+                    if (parsed.get(AP_GSOF::INS_FULL_NAV)) {
+                        last_ins_full_nav_ms = now;
+                    }
+                    if (parsed.get(AP_GSOF::INS_RMS)) {
+                        last_ins_rms_ms = now;
+                    }
+                    if (parsed.get(AP_GSOF::LLH_MSL)) {
+                        last_llh_msl_ms = now;
+                    }
                 }
             }
         }
@@ -147,7 +158,7 @@ bool AP_ExternalAHRS_GSOF::healthy(void) const
 
 bool AP_ExternalAHRS_GSOF::initialised(void) const
 {
-    return last_rx_time != 0;
+    return last_ins_full_nav_ms != 0 && last_ins_rms_ms != 0 && last_llh_msl_ms != 0;
 }
 
 bool AP_ExternalAHRS_GSOF::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
@@ -180,16 +191,25 @@ void AP_ExternalAHRS_GSOF::get_filter_status(nav_filter_status &status) const
 
 bool AP_ExternalAHRS_GSOF::times_healthy() const
 {
-    // uint32_t now = AP_HAL::millis();
-    const bool times_healthy = false; // TODO
+    auto const now = AP_HAL::millis();
+    // 100Hz = 10mS.
+    auto const ins_full_nav_healthy = now - last_ins_full_nav_ms <= 2 * 10;
+    if (!ins_full_nav_healthy) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS Full nav delayed by %u ms", get_name(), now - last_ins_full_nav_ms);
+        // hal.util->snprintf("INS FULL NAV TIME: %u", 18, now - last_ins_full_nav_ms);
+    }
+    // 5Hz = 200mS.
+    auto const ins_rms_healthy = now - last_ins_rms_ms < 2 * 200;
+    // 100Hz = 10mS.
+    auto const llh_msl_healthy = now - last_llh_msl_ms < 2 * 10;
 
-    return times_healthy;
+    return ins_full_nav_healthy && ins_rms_healthy && llh_msl_healthy;
 }
 
 bool AP_ExternalAHRS_GSOF::filter_healthy() const
 {
-    // TODO
-    return false;
+    // TODO get the right threshold from Trimble.
+    return ins_rms.gnss_quality >= 1;
 }
 
 #endif // AP_EXTERNAL_AHRS_GSOF_ENABLED
