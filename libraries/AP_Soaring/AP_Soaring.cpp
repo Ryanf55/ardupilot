@@ -477,6 +477,7 @@ void SoaringController::set_throttle_suppressed(bool suppressed)
 
 float SoaringController::get_alt_max_rel()
 {
+#if HAL_SOARING_AGL_LIMITS
     if (!option_is_set(OPTION::AGL_ALT_LIMITS)) {
         return alt_max;
     }
@@ -492,10 +493,14 @@ float SoaringController::get_alt_max_rel()
     }
 
     return terrain_height_above_home + alt_max;
+#else
+    return alt_max;
+#endif
 }
 
 float SoaringController::get_alt_min_rel()
 {
+#if HAL_SOARING_AGL_LIMITS
     if (!option_is_set(OPTION::AGL_ALT_LIMITS)) {
         return alt_min;
     }
@@ -512,11 +517,15 @@ float SoaringController::get_alt_min_rel()
     }
 
     return terrain_height_above_home + alt_min;
+#else
+    return alt_min;
+#endif
 }
 
 float SoaringController::get_alt_cutoff()
 {
-        if (!option_is_set(OPTION::AGL_ALT_LIMITS)) {
+#if HAL_SOARING_AGL_LIMITS
+    if (!option_is_set(OPTION::AGL_ALT_LIMITS)) {
         return alt_min;
     }
 
@@ -532,8 +541,12 @@ float SoaringController::get_alt_cutoff()
     }
 
     return terrain_height_above_home + alt_cutoff;
+#else
+    return alt_cutoff;
+#endif
 }
 
+#if HAL_SOARING_AGL_LIMITS
 bool SoaringController::get_terrain_loc(Location& loc_ground)
 {
     Location ahrs_loc;
@@ -558,6 +571,7 @@ bool SoaringController::get_terrain_loc(Location& loc_ground)
     loc_ground.set_alt_m(terr_height_amsl, Location::AltFrame::ABSOLUTE);
     return true;
 }
+#endif
 
 bool SoaringController::check_drift(Vector2f prev_wp, Vector2f next_wp)
 {

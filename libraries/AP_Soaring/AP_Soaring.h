@@ -76,7 +76,9 @@ protected:
     AP_Float soar_thermal_flap;
     AP_Int32 options;
     enum class OPTION {
+#if HAL_SOARING_AGL_LIMITS
         AGL_ALT_LIMITS=(1<<0),
+#endif
     };
     bool option_is_set(OPTION option) const {
         return (options.get() & int32_t(option)) != 0;
@@ -124,7 +126,9 @@ public:
     // Returns NaN if there are failures during AGL computation.
     float get_alt_min_rel();
     // Get the ahrs location, but with the altitude of the terrain.
+#if HAL_SOARING_AGL_LIMITS
     bool get_terrain_loc(Location& loc);
+#endif
 
     bool get_throttle_suppressed() const
     {
