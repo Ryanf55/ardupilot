@@ -116,8 +116,6 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
                     gps_data.horizontal_pos_accuracy = Vector2d(ins_rms.pos_rms_n, ins_rms.pos_rms_e).length();
                     gps_data.vertical_pos_accuracy = ins_rms.pos_rms_d;
                     gps_data.horizontal_vel_accuracy = Vector2d(ins_rms.vel_rms_n, ins_rms.vel_rms_e).length();
-
-
                 }
                 if (parsed.get(AP_GSOF::LLH_MSL)) {
                     last_llh_msl_ms = now;
@@ -125,7 +123,6 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
                     gps_data.longitude = static_cast<int32_t>(llh_msl.longitude * 1E-7);
                     gps_data.latitude = static_cast<int32_t>(llh_msl.latitude * 1E-7);
                     gps_data.msl_altitude = static_cast<int32_t>(llh_msl.altitude_msl * 1E-2);
-                    
                 }
 
                 // TODO only send GNSS data if we got what we needed.
@@ -133,10 +130,9 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
                 if (AP::gps().get_first_external_instance(instance)) {
                     AP::gps().handle_external(gps_data, instance);
                 }
-                
             }
         }
-  
+
         hal.scheduler->delay_microseconds(100);
         check_initialise_state();
     }
@@ -158,7 +154,6 @@ void AP_ExternalAHRS_GSOF::post_filter() const
     state.velocity = Vector3f{ins_full_nav.vel_n, ins_full_nav.vel_e, ins_full_nav.vel_d};
     state.have_velocity = true;
 
-    // TODO check the altitude datum conversion.
     state.location = Location(ins_full_nav.latitude * 1E7, ins_full_nav.longitude * 1E7, ins_full_nav.altitude * 1E2, Location::AltFrame::ABSOLUTE);
     state.have_location = true;
 }
