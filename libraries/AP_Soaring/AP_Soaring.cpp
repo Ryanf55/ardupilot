@@ -6,6 +6,7 @@
 #include <AP_Logger/AP_Logger.h>
 #include <AP_TECS/AP_TECS.h>
 #include <GCS_MAVLink/GCS.h>
+#include <AP_Terrain/AP_Terrain.h>
 #include <stdint.h>
 
 // ArduSoar parameters
@@ -164,6 +165,13 @@ const AP_Param::GroupInfo SoaringController::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("THML_FLAP", 22, SoaringController, soar_thermal_flap, 0),
 
+    // @Param: OPTIONS
+    // @DisplayName: Soaring Options Bitmask
+    // @Description: Bitmask for soaring options
+    // @Bitmask: 0: Make [ALT_MIN, ALT_MAX, ALT_CUTOFF] refer to height relative to terrain rather than relative to home
+    // @User: Advanced
+    AP_GROUPINFO("OPTIONS", 23, SoaringController, options, 0),
+
     AP_GROUPEND
 };
 
@@ -212,8 +220,8 @@ bool SoaringController::check_thermal_criteria()
     return (_last_update_status == ActiveStatus::AUTO_MODE_CHANGE
             && ((AP_HAL::micros64() - _cruise_start_time_us) > ((unsigned)min_cruise_s * 1e6))
             && (_vario.get_trigger_value() - _vario.get_exp_thermalling_sink()) > thermal_vspeed
-            && _vario.alt < alt_max
-            && _vario.alt > alt_min);
+            && _vario.alt < get_alt_max_rel()
+            && _vario.alt > get_alt_min_rel());
 }
 
 
@@ -232,9 +240,9 @@ SoaringController::LoiterStatus SoaringController::check_cruise_criteria(Vector2
 
     if (_exit_commanded) {
         result = LoiterStatus::EXIT_COMMANDED;
-    } else if (alt > alt_max) {
+    } else if (alt > get_alt_max_rel()) {
         result = LoiterStatus::ALT_TOO_HIGH;
-    } else if (alt < alt_min) {
+    } else if (alt < get_alt_min_rel()) {
         result = LoiterStatus::ALT_TOO_LOW;
     } else if ((AP_HAL::micros64() - _thermal_start_time_us) > ((unsigned)min_thermal_s * 1e6)) {
         const float mcCreadyAlt = McCready(alt);
@@ -465,6 +473,90 @@ void SoaringController::set_throttle_suppressed(bool suppressed)
 
     // Let the TECS know.
     _tecs.set_gliding_requested_flag(suppressed);
+}
+
+float SoaringController::get_alt_max_rel()
+{
+    if (!option_is_set(OPTION::AGL_ALT_LIMITS)) {
+        return alt_max;
+    }
+
+    Location loc_ground;
+    if (!get_terrain_loc(loc_ground)) {
+        return NaNf;
+    }
+
+    float terrain_height_above_home;
+    if (!loc_ground.get_alt_m(Location::AltFrame::ABOVE_HOME, terrain_height_above_home)) {
+        return NaNf;
+    }
+
+    return terrain_height_above_home + alt_max;
+}
+
+float SoaringController::get_alt_min_rel()
+{
+    if (!option_is_set(OPTION::AGL_ALT_LIMITS)) {
+        return alt_min;
+    }
+
+
+    Location loc_ground;
+    if (!get_terrain_loc(loc_ground)) {
+        return NaNf;
+    }
+
+    float terrain_height_above_home;
+    if (!loc_ground.get_alt_m(Location::AltFrame::ABOVE_HOME, terrain_height_above_home)) {
+        return NaNf;
+    }
+
+    return terrain_height_above_home + alt_min;
+}
+
+float SoaringController::get_alt_cutoff()
+{
+        if (!option_is_set(OPTION::AGL_ALT_LIMITS)) {
+        return alt_min;
+    }
+
+
+    Location loc_ground;
+    if (!get_terrain_loc(loc_ground)) {
+        return NaNf;
+    }
+
+    float terrain_height_above_home;
+    if (!loc_ground.get_alt_m(Location::AltFrame::ABOVE_HOME, terrain_height_above_home)) {
+        return NaNf;
+    }
+
+    return terrain_height_above_home + alt_cutoff;
+}
+
+bool SoaringController::get_terrain_loc(Location& loc_ground)
+{
+    Location ahrs_loc;
+    auto& ahrs = AP::ahrs();
+    if (ahrs.get_location(ahrs_loc)) {
+        return false;
+    }
+
+    auto* terrain = AP::terrain();
+    
+    // TODO this could be checked as a pre-arm.
+    if (terrain == nullptr || !terrain->enabled()) {
+        return false;
+    }
+
+    // TODO: consider ahrs.get_hagl instead of direct terrain reliance.
+    float terr_height_amsl;
+    if (!terrain->height_amsl(ahrs_loc, terr_height_amsl)) {
+        return false;
+    }
+
+    loc_ground.set_alt_m(terr_height_amsl, Location::AltFrame::ABSOLUTE);
+    return true;
 }
 
 bool SoaringController::check_drift(Vector2f prev_wp, Vector2f next_wp)

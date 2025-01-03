@@ -74,6 +74,13 @@ protected:
     AP_Float soar_thermal_airspeed;
     AP_Float soar_cruise_airspeed;
     AP_Float soar_thermal_flap;
+    AP_Int32 options;
+    enum class OPTION {
+        AGL_ALT_LIMITS=(1<<0),
+    };
+    bool option_is_set(OPTION option) const {
+        return (options.get() & int32_t(option)) != 0;
+    }
 
 public:
     SoaringController(class AP_TECS &tecs, const AP_FixedWing &parms);
@@ -108,6 +115,16 @@ public:
     void update_thermalling();
     void update_cruising();
     void set_throttle_suppressed(bool suppressed);
+    // Get the altitude maximum in relative to home coordinates.
+    // If OPTIONS is set to enable AGL maximum, this still returns in relative-to-home.
+    // Returns NaN if there are failures during AGL computation.
+    float get_alt_max_rel();
+    // Get the altitude minimum in relative to home coordinates.
+    // If OPTIONS is set to enable AGL maximum, this still returns in relative-to-home.
+    // Returns NaN if there are failures during AGL computation.
+    float get_alt_min_rel();
+    // Get the ahrs location, but with the altitude of the terrain.
+    bool get_terrain_loc(Location& loc);
 
     bool get_throttle_suppressed() const
     {
@@ -129,7 +146,10 @@ public:
 
     void set_pilot_desired_state(ActiveStatus pilot_desired_state) {_pilot_desired_state = pilot_desired_state;};
 
-    float get_alt_cutoff() const {return alt_cutoff;}
+    // Get the altitude cutoff in relative to home coordinates.
+    // If OPTIONS is set to enable AGL cutoff, this still returns in relative-to-home.
+    // Returns NaN if there are failures during AGL computation.
+    float get_alt_cutoff();
 
     float get_circling_time() const {return _vario.tau;}
 
