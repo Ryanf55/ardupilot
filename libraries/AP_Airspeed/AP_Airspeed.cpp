@@ -53,6 +53,7 @@
 #include "AP_Airspeed_NMEA.h"
 #include "AP_Airspeed_MSP.h"
 #include "AP_Airspeed_External.h"
+#include "AP_Airspeed_Synthetic.h"
 #include "AP_Airspeed_SITL.h"
 extern const AP_HAL::HAL &hal;
 
@@ -434,6 +435,11 @@ void AP_Airspeed::allocate()
         case TYPE_MSP:
 #if AP_AIRSPEED_MSP_ENABLED
             sensor[i] = NEW_NOTHROW AP_Airspeed_MSP(*this, i, 0);
+#endif
+            break;
+        case TYPE_SYNTHETIC:
+#if AP_AIRSPEED_SYNTHETIC_ENABLED
+            sensor[i] = NEW_NOTHROW AP_Airspeed_Synthetic(*this, i);
 #endif
             break;
         case TYPE_EXTERNAL:

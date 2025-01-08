@@ -680,7 +680,7 @@ const AP_Param::GroupInfo NavEKF3::var_info2[] = {
 
     // @Param: DRAG_M_NSE
     // @DisplayName: Observation noise for drag acceleration
-    // @Description: This sets the amount of noise used when fusing X and Y acceleration as an observation that enables esitmation of wind velocity for multi-rotor vehicles. This feature is enabled by the EK3_DRAG_BCOEF_X and EK3_DRAG_BCOEF_Y parameters
+    // @Description: This sets the amount of noise used when fusing X and Y acceleration as an observation that enables estimation of wind velocity for multi-rotor vehicles. This feature is enabled by the EK3_DRAG_BCOEF_X and EK3_DRAG_BCOEF_Y parameters
     // @Range: 0.1 2.0
     // @Increment: 0.1
     // @User: Advanced

@@ -86,6 +86,7 @@
 #if AP_EXTERNAL_CONTROL_ENABLED
 #include "AP_ExternalControl_Plane.h"
 #endif
+#include "AP_Airspeed_config.h"
 
 #include <AC_PrecLand/AC_PrecLand_config.h>
 #if AC_PRECLAND_ENABLED
@@ -181,6 +182,10 @@ public:
 #if AP_PLANE_GLIDER_PULLUP_ENABLED
     friend class GliderPullup;
 #endif
+
+// #if AP_AIRSPEED_SYNTHETIC_ENABLED
+    friend class AP_Airspeed_Synthetic;
+// #endif
 
     Plane(void);
 
