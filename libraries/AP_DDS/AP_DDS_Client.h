@@ -82,7 +82,16 @@ class AP_DDS_Client
 
 private:
 
+    // Parameters
+
     AP_Int8 enabled;
+    AP_Int32 options;
+    //! @brief ROS_DOMAIN_ID
+    AP_Int32 domain_id;
+    //! @brief Timeout in milliseconds when pinging the XRCE agent
+    AP_Int32 ping_timeout_ms;
+    //! @brief Maximum number of attempts to ping the XRCE agent before exiting
+    AP_Int8 ping_max_retry;
 
     // Serial Allocation
     uxrSession session; //Session
@@ -295,6 +304,14 @@ private:
     // client key we present
     static constexpr uint32_t key = 0xAAAABBBB;
 
+    enum class Options {
+        RequiredForArming = (1U<<0),
+    };
+
+    bool option_set(Options option) const {
+        return (options & uint16_t(option)) != 0;
+    }
+
 
 public:
     ~AP_DDS_Client();
@@ -323,15 +340,6 @@ public:
 
     //! @brief Parameter storage
     static const struct AP_Param::GroupInfo var_info[];
-
-    //! @brief ROS_DOMAIN_ID
-    AP_Int32 domain_id;
-
-    //! @brief Timeout in milliseconds when pinging the XRCE agent
-    AP_Int32 ping_timeout_ms;
-
-    //! @brief Maximum number of attempts to ping the XRCE agent before exiting
-    AP_Int8 ping_max_retry;
 
     //! @brief Enum used to mark a topic as a data reader or writer
     enum class Topic_rw : uint8_t {

@@ -161,6 +161,13 @@ const AP_Param::GroupInfo AP_DDS_Client::var_info[] {
     // @User: Standard
     AP_GROUPINFO("_MAX_RETRY", 6, AP_DDS_Client, ping_max_retry, 10),
 
+    // @Param: _OPTIONS
+    // @DisplayName: DDS options
+    // @Description: Options that can be applied to change DDS behavior
+    // @Bitmask: 0:Require DDS connection to arm
+    // @User: Advanced
+    AP_GROUPINFO("_OPTIONS", 7, AP_DDS_Client, options, 0),
+
     AP_GROUPEND
 };
 

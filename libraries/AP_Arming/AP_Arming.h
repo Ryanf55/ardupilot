@@ -237,6 +237,10 @@ protected:
     bool crashdump_checks(bool report);
 #endif
 
+#if AP_DDS_ENABLED
+    bool dds_checks(bool display_failure) const;
+#endif
+
     virtual bool system_checks(bool report);
 
     bool can_checks(bool report);

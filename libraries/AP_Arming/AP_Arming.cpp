@@ -1633,6 +1633,9 @@ bool AP_Arming::pre_arm_checks(bool report)
 #if AP_ARMING_CRASHDUMP_ACK_ENABLED
         & crashdump_checks(report)
 #endif
+#if AP_DDS_ENABLED
+        &  dds_checks(report)
+#endif
         &  serial_protocol_checks(report)
         &  estop_checks(report);
 
@@ -1720,6 +1723,30 @@ bool AP_Arming::crashdump_checks(bool report)
     return false;
 }
 #endif  // AP_ARMING_CRASHDUMP_ACK_ENABLED
+
+#if AP_DDS_ENABLED
+bool AP_Arming::dds_checks(bool report)
+{
+    if (hal.util->last_crash_dump_size() == 0) {
+        // no crash dump data
+        return true;
+    }
+
+    // see if the user has acknowledged the failure and wants to fly anyway:
+    if (crashdump_ack.acked) {
+        // they may have acked the problem, that doesn't mean we don't
+        // continue to warn them they're on thin ice:
+        if (report) {
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "CrashDump data detected");
+        }
+        return true;
+    }
+
+    check_failed(ARMING_CHECK_PARAMETERS, true, "CrashDump data detected");
+
+    return false;
+}
+#endif  // AP_DDS_ENABLED
 
 bool AP_Arming::mandatory_checks(bool report)
 {
