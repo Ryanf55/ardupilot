@@ -88,14 +88,9 @@ function update()
                 end
                 local tag_id_str = table.concat(tag_ids, ',')
                 local value_format = string.rep('f', #tag_ids)
-
-                if result.S and result.D and result.U and result.V and result.W and result.T then
-                    logger.write('W3D', tag_id_str, value_format,
-                        table.unpack(values))
-                else 
-                    gcs:send_text(6, "Missing required data for logging.")
-                    gcs:send_text(MAV_SEVERITY.INFO, 'WDX: ' .. buffer)
-                end
+                
+                logger.write('W3D', tag_id_str, value_format,
+                    table.unpack(values))
                 
                 buffer = ""  -- Clear buffer for the next message
             end
