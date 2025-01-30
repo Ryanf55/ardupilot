@@ -79,10 +79,19 @@ function update()
             if c == "\r" then
                 -- gcs:send_text(MAV_SEVERITY.INFO, "End buffer: " .. buffer)
                 result = parse_wind_data(buffer)
+                local tag_ids = {}
+                local values = {}
+                -- Build up the logger list of dynamic tag ID's.
+                for tag_id, v in pairs(result) do
+                    table.insert(tag_ids, tag_id)
+                    table.insert(values, v)
+                end
+                local tag_id_str = table.concat(tag_ids, ',')
+                local value_format = string.rep('f', #tag_ids)
 
                 if result.S and result.D and result.U and result.V and result.W and result.T then
-                    logger.write('WDX', 'S,D,U,V,W,T', 'ffffff',
-                        result.S, result.D, result.U, result.V, result.W, result.T)
+                    logger.write('W3D', tag_id_str, value_format,
+                        table.unpack(values))
                 else 
                     gcs:send_text(6, "Missing required data for logging.")
                     gcs:send_text(MAV_SEVERITY.INFO, 'WDX: ' .. buffer)
