@@ -23,7 +23,7 @@ if not port then
 end
 
 -- begin the serial port
-port:begin(115200)
+port:begin(230400)
 port:set_flow_control(0)
 
 
