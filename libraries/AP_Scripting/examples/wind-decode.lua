@@ -6,7 +6,10 @@
 
 -- In SITL, you can enable serial ports to connect to the real device.
 -- https://ardupilot.org/dev/docs/learning-ardupilot-uarts-and-the-console.html#the-8-uarts
--- ./Tools/autotest/sim_vehicle.py -v Plane --console --map -A "--serial5=uart:/dev/ttyUSB0"
+-- ./Tools/autotest/sim_vehicle.py -v Plane --console --map -A "--serial5=uart:/dev/ttyUSB0" -D
+
+-- Remember to change baud to 230k in the sensor setup and enable the fields you want.
+-- Also, enable 10Hz output instead of the default 5Hz.
 
 -- Example data string (excluding quotes, including the carriage return line feed ending)
 -- "S  00.08 S2  00.07 D  245 DV  033 U  00.06 V  00.03 W  00.05 T  55889220.00 C  346.68 H  17.92 DP  03.68 P -099.70 AD  0.0000000 AX  -2913 AY  -3408 AZ -16600 PI  011.4 RO  009.8 MX   -619 MY    845 MZ    782 MD  337 TD  337"
@@ -26,27 +29,12 @@ end
 port:begin(230400)
 port:set_flow_control(0)
 
-
 local buffer = ""
 
 function parse_wind_data(buffer)
-    local parsed_values = {}
+    -- Split the string up into key and values splitting on the default space delimiter.
 
-    -- for value, key in buffer:gmatch("([%-%.%d]+)%s*([SDUVWT])") do
-    --     if key == "S" then
-    --         parsed_values.S = tonumber(value)
-    --     elseif key == "D" then
-    --         parsed_values.D = tonumber(value)
-    --     elseif key == "U" then
-    --         parsed_values.U = tonumber(value)
-    --     elseif key == "V" then
-    --         parsed_values.V = tonumber(value)
-    --     elseif key == "W" then
-    --         parsed_values.W = tonumber(value)
-    --     elseif key == "T" then
-    --         parsed_values.T = tonumber(value)
-    --     end
-    -- end
+    local parsed_values = {}
 
     -- Match any key-value pair where key is a string and value is a number
     for key, value in buffer:gmatch("(%a+)%s*([%-%.%d]+)") do
@@ -55,6 +43,25 @@ function parse_wind_data(buffer)
 
     return parsed_values
 end
+
+function log_wind_data(parsed)
+    -- Given a table of parsed data, log it.
+
+    local tag_ids = {}
+    local values = {}
+    -- Build up the logger list of dynamic tag ID's.
+    for tag_id, v in pairs(parsed) do
+        table.insert(tag_ids, tag_id)
+        table.insert(values, v)
+    end
+    local tag_id_str = table.concat(tag_ids, ',')
+    local value_format = string.rep('f', #tag_ids)
+    
+    assert(#tag_ids < 15, "#tag_ids=" .. #tag_ids)
+    logger.write('W3D', tag_id_str, value_format,
+        table.unpack(values))
+end
+
 
 -- the main update function that is used to read in data from serial port
 function update()
@@ -79,21 +86,8 @@ function update()
             if c == "\r" then
                 -- gcs:send_text(MAV_SEVERITY.INFO, "End buffer: " .. buffer)
                 result = parse_wind_data(buffer)
-                local tag_ids = {}
-                local values = {}
-                -- Build up the logger list of dynamic tag ID's.
-                for tag_id, v in pairs(result) do
-                    table.insert(tag_ids, tag_id)
-                    table.insert(values, v)
-                end
-                local tag_id_str = table.concat(tag_ids, ',')
-                local value_format = string.rep('f', #tag_ids)
-                
-                assert(#tag_ids < 15, "#tag_ids=" .. #tag_ids)
-                logger.write('W3D', tag_id_str, value_format,
-                    table.unpack(values))
-                
-                buffer = ""  -- Clear buffer for the next message
+                log_wind_data(result)
+                buffer = ""
             end
         end
         n_bytes = n_bytes - 1
