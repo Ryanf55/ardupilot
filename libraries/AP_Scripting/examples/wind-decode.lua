@@ -9,7 +9,7 @@
 -- ./Tools/autotest/sim_vehicle.py -v Plane --console --map -A "--serial5=uart:/dev/ttyUSB0"
 
 -- Example data string (excluding quotes, including the carriage return line feed ending)
--- "S  00.06 D  346 U  00.01 V -00.06 W  00.02 T  23.89 H  20.26 P  827.32 PI -011.0 RO  014.4 MD  339␍␊"
+-- "S  00.08 S2  00.07 D  245 DV  033 U  00.06 V  00.03 W  00.05 T  55889220.00 C  346.68 H  17.92 DP  03.68 P -099.70 AD  0.0000000 AX  -2913 AY  -3408 AZ -16600 PI  011.4 RO  009.8 MX   -619 MY    845 MZ    782 MD  337 TD  337"
 
 -- Log severities
 local MAV_SEVERITY = {EMERGENCY=0, ALERT=1, CRITICAL=2, ERROR=3, WARNING=4, NOTICE=5, INFO=6, DEBUG=7}
@@ -89,6 +89,7 @@ function update()
                 local tag_id_str = table.concat(tag_ids, ',')
                 local value_format = string.rep('f', #tag_ids)
                 
+                assert(#tag_ids < 15, "#tag_ids=" .. #tag_ids)
                 logger.write('W3D', tag_id_str, value_format,
                     table.unpack(values))
                 
