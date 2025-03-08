@@ -1,0 +1,6 @@
+# Radian model, see TODO
+
+{
+    # total vehicle mass
+    "mass" : 2.8,
+}

@@ -21,13 +21,23 @@
 
 #include <stdio.h>
 #include <AP_Filesystem/AP_Filesystem_config.h>
+#include <AP_Filesystem/AP_Filesystem.h>
+#include <sys/stat.h>
+#include <AP_JSON/AP_JSON.h>
 
 using namespace SITL;
 
+// frame_str is something like plane-catapult
 Plane::Plane(const char *frame_str) :
     Aircraft(frame_str)
 {
     mass = 2.0f;
+
+    const char *colon = strchr(frame_str, ':');
+    size_t slen = strlen(frame_str);
+    if (colon != nullptr && slen > 5 && strcmp(&frame_str[slen-5], ".json") == 0) {
+        load_coefficients(colon+1);
+    }
 
     /*
        scaling from motor power to Newtons. Allows the plane to hold
@@ -104,6 +114,110 @@ Plane::Plane(const char *frame_str) :
         mass = 2.0;
         coefficient.c_drag_p = 0.05;
     }
+}
+
+/*
+  load aero coefficients from a json file if available
+ */
+void Plane::load_coefficients(const char *model_json)
+{
+    char *fname = nullptr;
+    struct stat st;
+    if (AP::FS().stat(model_json, &st) == 0) {
+        fname = strdup(model_json);
+    } else {
+        IGNORE_RETURN(asprintf(&fname, "@ROMFS/models/%s", model_json));
+        if (AP::FS().stat(model_json, &st) != 0) {
+            AP_HAL::panic("%s failed to load", model_json);
+        }
+    }
+    if (fname == nullptr) {
+        AP_HAL::panic("%s failed to load", model_json);
+    }
+    AP_JSON::value *obj = AP_JSON::load_json(model_json);
+    if (obj == nullptr) {
+        AP_HAL::panic("%s failed to load", model_json);
+    }
+
+//     enum class VarType {
+//         FLOAT,
+//         VECTOR3F,
+//     };
+
+//     struct json_search {
+//         const char *label;
+//         void *ptr;
+//         VarType t;
+//     };
+    
+//     json_search vars[] = {
+// #define FRAME_VAR(s) { #s, &model.s, VarType::FLOAT }
+//         FRAME_VAR(mass),
+//         FRAME_VAR(diagonal_size),
+//         FRAME_VAR(refSpd),
+//         FRAME_VAR(refAngle),
+//         FRAME_VAR(refVoltage),
+//         FRAME_VAR(refCurrent),
+//         FRAME_VAR(refAlt),
+//         FRAME_VAR(refTempC),
+//         FRAME_VAR(maxVoltage),
+//         FRAME_VAR(battCapacityAh),
+//         FRAME_VAR(refBatRes),
+//         FRAME_VAR(propExpo),
+//         FRAME_VAR(refRotRate),
+//         FRAME_VAR(hoverThrOut),
+//         FRAME_VAR(pwmMin),
+//         FRAME_VAR(pwmMax),
+//         FRAME_VAR(spin_min),
+//         FRAME_VAR(spin_max),
+//         FRAME_VAR(slew_max),
+//         FRAME_VAR(disc_area),
+//         FRAME_VAR(mdrag_coef),
+//         {"moment_inertia", &model.moment_of_inertia, VarType::VECTOR3F},
+//         FRAME_VAR(num_motors),
+//     };
+
+//     for (uint8_t i=0; i<ARRAY_SIZE(vars); i++) {
+//         auto v = obj->get(vars[i].label);
+//         if (v.is<AP_JSON::null>()) {
+//             // use default value
+//             continue;
+//         }
+//         if (vars[i].t == VarType::FLOAT) {
+//             parse_float(v, vars[i].label, *((float *)vars[i].ptr));
+
+//         } else if (vars[i].t == VarType::VECTOR3F) {
+//             parse_vector3(v, vars[i].label, *(Vector3f *)vars[i].ptr);
+
+//         }
+//     }
+
+//     json_search per_motor_vars[] = {
+//         {"position", &model.motor_pos, VarType::VECTOR3F},
+//         {"vector", &model.motor_thrust_vec, VarType::VECTOR3F},
+//         {"yaw", &model.yaw_factor, VarType::FLOAT},
+//     };
+//     char label_name[20];
+//     for (uint8_t i=0; i<ARRAY_SIZE(per_motor_vars); i++) {
+//         for (uint8_t j=0; j<SIM_FRAME_MAX_ACTUATORS; j++) {
+//             snprintf(label_name, 20, "motor%i_%s", j+1, per_motor_vars[i].label);
+//             auto v = obj->get(label_name);
+//             if (v.is<AP_JSON::null>()) {
+//                 // use default value
+//                 continue;
+//             }
+//             if (per_motor_vars[i].t == VarType::FLOAT) {
+//                 parse_float(v, label_name, *(((float *)per_motor_vars[i].ptr) + j));
+
+//             } else if (per_motor_vars[i].t == VarType::VECTOR3F) {
+//                 parse_vector3(v, label_name, *(((Vector3f *)per_motor_vars[i].ptr) + j));
+//             }
+//         }
+//     }
+
+//     delete obj;
+
+    ::printf("Loaded model params from %s\n", model_json);
 }
 
 /*

@@ -126,6 +126,9 @@ protected:
     Vector3f getForce(float inputAileron, float inputElevator, float inputRudder) const;
     Vector3f getTorque(float inputAileron, float inputElevator, float inputRudder, float inputThrust, const Vector3f &force) const;
     void calculate_forces(const struct sitl_input &input, Vector3f &rot_accel);
+
+private:
+    void load_coefficients(const char *model_json);
 };
 
 } // namespace SITL
