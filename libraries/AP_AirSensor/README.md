@@ -75,6 +75,10 @@ classDiagram
         +^Vector3f get_airspeed(const uint8_t i) const
     }
 
+    class AP_Airspeed {
+        float get_airspeed(uint8_t i) const
+    }
+
     AP_AirSensorBackend <|-- AP_AirSensorAirspeed
     AP_AirSensorBackend <|-- AP_AirSensorWindVane
     AP_AirSensorBackend <|-- AP_AirSensorScripting
