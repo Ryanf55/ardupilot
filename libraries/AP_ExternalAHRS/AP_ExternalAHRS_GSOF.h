@@ -44,6 +44,11 @@ public:
     // Get model/type name
     const char* get_name() const override;
 
+    // get serial port number, -1 for not enabled
+    // The GSOF driver returns 0 just to get the checks to pass in AP, but there isn't a serial port being used
+    // because it's an ethernet driver.
+    int8_t get_port(AP_ExternalAHRS::AvailableSensor sensor) const { return 0; }
+
     // accessors for AP_AHRS
     bool healthy(void) const override;
     bool initialised(void) const override;

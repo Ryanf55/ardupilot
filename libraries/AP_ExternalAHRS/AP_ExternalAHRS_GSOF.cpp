@@ -15,7 +15,9 @@
 //     $ sim_vehicle.py -v Plane --console --map -DG
 //     param set AHRS_EKF_TYPE 11
 //     param set EAHRS_TYPE 6
-//
+//     For EAHRS as a GPS:
+//     param set GPS1_TYPE 21
+//   Configure GSOF 49,50,70 on UDP port 44444
 
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
 
@@ -83,53 +85,51 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
     // TODO configure receiver to output expected data.
     
     while (true) {
-        if (sock->pollin(1)) {
-            auto const recv_res = sock->recv(data, AP_GSOF::MAX_PACKET_SIZE, 1000);
-            if (recv_res != -1) {
-                AP_GSOF::MsgTypes parsed;
-                const auto parse_res = parse_buf(data, recv_res, parsed);
-                if (parse_res != PARSED_GSOF_DATA) {
-                    continue;
-                }
+        auto const recv_res = sock->recv(data, AP_GSOF::MAX_PACKET_SIZE, 1);
+        if (recv_res != -1) {
+            AP_GSOF::MsgTypes parsed;
+            const auto parse_res = parse_buf(data, recv_res, parsed);
+            if (parse_res != PARSED_GSOF_DATA) {
+                continue;
+            }
 
-                auto const now = AP_HAL::millis();
+            auto const now = AP_HAL::millis();
 
-                if (parsed.get(AP_GSOF::POS_TIME)) {
-                    last_pos_time_ms = now;
+            if (parsed.get(AP_GSOF::POS_TIME)) {
+                last_pos_time_ms = now;
 
-                    gps_data.satellites_in_view = pos_time.num_sats;
-                    gps_data.fix_type = AP_GSOF::pos_flags_to_fix_type(pos_time.pos_flags1, pos_time.pos_flags2);
-                }
+                gps_data.satellites_in_view = pos_time.num_sats;
+                gps_data.fix_type = AP_GSOF::pos_flags_to_fix_type(pos_time.pos_flags1, pos_time.pos_flags2);
+            }
 
-                if (parsed.get(AP_GSOF::INS_FULL_NAV)) {
-                    last_ins_full_nav_ms = now;
+            if (parsed.get(AP_GSOF::INS_FULL_NAV)) {
+                last_ins_full_nav_ms = now;
 
-                    gps_data.gps_week = ins_full_nav.gps_week;
-                    gps_data.ms_tow = ins_full_nav.gps_time_ms;
-                    gps_data.ned_vel_north = ins_full_nav.vel_n;
-                    gps_data.ned_vel_east = ins_full_nav.vel_e;
-                    gps_data.ned_vel_down = ins_full_nav.vel_d;
-                }
-                if (parsed.get(AP_GSOF::INS_RMS)) {
-                    last_ins_rms_ms = now;
+                gps_data.gps_week = ins_full_nav.gps_week;
+                gps_data.ms_tow = ins_full_nav.gps_time_ms;
+                gps_data.ned_vel_north = ins_full_nav.vel_n;
+                gps_data.ned_vel_east = ins_full_nav.vel_e;
+                gps_data.ned_vel_down = ins_full_nav.vel_d;
+            }
+            if (parsed.get(AP_GSOF::INS_RMS)) {
+                last_ins_rms_ms = now;
 
-                    gps_data.horizontal_pos_accuracy = Vector2d(ins_rms.pos_rms_n, ins_rms.pos_rms_e).length();
-                    gps_data.vertical_pos_accuracy = ins_rms.pos_rms_d;
-                    gps_data.horizontal_vel_accuracy = Vector2d(ins_rms.vel_rms_n, ins_rms.vel_rms_e).length();
-                }
-                if (parsed.get(AP_GSOF::LLH_MSL)) {
-                    last_llh_msl_ms = now;
+                gps_data.horizontal_pos_accuracy = Vector2d(ins_rms.pos_rms_n, ins_rms.pos_rms_e).length();
+                gps_data.vertical_pos_accuracy = ins_rms.pos_rms_d;
+                gps_data.horizontal_vel_accuracy = Vector2d(ins_rms.vel_rms_n, ins_rms.vel_rms_e).length();
+            }
+            if (parsed.get(AP_GSOF::LLH_MSL)) {
+                last_llh_msl_ms = now;
 
-                    gps_data.longitude = static_cast<int32_t>(llh_msl.longitude * 1E-7);
-                    gps_data.latitude = static_cast<int32_t>(llh_msl.latitude * 1E-7);
-                    gps_data.msl_altitude = static_cast<int32_t>(llh_msl.altitude_msl * 1E-2);
-                }
+                gps_data.longitude = static_cast<int32_t>(llh_msl.longitude * 1E-7);
+                gps_data.latitude = static_cast<int32_t>(llh_msl.latitude * 1E-7);
+                gps_data.msl_altitude = static_cast<int32_t>(llh_msl.altitude_msl * 1E-2);
+            }
 
-                // TODO only send GNSS data if we got what we needed.
-                uint8_t instance;
-                if (AP::gps().get_first_external_instance(instance)) {
-                    AP::gps().handle_external(gps_data, instance);
-                }
+            // TODO only send GNSS data if we got what we needed.
+            uint8_t instance;
+            if (AP::gps().get_first_external_instance(instance)) {
+                AP::gps().handle_external(gps_data, instance);
             }
         }
 
@@ -205,16 +205,28 @@ void AP_ExternalAHRS_GSOF::get_filter_status(nav_filter_status &status) const
 bool AP_ExternalAHRS_GSOF::times_healthy() const
 {
     auto const now = AP_HAL::millis();
+    
+    auto const TIMES_FOS = 2.0;
+
     // 100Hz = 10mS.
-    auto const ins_full_nav_healthy = now - last_ins_full_nav_ms <= 2 * 10;
+    auto const GSOF_49_EXPECTED_DELAY_MS = 200;
+    auto const ins_full_nav_healthy = now - last_ins_full_nav_ms <= TIMES_FOS * GSOF_49_EXPECTED_DELAY_MS;
     if (!ins_full_nav_healthy) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS Full nav delayed by %u ms", get_name(), now - last_ins_full_nav_ms);
-        // hal.util->snprintf("INS FULL NAV TIME: %u", 18, now - last_ins_full_nav_ms);
     }
+
     // 5Hz = 200mS.
-    auto const ins_rms_healthy = now - last_ins_rms_ms < 2 * 200;
+    auto const GSOF_50_EXPECTED_DELAY_MS = 200;
+    auto const ins_rms_healthy = now - last_ins_rms_ms < TIMES_FOS * GSOF_50_EXPECTED_DELAY_MS;
+    if (!ins_rms_healthy) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS rms delayed by %u ms", get_name(), now - last_ins_rms_ms);
+    }
     // 100Hz = 10mS.
-    auto const llh_msl_healthy = now - last_llh_msl_ms < 2 * 10;
+    auto const GSOF_70_EXPECTED_DELAY_MS = 200;
+    auto const llh_msl_healthy = now - last_llh_msl_ms < TIMES_FOS * GSOF_70_EXPECTED_DELAY_MS;
+    if (!llh_msl_healthy) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: LLH MSL delayed by %u ms", get_name(), now - last_llh_msl_ms);
+    }
 
     return ins_full_nav_healthy && ins_rms_healthy && llh_msl_healthy;
 }

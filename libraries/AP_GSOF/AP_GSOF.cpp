@@ -239,8 +239,8 @@ void AP_GSOF::parse_ins_rms(uint32_t a)
 void AP_GSOF::parse_llh_msl(uint32_t a)
 {
     // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-llmsl.html
-    llh_msl.latitude = be64todouble_ptr(msg.data, a);
-    llh_msl.longitude = be64todouble_ptr(msg.data, a + 8);
+    llh_msl.latitude = RAD_TO_DEG_DOUBLE * be64todouble_ptr(msg.data, a);
+    llh_msl.longitude = RAD_TO_DEG_DOUBLE * be64todouble_ptr(msg.data, a + 8);
     llh_msl.altitude_msl = be64todouble_ptr(msg.data, a + 16);
     // Assume the model is EGM96.
 }
