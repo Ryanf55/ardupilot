@@ -123,6 +123,12 @@ AP_GSOF::process_message(MsgTypes& parsed_msgs)
 
         for (uint32_t a = 3; a < msg.length; a++) {
             const uint8_t output_type = msg.data[a];
+// TODO handle at runtime or find root cause
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if (output_type >= parsed_msgs.size()) {
+        AP_HAL::panic("Invalid output type.");
+    }
+#endif
             parsed_msgs.set(output_type);
             a++;
             const uint8_t output_length = msg.data[a];
@@ -223,8 +229,8 @@ void AP_GSOF::parse_ins_full_nav(uint32_t a)
     // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-ins-full-nav.html
     ins_full_nav.gps_week = be16toh_ptr(msg.data + a);
     ins_full_nav.gps_time_ms = be32toh_ptr(msg.data + a + 2);
-    ins_full_nav.ins_quality = msg.data[a + 6];
-    ins_full_nav.gnss_quality = msg.data[a + 7];
+    ins_full_nav.imu_alignment_status = ImuAlignmentStatus(msg.data[a + 6]);
+    ins_full_nav.gnss_status = GnssStatus(msg.data[a + 7]);
     ins_full_nav.latitude = be64todouble_ptr(msg.data, a + 8);
     ins_full_nav.longitude = be64todouble_ptr(msg.data, a + 16);
     ins_full_nav.altitude = be64todouble_ptr(msg.data, a + 24);
@@ -233,7 +239,10 @@ void AP_GSOF::parse_ins_full_nav(uint32_t a)
 void AP_GSOF::parse_ins_rms(uint32_t a)
 {
     // https://receiverhelp.trimble.com/oem-gnss/gsof-messages-ins-rms.html
-
+    ins_rms.gps_week = be16toh_ptr(msg.data + a);
+    ins_rms.gps_time_ms = be32toh_ptr(msg.data + a + 2);
+    ins_rms.imu_alignment_status = ImuAlignmentStatus(msg.data[a + 6]);
+    ins_rms.gnss_status = GnssStatus(msg.data[a + 7]);
 }
 
 void AP_GSOF::parse_llh_msl(uint32_t a)

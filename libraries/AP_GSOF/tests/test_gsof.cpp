@@ -1,7 +1,8 @@
 // Tests for the GSOF parser.
 // * ./waf tests
 // * ./build/sitl/tests/test_gsof
-
+// Or, with GDB
+// * gdb ./build/sitl/tests/test_gsof
 
 #include <AP_gtest.h>
 
@@ -40,6 +41,39 @@ TEST(AP_GSOF, packet1)
         c = fgetc (fp);
         parsed |= gsof.parse((uint8_t)c, expected);
     }
+    
+    EXPECT_TRUE(parsed);
+
+    fclose(fp);
+
+}
+
+TEST(AP_GSOF, packet_corrupt_record)
+{
+    // FILE* fp = std::fopen("gsof_data.bin", "rb");
+    
+    FILE* fp = std::fopen("dump_200735.bin", "rb");
+    EXPECT_NE(fp, nullptr);
+    AP_GSOF gsof;
+    char c = 0;
+    bool parsed = false;
+
+    AP_GSOF::MsgTypes expected;
+    expected.set(1);
+    expected.set(2);
+    expected.set(8);
+    expected.set(9);
+    expected.set(12);
+
+    size_t i = 0;
+    uint8_t buf[AP_GSOF::MAX_PACKET_SIZE];
+    while (c != EOF) {
+        c = fgetc (fp);
+        buf[i] = c;
+        i++;
+    }
+
+    parsed |= gsof.parse_buf(buf, i-1, expected);
     
     EXPECT_TRUE(parsed);
 

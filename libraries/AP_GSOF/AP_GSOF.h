@@ -41,6 +41,24 @@ public:
         LLH_MSL = 70,
     };
 
+    enum class ImuAlignmentStatus {
+        GPS_ONLY = 0,
+        COARSE_LEVELING = 1,
+        DEGRADED = 2,
+        ALIGNED = 3,
+        FULL_NAV = 4
+    };
+
+    enum class GnssStatus {
+        FIX_NOT_AVAILABLE = 0,
+        GNSS_SPS_MODE = 1,
+        DGPS_SPS_MODE = 2,
+        GNSS_PPS_MODE = 3,
+        FIXED_RTK_MODE = 4,
+        FLOAT_RTK_MODE = 5,
+        DR_MODE = 6
+    };
+
     // GSOF1
     struct PACKED pos_time_t {
         uint32_t time_week_ms;
@@ -107,8 +125,8 @@ public:
         uint16_t gps_week;
         // GPS Time in msec of current week
         uint32_t gps_time_ms;
-        uint8_t ins_quality;
-        uint8_t gnss_quality;
+        ImuAlignmentStatus imu_alignment_status;
+        GnssStatus gnss_status;
         double latitude;
         double longitude;
         // Altitude is in ITRF 2020.
@@ -142,8 +160,8 @@ public:
         uint16_t gps_week;
         // GPS Time in msec of current week
         uint32_t gps_time_ms;
-        uint8_t ins_quality;
-        uint8_t gnss_quality;
+        ImuAlignmentStatus imu_alignment_status;
+        GnssStatus gnss_status;
         // North Position RMS [meters]
         float pos_rms_n;
         // East Position RMS [meters]

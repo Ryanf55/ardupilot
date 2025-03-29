@@ -18,6 +18,7 @@
 //     For EAHRS as a GPS:
 //     param set GPS1_TYPE 21
 //   Configure GSOF 49,50,70 on UDP port 44444
+//   Consider setting EK3_SRC1_YAW to 2 on the bench...
 
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
 
@@ -75,7 +76,6 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
     // sock->sendto((const void*)data, strlen(data), dest_ip, 44448);
     
     sock->bind("0.0.0.0", 44444);
-    uint8_t data[AP_GSOF::MAX_PACKET_SIZE];
 
     AP_GSOF::MsgTypes expected;
     expected.set(AP_GSOF::POS_TIME);
@@ -83,9 +83,15 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
     expected.set(AP_GSOF::INS_RMS);
     expected.set(AP_GSOF::LLH_MSL);
     // TODO configure receiver to output expected data.
+
+    auto last_debug = AP_HAL::millis();
+    size_t pps = 0;
+    size_t rps = 0;
     
     while (true) {
+        uint8_t data[AP_GSOF::MAX_PACKET_SIZE];
         auto const recv_res = sock->recv(data, AP_GSOF::MAX_PACKET_SIZE, 1);
+        rps++;
         if (recv_res != -1) {
             AP_GSOF::MsgTypes parsed;
             const auto parse_res = parse_buf(data, recv_res, parsed);
@@ -94,7 +100,15 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
             }
 
             auto const now = AP_HAL::millis();
+            pps++;
 
+            if (now - last_debug > 1000) {
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GSOF PPS: '%lu'", static_cast<unsigned long>(pps));
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GSOF RPS: '%lu'", static_cast<unsigned long>(rps));
+                last_debug = now;
+                pps = 0;
+                rps = 0;
+            }
             if (parsed.get(AP_GSOF::POS_TIME)) {
                 last_pos_time_ms = now;
 
@@ -110,6 +124,7 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
                 gps_data.ned_vel_north = ins_full_nav.vel_n;
                 gps_data.ned_vel_east = ins_full_nav.vel_e;
                 gps_data.ned_vel_down = ins_full_nav.vel_d;
+                post_filter();
             }
             if (parsed.get(AP_GSOF::INS_RMS)) {
                 last_ins_rms_ms = now;
@@ -121,14 +136,14 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
             if (parsed.get(AP_GSOF::LLH_MSL)) {
                 last_llh_msl_ms = now;
 
-                gps_data.longitude = static_cast<int32_t>(llh_msl.longitude * 1E-7);
-                gps_data.latitude = static_cast<int32_t>(llh_msl.latitude * 1E-7);
-                gps_data.msl_altitude = static_cast<int32_t>(llh_msl.altitude_msl * 1E-2);
+                gps_data.longitude = static_cast<int32_t>(llh_msl.longitude * 1E7);
+                gps_data.latitude = static_cast<int32_t>(llh_msl.latitude * 1E7);
+                gps_data.msl_altitude = static_cast<int32_t>(llh_msl.altitude_msl * 1E2);
             }
 
             // TODO only send GNSS data if we got what we needed.
             uint8_t instance;
-            if (AP::gps().get_first_external_instance(instance)) {
+            if (AP::gps().get_first_external_instance(instance) && parsed == expected) {
                 AP::gps().handle_external(gps_data, instance);
             }
         }
@@ -154,8 +169,20 @@ void AP_ExternalAHRS_GSOF::post_filter() const
     state.velocity = Vector3f{ins_full_nav.vel_n, ins_full_nav.vel_e, ins_full_nav.vel_d};
     state.have_velocity = true;
 
+    // TODO verify altitude datum here.
     state.location = Location(ins_full_nav.latitude * 1E7, ins_full_nav.longitude * 1E7, ins_full_nav.altitude * 1E2, Location::AltFrame::ABSOLUTE);
     state.have_location = true;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+        if (!state.location.initialised()) {
+            AP_HAL::panic("Uninitialized location.");
+        }
+#endif
+
+    if (!state.have_origin && filter_healthy()) {
+        state.origin = state.location;
+        state.have_origin = true;
+    }
 }
 
 // Get model/type name
@@ -212,20 +239,20 @@ bool AP_ExternalAHRS_GSOF::times_healthy() const
     auto const GSOF_49_EXPECTED_DELAY_MS = 200;
     auto const ins_full_nav_healthy = now - last_ins_full_nav_ms <= TIMES_FOS * GSOF_49_EXPECTED_DELAY_MS;
     if (!ins_full_nav_healthy) {
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS Full nav delayed by %u ms", get_name(), now - last_ins_full_nav_ms);
+        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS Full nav delayed by %u ms", get_name(), now - last_ins_full_nav_ms);
     }
 
     // 5Hz = 200mS.
-    auto const GSOF_50_EXPECTED_DELAY_MS = 200;
+    auto const GSOF_50_EXPECTED_DELAY_MS = 1000;
     auto const ins_rms_healthy = now - last_ins_rms_ms < TIMES_FOS * GSOF_50_EXPECTED_DELAY_MS;
     if (!ins_rms_healthy) {
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS rms delayed by %u ms", get_name(), now - last_ins_rms_ms);
+        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS rms delayed by %u ms", get_name(), now - last_ins_rms_ms);
     }
     // 100Hz = 10mS.
-    auto const GSOF_70_EXPECTED_DELAY_MS = 200;
+    auto const GSOF_70_EXPECTED_DELAY_MS = 1000;
     auto const llh_msl_healthy = now - last_llh_msl_ms < TIMES_FOS * GSOF_70_EXPECTED_DELAY_MS;
     if (!llh_msl_healthy) {
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: LLH MSL delayed by %u ms", get_name(), now - last_llh_msl_ms);
+        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: LLH MSL delayed by %u ms", get_name(), now - last_llh_msl_ms);
     }
 
     return ins_full_nav_healthy && ins_rms_healthy && llh_msl_healthy;
@@ -234,7 +261,17 @@ bool AP_ExternalAHRS_GSOF::times_healthy() const
 bool AP_ExternalAHRS_GSOF::filter_healthy() const
 {
     // TODO get the right threshold from Trimble.
-    return ins_rms.gnss_quality >= 1;
+    // Fow now, assume aligned IMU is sufficient for flight.
+    auto const imu_alignment_healthy = (
+        ins_rms.imu_alignment_status == ImuAlignmentStatus::ALIGNED ||
+        ins_rms.imu_alignment_status == ImuAlignmentStatus::FULL_NAV
+    );
+
+    auto const gnss_healthy = (
+        ins_rms.gnss_status == GnssStatus::FIXED_RTK_MODE ||
+        ins_rms.gnss_status == GnssStatus::FLOAT_RTK_MODE
+    );
+    return imu_alignment_healthy && gnss_healthy;
 }
 
 #endif // AP_EXTERNAL_AHRS_GSOF_ENABLED
