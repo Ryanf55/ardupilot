@@ -124,11 +124,15 @@ AP_GSOF::process_message(MsgTypes& parsed_msgs)
         for (uint32_t a = 3; a < msg.length; a++) {
             const uint8_t output_type = msg.data[a];
 // TODO handle at runtime or find root cause
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+
     if (output_type >= parsed_msgs.size()) {
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
         AP_HAL::panic("Invalid output type.");
-    }
+#else
+        return false;
 #endif
+    }
+
             parsed_msgs.set(output_type);
             a++;
             const uint8_t output_length = msg.data[a];
@@ -160,6 +164,7 @@ AP_GSOF::process_message(MsgTypes& parsed_msgs)
             case LLH_MSL:
                 parse_llh_msl(a);
             default:
+                // TODO log warning unparsed packet.
                 break;
             }
 
