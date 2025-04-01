@@ -198,7 +198,7 @@ bool AP_ExternalAHRS_GSOF::healthy(void) const
 
 bool AP_ExternalAHRS_GSOF::initialised(void) const
 {
-    return last_ins_full_nav_ms != 0 && last_ins_rms_ms != 0 && last_llh_msl_ms != 0;
+    return last_pos_time_ms != 0 && last_ins_full_nav_ms != 0 && last_ins_rms_ms != 0 && last_llh_msl_ms != 0;
 }
 
 bool AP_ExternalAHRS_GSOF::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
@@ -235,24 +235,32 @@ bool AP_ExternalAHRS_GSOF::times_healthy() const
     
     auto const TIMES_FOS = 2.0;
 
-    // 100Hz = 10mS.
-    auto const GSOF_49_EXPECTED_DELAY_MS = 200;
-    auto const ins_full_nav_healthy = now - last_ins_full_nav_ms <= TIMES_FOS * GSOF_49_EXPECTED_DELAY_MS;
-    if (!ins_full_nav_healthy) {
-        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS Full nav delayed by %u ms", get_name(), now - last_ins_full_nav_ms);
+
+    // 1Hz = 1000mS.
+    auto const GSOF_1_EXPECTED_DELAY_MS = 1000;
+    auto const pos_time_healthy = now - last_pos_time_ms <= TIMES_FOS * GSOF_1_EXPECTED_DELAY_MS;
+    if (!pos_time_healthy) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: GSOF pos time delayed by %u ms", get_name(), now - last_pos_time_ms);
     }
 
-    // 5Hz = 200mS.
+    // 100Hz = 10mS.
+    auto const GSOF_49_EXPECTED_DELAY_MS = 10;
+    auto const ins_full_nav_healthy = now - last_ins_full_nav_ms <= TIMES_FOS * GSOF_49_EXPECTED_DELAY_MS;
+    if (!ins_full_nav_healthy) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS Full nav delayed by %u ms", get_name(), now - last_ins_full_nav_ms);
+    }
+
+    // 1Hz = 1000mS.
     auto const GSOF_50_EXPECTED_DELAY_MS = 1000;
     auto const ins_rms_healthy = now - last_ins_rms_ms < TIMES_FOS * GSOF_50_EXPECTED_DELAY_MS;
     if (!ins_rms_healthy) {
-        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS rms delayed by %u ms", get_name(), now - last_ins_rms_ms);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS rms delayed by %u ms", get_name(), now - last_ins_rms_ms);
     }
-    // 100Hz = 10mS.
+    // 1Hz = 1000mS.
     auto const GSOF_70_EXPECTED_DELAY_MS = 1000;
     auto const llh_msl_healthy = now - last_llh_msl_ms < TIMES_FOS * GSOF_70_EXPECTED_DELAY_MS;
     if (!llh_msl_healthy) {
-        // GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: LLH MSL delayed by %u ms", get_name(), now - last_llh_msl_ms);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: LLH MSL delayed by %u ms", get_name(), now - last_llh_msl_ms);
     }
 
     return ins_full_nav_healthy && ins_rms_healthy && llh_msl_healthy;
