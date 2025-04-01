@@ -260,17 +260,17 @@ bool AP_ExternalAHRS_GSOF::times_healthy() const
 
 bool AP_ExternalAHRS_GSOF::filter_healthy() const
 {
-    // TODO get the right threshold from Trimble.
+    // TODO get the right threshold from Trimble for arming vs in flight.
     // Fow now, assume aligned IMU is sufficient for flight.
     auto const imu_alignment_healthy = (
+        ins_rms.imu_alignment_status == ImuAlignmentStatus::DEGRADED ||
         ins_rms.imu_alignment_status == ImuAlignmentStatus::ALIGNED ||
         ins_rms.imu_alignment_status == ImuAlignmentStatus::FULL_NAV
     );
 
-    auto const gnss_healthy = (
-        ins_rms.gnss_status == GnssStatus::FIXED_RTK_MODE ||
-        ins_rms.gnss_status == GnssStatus::FLOAT_RTK_MODE
-    );
+    auto const gnss_healthy = ins_rms.gnss_status != GnssStatus::FIX_NOT_AVAILABLE;
+
+    // TODO check RMS errors.
     return imu_alignment_healthy && gnss_healthy;
 }
 
