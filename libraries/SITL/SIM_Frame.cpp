@@ -523,22 +523,6 @@ void Frame::load_frame_params(const char *model_json)
     ::printf("Loaded model params from %s\n", model_json);
 }
 
-void Frame::parse_float(AP_JSON::value val, const char* label, float &param) {
-    if (!val.is<double>()) {
-        AP_HAL::panic("Bad json type for %s: %s", label, val.to_str().c_str());
-    }
-    param = val.get<double>();
-}
-
-void Frame::parse_vector3(AP_JSON::value val, const char* label, Vector3f &param) {
-    if (!val.is<AP_JSON::value::array>() || !val.contains(2) || val.contains(3)) {
-        AP_HAL::panic("Bad json type for %s: %s", label, val.to_str().c_str());
-    }
-    for (uint8_t j=0; j<3; j++) {
-        parse_float(val.get(j), label, param[j]);
-    }
-}
-
 #if AP_SIM_ENABLED
 
 /*

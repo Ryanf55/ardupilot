@@ -162,9 +162,5 @@ private:
 #if AP_SIM_ENABLED
     Battery *battery;
 #endif
-
-    // json parsing helpers
-    void parse_float(AP_JSON::value val, const char* label, float &param);
-    void parse_vector3(AP_JSON::value val, const char* label, Vector3f &param);
 };
 }

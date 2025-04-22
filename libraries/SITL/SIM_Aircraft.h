@@ -20,6 +20,7 @@
 
 #if AP_SIM_ENABLED
 
+#include <AP_JSON/AP_JSON.h>
 #include <AP_Math/AP_Math.h>
 
 #include "SITL.h"
@@ -53,6 +54,9 @@ namespace SITL {
  */
 class Aircraft {
 public:
+
+    friend class SIM_Frame;
+
     Aircraft(const char *frame_str);
 
     // called directly after constructor:
@@ -290,6 +294,10 @@ protected:
 
     bool use_smoothing;
     bool disable_origin_movement;
+
+    // json parsing helpers
+    void parse_float(AP_JSON::value val, const char* label, float &param);
+    void parse_vector3(AP_JSON::value val, const char* label, Vector3f &param);
 
     float ground_height_difference() const;
 

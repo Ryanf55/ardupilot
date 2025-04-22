@@ -104,6 +104,22 @@ void Aircraft::set_start_location(const Location &start_loc, const float start_y
     dcm.from_euler(0.0f, 0.0f, radians(home_yaw));
 }
 
+void Aircraft::parse_float(AP_JSON::value val, const char* label, float &param) {
+    if (!val.is<double>()) {
+        AP_HAL::panic("Bad json type for %s: %s", label, val.to_str().c_str());
+    }
+    param = val.get<double>();
+}
+
+void Aircraft::parse_vector3(AP_JSON::value val, const char* label, Vector3f &param) {
+    if (!val.is<AP_JSON::value::array>() || !val.contains(2) || val.contains(3)) {
+        AP_HAL::panic("Bad json type for %s: %s", label, val.to_str().c_str());
+    }
+    for (uint8_t j=0; j<3; j++) {
+        parse_float(val.get(j), label, param[j]);
+    }
+}
+
 /*
    return difference in altitude between home position and current loc
 */
