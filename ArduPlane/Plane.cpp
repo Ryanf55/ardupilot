@@ -1009,6 +1009,14 @@ bool Plane::is_taking_off() const
     return control_mode->is_taking_off();
 }
 
+bool Plane::start_takeoff(const float alt) {
+#if HAL_QUADPLANE_ENABLED
+    return quadplane.do_user_takeoff(alt);
+#else
+    return false;
+#endif
+}
+
 // correct AHRS pitch for PTCH_TRIM_DEG in non-VTOL modes, and return VTOL view in VTOL
 void Plane::get_osd_roll_pitch_rad(float &roll, float &pitch) const
 {
