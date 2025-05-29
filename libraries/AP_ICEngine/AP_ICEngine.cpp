@@ -239,7 +239,7 @@ void AP_ICEngine::param_conversion()
     // Conversion table giving the old on and off pwm parameter indexes and the function for both starter and ignition
     const struct convert_table {
         uint32_t element[2];
-        SRV_Channel::Aux_servo_function_t fuction;
+        SRV_Channel::Function fuction;
     } conversion_table[] = {
         { {450, 514}, SRV_Channel::k_starter },  // PWM_STRT_ON, PWM_STRT_OFF
         { {322, 386}, SRV_Channel::k_ignition }, // PWM_IGN_ON, PWM_IGN_OFF
@@ -377,7 +377,7 @@ void AP_ICEngine::update(void)
         Vector3f pos;
         if (!should_run) {
             state = ICE_OFF;
-        } else if (AP::ahrs().get_relative_position_NED_origin(pos)) {
+        } else if (AP::ahrs().get_relative_position_NED_origin_float(pos)) {
             if (height_pending) {
                 height_pending = false;
                 initial_height = -pos.z;
@@ -447,7 +447,7 @@ void AP_ICEngine::update(void)
         if (state == ICE_START_HEIGHT_DELAY) {
             // when disarmed we can be waiting for takeoff
             Vector3f pos;
-            if (AP::ahrs().get_relative_position_NED_origin(pos)) {
+            if (AP::ahrs().get_relative_position_NED_origin_float(pos)) {
                 // reset initial height while disarmed
                 initial_height = -pos.z;
             }

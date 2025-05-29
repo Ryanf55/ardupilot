@@ -143,7 +143,7 @@ const AP_Param::GroupInfo AP_DroneCAN::var_info[] = {
 
     // @Param: ESC_OF
     // @DisplayName: ESC Output channels offset
-    // @Description: Offset for ESC numbering in DroneCAN ESC RawCommand messages. This allows for more efficient packing of ESC command messages. If your ESCs are on servo functions 5 to 8 and you set this parameter to 4 then the ESC RawCommand will be sent with the first 4 slots filled. This can be used for more efficient usage of CAN bandwidth
+    // @Description: Offset for ESC numbering in DroneCAN ESC RawCommand messages. This allows for more efficient packing of ESC command messages. If your ESCs are on servo outputs 5 to 8 and you set this parameter to 4 then the ESC RawCommand will be sent with the first 4 slots filled. This can be used for more efficient usage of CAN bandwidth
     // @Range: 0 18
     // @User: Advanced
     AP_GROUPINFO("ESC_OF", 7, AP_DroneCAN, _esc_offset, 0),
@@ -1389,14 +1389,14 @@ void AP_DroneCAN::handle_actuator_status(const CanardRxTransfer& transfer, const
     }
 
     const AP_Servo_Telem::TelemetryData telem_data {
-        .measured_position = ToDeg(msg.position),
+        .measured_position = degrees(msg.position),
         .force = msg.force,
         .speed = msg.speed,
         .duty_cycle = msg.power_rating_pct,
-        .valid_types = AP_Servo_Telem::TelemetryData::Types::MEASURED_POSITION |
-                       AP_Servo_Telem::TelemetryData::Types::FORCE |
-                       AP_Servo_Telem::TelemetryData::Types::SPEED |
-                       AP_Servo_Telem::TelemetryData::Types::DUTY_CYCLE
+        .present_types = AP_Servo_Telem::TelemetryData::Types::MEASURED_POSITION |
+                         AP_Servo_Telem::TelemetryData::Types::FORCE |
+                         AP_Servo_Telem::TelemetryData::Types::SPEED |
+                         AP_Servo_Telem::TelemetryData::Types::DUTY_CYCLE
     };
 
     servo_telem->update_telem_data(msg.actuator_id, telem_data);
@@ -1422,13 +1422,13 @@ void AP_DroneCAN::handle_himark_servoinfo(const CanardRxTransfer& transfer, cons
         .motor_temperature_cdeg = int16_t(((msg.motor_temp * 0.2) - 40) * 100),
         .pcb_temperature_cdeg = int16_t(((msg.pcb_temp * 0.2) - 40) * 100),
         .status_flags = msg.error_status,
-        .valid_types = AP_Servo_Telem::TelemetryData::Types::COMMANDED_POSITION |
-                       AP_Servo_Telem::TelemetryData::Types::MEASURED_POSITION |
-                       AP_Servo_Telem::TelemetryData::Types::VOLTAGE |
-                       AP_Servo_Telem::TelemetryData::Types::CURRENT |
-                       AP_Servo_Telem::TelemetryData::Types::MOTOR_TEMP |
-                       AP_Servo_Telem::TelemetryData::Types::PCB_TEMP |
-                       AP_Servo_Telem::TelemetryData::Types::STATUS
+        .present_types = AP_Servo_Telem::TelemetryData::Types::COMMANDED_POSITION |
+                         AP_Servo_Telem::TelemetryData::Types::MEASURED_POSITION |
+                         AP_Servo_Telem::TelemetryData::Types::VOLTAGE |
+                         AP_Servo_Telem::TelemetryData::Types::CURRENT |
+                         AP_Servo_Telem::TelemetryData::Types::MOTOR_TEMP |
+                         AP_Servo_Telem::TelemetryData::Types::PCB_TEMP |
+                         AP_Servo_Telem::TelemetryData::Types::STATUS
     };
 
     servo_telem->update_telem_data(msg.servo_id, telem_data);
@@ -1444,16 +1444,16 @@ void AP_DroneCAN::handle_actuator_status_Volz(const CanardRxTransfer& transfer, 
     }
 
     const AP_Servo_Telem::TelemetryData telem_data {
-        .measured_position = ToDeg(msg.actual_position),
+        .measured_position = degrees(msg.actual_position),
         .voltage = msg.voltage * 0.2,
         .current = msg.current * 0.025,
-        .duty_cycle = msg.motor_pwm * (100.0/255.0),
-        .motor_temperature_cdeg = (int16_t(msg.motor_temperature) - 50)) * 100,
-        .valid_types = AP_Servo_Telem::TelemetryData::Types::MEASURED_POSITION |
-                       AP_Servo_Telem::TelemetryData::Types::VOLTAGE |
-                       AP_Servo_Telem::TelemetryData::Types::CURRENT |
-                       AP_Servo_Telem::TelemetryData::Types::DUTY_CYCLE |
-                       AP_Servo_Telem::TelemetryData::Types::MOTOR_TEMP
+        .duty_cycle = uint8_t(msg.motor_pwm * (100.0/255.0)),
+        .motor_temperature_cdeg = int16_t((msg.motor_temperature - 50) * 100),
+        .present_types = AP_Servo_Telem::TelemetryData::Types::MEASURED_POSITION |
+                         AP_Servo_Telem::TelemetryData::Types::VOLTAGE |
+                         AP_Servo_Telem::TelemetryData::Types::CURRENT |
+                         AP_Servo_Telem::TelemetryData::Types::DUTY_CYCLE |
+                         AP_Servo_Telem::TelemetryData::Types::MOTOR_TEMP
     };
 
     servo_telem->update_telem_data(msg.actuator_id, telem_data);

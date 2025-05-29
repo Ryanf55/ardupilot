@@ -39,6 +39,12 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
 #include <AP_CustomRotations/AP_CustomRotations.h>
+
+#include <AP_Mission/AP_Mission_config.h>
+#if AP_MISSION_ENABLED
+#include <AP_Mission/AP_Mission.h>
+#endif
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <SITL/SITL.h>
 #endif
@@ -59,7 +65,7 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @DisplayName: AHRS GPS gain
     // @Description: This controls how much to use the GPS to correct the attitude. This should never be set to zero for a plane as it would result in the plane losing control in turns. For a plane please use the default value of 1.0.
     // @Range: 0.0 1.0
-    // @Increment: .01
+    // @Increment: 0.01
     // @User: Advanced
     AP_GROUPINFO("GPS_GAIN",  2, AP_AHRS, gps_gain, 1.0f),
 
@@ -74,7 +80,7 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @DisplayName: Yaw P
     // @Description: This controls the weight the compass or GPS has on the heading. A higher value means the heading will track the yaw source (GPS or compass) more rapidly.
     // @Range: 0.1 0.4
-    // @Increment: .01
+    // @Increment: 0.01
     // @User: Advanced
     AP_GROUPINFO("YAW_P", 4,    AP_AHRS, _kp_yaw, 0.2f),
 
@@ -82,7 +88,7 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @DisplayName: AHRS RP_P
     // @Description: This controls how fast the accelerometers correct the attitude
     // @Range: 0.1 0.4
-    // @Increment: .01
+    // @Increment: 0.01
     // @User: Advanced
     AP_GROUPINFO("RP_P",  5,    AP_AHRS, _kp, 0.2f),
 
@@ -133,7 +139,7 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @DisplayName: AHRS Velocity Complementary Filter Beta Coefficient
     // @Description: This controls the time constant for the cross-over frequency used to fuse AHRS (airspeed and heading) and GPS data to estimate ground velocity. Time constant is 0.1/beta. A larger time constant will use GPS data less and a small time constant will use air data less.
     // @Range: 0.001 0.5
-    // @Increment: .01
+    // @Increment: 0.01
     // @User: Advanced
     AP_GROUPINFO("COMP_BETA",  10, AP_AHRS, beta, 0.1f),
 
@@ -223,6 +229,8 @@ AP_AHRS::AP_AHRS(uint8_t flags) :
 // init sets up INS board orientation
 void AP_AHRS::init()
 {
+    update_orientation();
+
     // EKF1 is no longer supported - handle case where it is selected
     if (_ekf_type.get() == 1) {
         AP_BoardConfig::config_error("EKF1 not available");
@@ -276,6 +284,18 @@ void AP_AHRS::init()
         }
     }
 #endif  // AP_CUSTOMROTATIONS_ENABLED
+}
+
+// has_status returns information about the EKF health and
+// capabilities.  It is currently invalid to call this when a
+// backend is in charge which returns false for get_filter_status
+// - so this will simply return false for DCM, for example.
+bool AP_AHRS::has_status(Status status) const {
+    nav_filter_status filter_status;
+    if (!get_filter_status(filter_status)) {
+        return false;
+    }
+    return (filter_status.value & uint32_t(status)) != 0;
 }
 
 // updates matrices responsible for rotating vectors from vehicle body
@@ -340,8 +360,15 @@ void AP_AHRS::reset_gyro_drift(void)
  */
 void AP_AHRS::update_state(void)
 {
+    const uint8_t primary_gyro = _get_primary_gyro_index();
+#if AP_INERTIALSENSOR_ENABLED
+    // tell the IMUS about primary changes
+    if (primary_gyro != state.primary_gyro) {
+        AP::ins().set_primary(primary_gyro);
+    }
+#endif
     state.primary_IMU = _get_primary_IMU_index();
-    state.primary_gyro = _get_primary_gyro_index();
+    state.primary_gyro = primary_gyro;
     state.primary_accel = _get_primary_accel_index();
     state.primary_core = _get_primary_core_index();
     state.wind_estimate_ok = _wind_estimate(state.wind_estimate);
@@ -361,6 +388,7 @@ void AP_AHRS::update_state(void)
     state.velocity_NED_ok = _get_velocity_NED(state.velocity_NED);
 }
 
+// update run at loop rate
 void AP_AHRS::update(bool skip_ins_update)
 {
     // periodically checks to see if we should update the AHRS
@@ -1696,7 +1724,7 @@ bool AP_AHRS::get_hagl(float &height) const
 /*
   return a relative NED position from the origin in meters
 */
-bool AP_AHRS::get_relative_position_NED_origin(Vector3f &vec) const
+bool AP_AHRS::get_relative_position_NED_origin(Vector3p &vec) const
 {
     switch (active_EKF_type()) {
 #if AP_AHRS_DCM_ENABLED
@@ -1705,8 +1733,8 @@ bool AP_AHRS::get_relative_position_NED_origin(Vector3f &vec) const
 #endif
 #if HAL_NAVEKF2_AVAILABLE
     case EKFType::TWO: {
-        Vector2f posNE;
-        float posD;
+        Vector2p posNE;
+        postype_t posD;
         if (EKF2.getPosNE(posNE) && EKF2.getPosD(posD)) {
             // position is valid
             vec.x = posNE.x;
@@ -1720,8 +1748,8 @@ bool AP_AHRS::get_relative_position_NED_origin(Vector3f &vec) const
 
 #if HAL_NAVEKF3_AVAILABLE
     case EKFType::THREE: {
-            Vector2f posNE;
-            float posD;
+            Vector2p posNE;
+            postype_t posD;
             if (EKF3.getPosNE(posNE) && EKF3.getPosD(posD)) {
                 // position is valid
                 vec.x = posNE.x;
@@ -1747,6 +1775,16 @@ bool AP_AHRS::get_relative_position_NED_origin(Vector3f &vec) const
     return false;
 }
 
+bool AP_AHRS::get_relative_position_NED_origin_float(Vector3f &vec) const
+{
+    Vector3p tmp_posNED;
+    if (!get_relative_position_NED_origin(tmp_posNED)) {
+        return false;
+    }
+    vec = tmp_posNED.tofloat();
+    return true;
+}
+
 /*
  return a relative ground position from home in meters
 */
@@ -1764,7 +1802,7 @@ bool AP_AHRS::get_relative_position_NED_home(Vector3f &vec) const
 /*
   return a relative position estimate from the origin in meters
 */
-bool AP_AHRS::get_relative_position_NE_origin(Vector2f &posNE) const
+bool AP_AHRS::get_relative_position_NE_origin(Vector2p &posNE) const
 {
     switch (active_EKF_type()) {
 #if AP_AHRS_DCM_ENABLED
@@ -1799,6 +1837,16 @@ bool AP_AHRS::get_relative_position_NE_origin(Vector2f &posNE) const
     return false;
 }
 
+bool AP_AHRS::get_relative_position_NE_origin_float(Vector2f &posNE) const
+{
+    Vector2p tmp_posNE;
+    if (!get_relative_position_NE_origin(tmp_posNE)) {
+        return false;
+    }
+    posNE = tmp_posNE.tofloat();
+    return true;
+}
+
 /*
  return a relative ground position from home in meters North/East
 */
@@ -1820,7 +1868,7 @@ bool AP_AHRS::get_relative_position_NE_home(Vector2f &posNE) const
 /*
   return a relative ground position from the origin in meters, down
 */
-bool AP_AHRS::get_relative_position_D_origin(float &posD) const
+bool AP_AHRS::get_relative_position_D_origin(postype_t &posD) const
 {
     switch (active_EKF_type()) {
 #if AP_AHRS_DCM_ENABLED
@@ -1854,6 +1902,16 @@ bool AP_AHRS::get_relative_position_D_origin(float &posD) const
     return false;
 }
 
+bool AP_AHRS::get_relative_position_D_origin_float(float &posD) const
+{
+    postype_t tmp_posD;
+    if (!get_relative_position_D_origin(tmp_posD)) {
+        return false;
+    }
+    posD = float(tmp_posD);
+    return true;
+}
+
 /*
   return relative position from home in meters
 */
@@ -1867,7 +1925,7 @@ void AP_AHRS::get_relative_position_D_home(float &posD) const
     }
 
     Location originLLH;
-    float originD;
+    postype_t originD;
     if (!get_relative_position_D_origin(originD) ||
         !_get_origin(originLLH)) {
 #if AP_GPS_ENABLED
@@ -2518,7 +2576,8 @@ bool AP_AHRS::getMagOffsets(uint8_t mag_idx, Vector3f &magOffsets) const
 
 #if AP_AHRS_SIM_ENABLED
     case EKFType::SIM:
-        return sim.get_mag_offsets(mag_idx, magOffsets);
+        magOffsets.zero();
+        return true;
 #endif
 #if AP_AHRS_EXTERNAL_ENABLED
     case EKFType::EXTERNAL:
@@ -2983,6 +3042,14 @@ bool AP_AHRS::set_home(const Location &loc)
     pd.home_lat = loc.lat;
     pd.home_lon = loc.lng;
     pd.home_alt_cm = loc.alt;
+
+#if AP_MISSION_ENABLED
+    // Save home to mission
+    AP_Mission *mission = AP::mission();
+    if (mission != nullptr) {
+        mission->write_home_to_storage();
+    }
+#endif
 
     return true;
 }

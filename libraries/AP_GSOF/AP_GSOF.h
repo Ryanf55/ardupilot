@@ -199,7 +199,6 @@ private:
     // Parses current data.
     // Returns true if, and only if, the expected packets were parsed.
     // Unexpected/unparsed data will make this return false.
-
     bool process_message(MsgTypes& parsed_msgs) WARN_IF_UNUSED;
 
     void parse_pos_time(uint32_t a);

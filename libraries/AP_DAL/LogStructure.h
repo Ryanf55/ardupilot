@@ -58,6 +58,19 @@ struct log_RFRF {
 
 // @LoggerMessage: RFRN
 // @Description: Replay FRame - aNother frame header
+// @Field: HLat: home latitude
+// @Field: HLon: home latitude
+// @Field: HAlt: home altitude AMSL
+// @Field: E2T: EAS to TAS factor
+// @Field: AM: available memory
+// @Field: TX: AHRS trim X
+// @Field: TY: AHRS trim Y
+// @Field: TZ: AHRS trim Z
+// @Field: VC: AHRS Vehicle Class
+// @Field: EKT: configured EKF type
+// @FieldValueEnum: EKT: AP_DAL::EKFType
+// @Field: Flags: bitmask of boolean state
+// @FieldBitmaskEnum: Flags: AP_DAL::RFRNFlags
 struct log_RFRN {
     int32_t lat;
     int32_t lng;
@@ -172,8 +185,8 @@ struct log_RBRI {
 // @Description: Replay Data Rangefinder Header
 struct log_RRNH {
     // this is rotation-pitch-270!
-    int16_t ground_clearance_cm;
-    int16_t max_distance_cm;
+    float ground_clearance;
+    float max_distance;
     uint8_t num_sensors;
     uint8_t _end;
 };
@@ -182,7 +195,7 @@ struct log_RRNH {
 // @Description: Replay Data Rangefinder Instance
 struct log_RRNI {
     Vector3f pos_offset;
-    uint16_t distance_cm;
+    float distance;
     uint8_t orientation;
     uint8_t status;
     uint8_t instance;
@@ -392,7 +405,7 @@ struct log_RBOH {
     { LOG_RFRF_MSG, RLOG_SIZE(RFRF),                          \
       "RFRF", "BB", "FTypes,Slow", "--", "--" }, \
     { LOG_RFRN_MSG, RLOG_SIZE(RFRN),                            \
-      "RFRN", "IIIfIfffBBB", "HLat,HLon,HAlt,E2T,AM,TX,TY,TZ,VC,EKT,Flags", "DUm????????", "GGB--------" }, \
+      "RFRN", "IIIfIfffBBB", "HLat,HLon,HAlt,E2T,AM,TX,TY,TZ,VC,EKT,Flags", "DUm-bddd---", "GGB--------" }, \
     { LOG_REV2_MSG, RLOG_SIZE(REV2),                                   \
       "REV2", "B", "Event", "-", "-" }, \
     { LOG_RSO2_MSG, RLOG_SIZE(RSO2),                         \
@@ -420,9 +433,9 @@ struct log_RBOH {
     { LOG_RBRI_MSG, RLOG_SIZE(RBRI),                                   \
       "RBRI", "IfBB", "LastUpdate,Alt,H,I", "---#", "----" }, \
     { LOG_RRNH_MSG, RLOG_SIZE(RRNH),                                   \
-      "RRNH", "hhB", "GCl,MaxD,NumSensors", "???", "???" },  \
+      "RRNH", "ffB", "GCl,MaxD,NumSensors", "mm-", "00-" },  \
     { LOG_RRNI_MSG, RLOG_SIZE(RRNI),                                   \
-      "RRNI", "fffHBBB", "PX,PY,PZ,Dist,Orient,Status,I", "------#", "-------" }, \
+      "RRNI", "ffffBBB", "PX,PY,PZ,Dist,Orient,Status,I", "---m--#", "---0---" }, \
     { LOG_RGPH_MSG, RLOG_SIZE(RGPH),                                   \
       "RGPH", "BB", "NumInst,Primary", "--", "--" },  \
     { LOG_RGPI_MSG, RLOG_SIZE(RGPI),                                   \

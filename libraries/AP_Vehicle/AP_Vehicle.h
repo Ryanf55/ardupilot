@@ -71,6 +71,7 @@
 #include <AP_KDECAN/AP_KDECAN.h>
 #include <Filter/AP_Filter.h>
 #include <AP_Stats/AP_Stats.h>              // statistics library
+#include <AP_DDS/AP_DDS_config.h>
 #if AP_SCRIPTING_ENABLED
 #include <AP_Scripting/AP_Scripting.h>
 #endif
@@ -176,6 +177,8 @@ public:
     virtual bool start_takeoff(const float alt) { return false; }
     // Method to control vehicle position for use by external control
     virtual bool set_target_location(const Location& target_loc) { return false; }
+    // Get target location for use by external control
+    virtual bool get_target_location(Location& target_loc) { return false; }
 #endif // AP_SCRIPTING_ENABLED || AP_EXTERNAL_CONTROL_ENABLED
 #if AP_SCRIPTING_ENABLED
     /*
@@ -195,8 +198,6 @@ public:
     virtual void set_rudder_offset(float rudder_pct, bool run_yaw_rate_controller) {}
     virtual bool nav_scripting_enable(uint8_t mode) {return false;}
 
-    // get target location (for use by scripting)
-    virtual bool get_target_location(Location& target_loc) { return false; }
     virtual bool update_target_location(const Location &old_loc, const Location &new_loc) { return false; }
 
     // circle mode controls (only used by scripting with Copter)
@@ -428,7 +429,7 @@ protected:
     AP_Generator generator;
 #endif
 
-#if HAL_EXTERNAL_AHRS_ENABLED
+#if AP_EXTERNAL_AHRS_ENABLED
     AP_ExternalAHRS externalAHRS;
 #endif
 
@@ -473,6 +474,14 @@ protected:
 
 #if AP_FENCE_ENABLED
     AC_Fence fence;
+    struct {
+        bool have_updates;      // true if new breache statuses have been captured but not actioned
+        uint8_t new_breaches;   // the new breaches that are available
+        uint32_t last_check_ms; // last time the fence check was run
+    } fence_breaches;
+
+    void fence_init();
+    virtual void fence_checks_async() {};
 #endif
 
 #if AP_TEMPERATURE_SENSOR_ENABLED
