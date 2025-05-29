@@ -102,18 +102,18 @@ AP_GSOF::parse(const uint8_t temp, MsgTypes& parsed_msgs)
     return NO_GSOF_DATA;
 }
 
-int
-AP_GSOF::parse_buf(const uint8_t* buf, const uint8_t n_bytes, MsgTypes& expected_msgs)
-{
-    int res;
-    for (uint8_t i = 0; i < n_bytes; i++) {
-        res = parse(buf[i], expected_msgs);
-        if (res != NO_GSOF_DATA) {
-            break;
-        }
-    }
-    return res;
-}
+// int
+// AP_GSOF::parse_buf(const uint8_t* buf, const uint8_t n_bytes, MsgTypes& expected_msgs)
+// {
+//     int res;
+//     for (uint8_t i = 0; i < n_bytes; i++) {
+//         res = parse(buf[i], expected_msgs);
+//         if (res != NO_GSOF_DATA) {
+//             break;
+//         }
+//     }
+//     return res;
+// }
 
 bool
 AP_GSOF::process_message(MsgTypes& parsed_msgs)

@@ -33,7 +33,6 @@
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_GSOF/AP_GSOF.h>
-#include <AP_Networking/AP_Networking.h>
 
 class AP_ExternalAHRS_GSOF: public AP_ExternalAHRS_backend, public AP_GSOF
 {
@@ -47,7 +46,7 @@ public:
     // get serial port number, -1 for not enabled
     // The GSOF driver returns 0 just to get the checks to pass in AP, but there isn't a serial port being used
     // because it's an ethernet driver.
-    int8_t get_port(AP_ExternalAHRS::AvailableSensor sensor) const { return 0; }
+    int8_t get_port() const override;
 
     // accessors for AP_AHRS
     bool healthy(void) const override;
@@ -81,12 +80,17 @@ private:
 
     struct {
         // The GSOF EAHRS's IP address (unicast or multicast).
-        AP_Networking_IPV4 remote_ip{AP_EXTERNAL_AHRS_GSOF_IP};
+        // AP_Networking_IPV4 remote_ip{AP_EXTERNAL_AHRS_GSOF_IP};
         // // The port for streamed data.
         // AP_Int32 remote_data_port{0};
         // // The port for configuration command/responses.
         // AP_Int32 remote_cfg_port{0};
     } param;
+
+    AP_HAL::UARTDriver *uart;
+    int8_t port_num;
+    uint32_t baudrate;
+    uint8_t *pktbuf;
 
     HAL_Semaphore sem;
 

@@ -27,7 +27,7 @@ public:
     int parse(const uint8_t temp, MsgTypes& parsed_msgs) WARN_IF_UNUSED;
 
     // Parse a buffer of data
-    int parse_buf(const uint8_t* buf, const uint8_t n_bytes, MsgTypes& expected_msgs) WARN_IF_UNUSED;
+    // int parse_buf(const uint8_t* buf, const uint8_t n_bytes, MsgTypes& expected_msgs) WARN_IF_UNUSED;
 
     // GSOF packet numbers.
     enum msg_idx_t {

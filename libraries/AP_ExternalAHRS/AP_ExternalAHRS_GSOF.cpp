@@ -18,8 +18,34 @@
 //     For EAHRS as a GPS:
 //     param set GPS1_TYPE 21
 //   Configure GSOF 49,50,70 on UDP port 44444, "UDP Mode" and "UDP Broadcast Transmit"
-//   It also works with unicast.
+//   It also works with unicast on SITL, but not ChibiOS.
 //   Consider setting EK3_SRC1_YAW to 2 on the bench...
+
+// Usage with NET parameters and ethernet in SITL with hardware:
+//     param set NET_ENABLE 1
+//     param set NET_P1_TYPE 2
+//     # Set up AHRS input
+//     param set NET_P1_PROTOCOL 36
+//     param set SIM_GPS1_TYPE 0
+//     param set NET_P1_PORT 44444
+//     param set EAHRS_TYPE 6
+//
+// Usage with serial in SITL with hardware:
+//     $ sim_vehicle.py -v Plane -A "--serial3=uart:/dev/ttyUSB0" --console --map -DG
+//     param set SERIAL3_PROTOCOL 36
+//     param set SERIAL3_BAUD 115200
+//     param set EAHRS_TYPE 6
+//     # ensure NET_* if off if you were using ethernet.
+//     # To enable the EAHRS to provide GPS:
+//     param set GPS2_TYPE 21
+
+// On most hardware, you must enable EAHRS:
+//     ./waf configure --board Pixhawk6X --enable-AHRS_EXT
+
+// GPS ride-along with EARHS as the 2nd GPS
+//      param set GPS_AUTO_SWITCH 0
+//      param set GPS2_TYPE 21
+//      param set GPS_PRIMARY 0
 
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
 
@@ -47,6 +73,20 @@ AP_ExternalAHRS_GSOF::AP_ExternalAHRS_GSOF(AP_ExternalAHRS *_frontend,
         AP_ExternalAHRS::state_t &_state): AP_ExternalAHRS_backend(_frontend, _state)
 {
 
+    auto &sm = AP::serialmanager();
+    uart = sm.find_serial(AP_SerialManager::SerialProtocol_AHRS, 0);
+    if (!uart) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, LOG_FMT, get_name(), "no UART");
+        return;
+    }
+    baudrate = sm.find_baudrate(AP_SerialManager::SerialProtocol_AHRS, 0);
+    port_num = sm.find_portnum(AP_SerialManager::SerialProtocol_AHRS, 0);
+    pktbuf = NEW_NOTHROW uint8_t[AP_GSOF::MAX_PACKET_SIZE];
+
+    if (!pktbuf) {
+        AP_BoardConfig::allocation_error("GSOF ExternalAHRS");
+    }
+
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_ExternalAHRS_GSOF::update_thread, void), "AHRS", 2048, AP_HAL::Scheduler::PRIORITY_SPI, 0)) {
         AP_BoardConfig::allocation_error("GSOF ExternalAHRS failed to allocate ExternalAHRS update thread");
     }
@@ -56,46 +96,35 @@ AP_ExternalAHRS_GSOF::AP_ExternalAHRS_GSOF(AP_ExternalAHRS *_frontend,
 
     hal.scheduler->delay(5000);
     if (!initialised()) {
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, LOG_FMT, get_name(), "failed to initialise.");
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, LOG_FMT, get_name(), "missing data within 5s.");
     }
 }
 
+// get serial port number for the uart
+int8_t AP_ExternalAHRS_GSOF::get_port(void) const
+{
+    if (!uart) {
+        return -1;
+    }
+    return port_num;
+};
+
 void AP_ExternalAHRS_GSOF::update_thread(void)
 {
-    auto& network = AP::network();
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, LOG_FMT, get_name(), "starting network");
-    network.startup_wait();
-    // const char *dest_ip = param.remote_ip.get_str();
-    auto *sock = new SocketAPM(true);
-    if (sock == nullptr) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, LOG_FMT, get_name(), "failed to create socket");
-        return;
-    }
-
-    // const char* data = "foo";
-    // Can use sendto to send config data to address without binding:
-    // sock->sendto((const void*)data, strlen(data), dest_ip, 44448);
-    
-    sock->bind("0.0.0.0", 44444);
-
-    AP_GSOF::MsgTypes expected;
-    expected.set(AP_GSOF::POS_TIME);
-    expected.set(AP_GSOF::INS_FULL_NAV);
-    expected.set(AP_GSOF::INS_RMS);
-    expected.set(AP_GSOF::LLH_MSL);
     // TODO configure receiver to output expected data.
 
     auto last_debug = AP_HAL::millis();
     size_t pps = 0;
-    size_t rps = 0;
+
+    uart->begin(baudrate);
     
     while (true) {
-        uint8_t data[AP_GSOF::MAX_PACKET_SIZE];
-        auto const recv_res = sock->recv(data, AP_GSOF::MAX_PACKET_SIZE, 1);
-        rps++;
-        if (recv_res != -1) {
+        // TODO should we ever call begin() again?
+        while (uart->available() > 0) {
+            const uint8_t c = uart->read();
+
             AP_GSOF::MsgTypes parsed;
-            const auto parse_res = parse_buf(data, recv_res, parsed);
+            const auto parse_res = parse(c, parsed);
             if (parse_res != PARSED_GSOF_DATA) {
                 continue;
             }
@@ -105,10 +134,8 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
 
             if (now - last_debug > 1000) {
                 GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GSOF PPS: '%lu'", static_cast<unsigned long>(pps));
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GSOF RPS: '%lu'", static_cast<unsigned long>(rps));
                 last_debug = now;
                 pps = 0;
-                rps = 0;
             }
             if (parsed.get(AP_GSOF::POS_TIME)) {
                 last_pos_time_ms = now;
@@ -146,13 +173,16 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
                 gps_data.msl_altitude = static_cast<int32_t>(llh_msl.altitude_msl * 1E2);
             }
 
-            // TODO only send GNSS data if we got what we needed.
             uint8_t instance;
-            if (AP::gps().get_first_external_instance(instance) && parsed == expected) {
+            AP_GSOF::MsgTypes expected_gps;
+            expected_gps.set(AP_GSOF::POS_TIME);
+            expected_gps.set(AP_GSOF::INS_FULL_NAV);
+            expected_gps.set(AP_GSOF::INS_RMS);
+            expected_gps.set(AP_GSOF::LLH_MSL);
+            if (AP::gps().get_first_external_instance(instance) && parsed == expected_gps) {
                 AP::gps().handle_external(gps_data, instance);
             }
         }
-
         hal.scheduler->delay_microseconds(100);
         check_initialise_state();
     }
@@ -249,29 +279,30 @@ bool AP_ExternalAHRS_GSOF::times_healthy() const
     
     auto const TIMES_FOS = 2.0;
 
+    // All messages must be 5Hz to pass the AP_GPS 4hz rate as logged in dataflash GPA.Delta logs.
 
-    // 1Hz = 1000mS.
-    auto const GSOF_1_EXPECTED_DELAY_MS = 1000;
+    // 5Hz = 200mS.
+    auto const GSOF_1_EXPECTED_DELAY_MS = 200;
     auto const pos_time_healthy = now - last_pos_time_ms <= TIMES_FOS * GSOF_1_EXPECTED_DELAY_MS;
     if (!pos_time_healthy) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: GSOF pos time delayed by %lu ms", get_name(), (long unsigned) (now - last_pos_time_ms));
     }
 
-    // 100Hz = 10mS.
-    auto const GSOF_49_EXPECTED_DELAY_MS = 10;
+    // 10Hz = 100mS.
+    auto const GSOF_49_EXPECTED_DELAY_MS = 100;
     auto const ins_full_nav_healthy = now - last_ins_full_nav_ms <= TIMES_FOS * GSOF_49_EXPECTED_DELAY_MS;
     if (!ins_full_nav_healthy) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS Full nav delayed by %lu ms", get_name(), (long unsigned) (now - last_ins_full_nav_ms));
     }
 
-    // 1Hz = 1000mS.
-    auto const GSOF_50_EXPECTED_DELAY_MS = 1000;
+    // 5Hz = 200mS.
+    auto const GSOF_50_EXPECTED_DELAY_MS = 200;
     auto const ins_rms_healthy = now - last_ins_rms_ms < TIMES_FOS * GSOF_50_EXPECTED_DELAY_MS;
     if (!ins_rms_healthy) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: INS rms delayed by %lu ms", get_name(), (long unsigned) (now - last_ins_rms_ms));
     }
-    // 1Hz = 1000mS.
-    auto const GSOF_70_EXPECTED_DELAY_MS = 1000;
+    // 5Hz = 200mS.
+    auto const GSOF_70_EXPECTED_DELAY_MS = 200;
     auto const llh_msl_healthy = now - last_llh_msl_ms < TIMES_FOS * GSOF_70_EXPECTED_DELAY_MS;
     if (!llh_msl_healthy) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "%s: LLH MSL delayed by %lu ms", get_name(), (long unsigned) (now - last_llh_msl_ms));
