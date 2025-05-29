@@ -17,7 +17,8 @@
 //     param set EAHRS_TYPE 6
 //     For EAHRS as a GPS:
 //     param set GPS1_TYPE 21
-//   Configure GSOF 49,50,70 on UDP port 44444
+//   Configure GSOF 49,50,70 on UDP port 44444, "UDP Mode" and "UDP Broadcast Transmit"
+//   It also works with unicast.
 //   Consider setting EK3_SRC1_YAW to 2 on the bench...
 
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
@@ -124,7 +125,11 @@ void AP_ExternalAHRS_GSOF::update_thread(void)
                 gps_data.ned_vel_north = ins_full_nav.vel_n;
                 gps_data.ned_vel_east = ins_full_nav.vel_e;
                 gps_data.ned_vel_down = ins_full_nav.vel_d;
-                post_filter();
+                if (ins_full_nav.gnss_status != AP_GSOF::GnssStatus::FIX_NOT_AVAILABLE) {
+                    // If fix is unavailble, the lat/lon may be zero, so don't post the data.
+                    // To reproduce this, disconnect the GPS antenna and reboot the receiver.
+                    post_filter();
+                }
             }
             if (parsed.get(AP_GSOF::INS_RMS)) {
                 last_ins_rms_ms = now;
@@ -204,7 +209,16 @@ bool AP_ExternalAHRS_GSOF::initialised(void) const
 bool AP_ExternalAHRS_GSOF::pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const
 {
     if (!initialised()) {
-        hal.util->snprintf(failure_msg, failure_msg_len, LOG_FMT, get_name(), "not initialised");
+        hal.util->snprintf(
+            failure_msg,
+            failure_msg_len,
+            "%s EAHRS: err1 %lu,%lu,%lu,%lu",
+            get_name(),
+            last_pos_time_ms,
+            last_ins_full_nav_ms,
+            last_ins_rms_ms,
+            last_llh_msl_ms
+            );
         return false;
     }
     if (!times_healthy()) {
