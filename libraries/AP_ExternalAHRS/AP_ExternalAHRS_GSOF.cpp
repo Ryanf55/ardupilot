@@ -208,6 +208,12 @@ void AP_ExternalAHRS_GSOF::post_filter() const
     state.location = Location(ins_full_nav.latitude * 1E7, ins_full_nav.longitude * 1E7, ins_full_nav.altitude * 1E2, Location::AltFrame::ABSOLUTE);
     state.have_location = true;
 
+    state.quat.from_euler(
+        radians(ins_full_nav.roll_deg), 
+        radians(ins_full_nav.pitch_deg),
+        radians(ins_full_nav.heading_deg));
+    state.have_quaternion = true;
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
         if (!state.location.initialised()) {
             AP_HAL::panic("Uninitialized location.");
@@ -218,6 +224,8 @@ void AP_ExternalAHRS_GSOF::post_filter() const
         state.origin = state.location;
         state.have_origin = true;
     }
+
+    state.last_location_update_us = AP_HAL::micros();
 }
 
 // Get model/type name

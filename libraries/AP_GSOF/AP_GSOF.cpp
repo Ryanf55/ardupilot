@@ -239,6 +239,15 @@ void AP_GSOF::parse_ins_full_nav(uint32_t a)
     ins_full_nav.latitude = be64todouble_ptr(msg.data, a + 8);
     ins_full_nav.longitude = be64todouble_ptr(msg.data, a + 16);
     ins_full_nav.altitude = be64todouble_ptr(msg.data, a + 24);
+    ins_full_nav.vel_n = be32tofloat_ptr(msg.data, a + 32);
+    ins_full_nav.vel_e = be32tofloat_ptr(msg.data, a + 36);
+    ins_full_nav.vel_d = be32tofloat_ptr(msg.data, a + 40);
+    ins_full_nav.speed = be32tofloat_ptr(msg.data, a + 44);
+    ins_full_nav.roll_deg = be64todouble_ptr(msg.data, a + 48);
+    ins_full_nav.pitch_deg = be64todouble_ptr(msg.data, a + 56);
+    ins_full_nav.heading_deg = be64todouble_ptr(msg.data, a + 56);
+    ins_full_nav.track_angle_deg = be64todouble_ptr(msg.data, a + 60);
+    // Remaining data is currently unused.
 }
 
 void AP_GSOF::parse_ins_rms(uint32_t a)
