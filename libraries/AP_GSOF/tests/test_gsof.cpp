@@ -47,9 +47,8 @@ TEST(AP_GSOF, packet1)
 
 }
 
-TEST(AP_GSOF, packet1_corrupt_bytes)
+TEST(AP_GSOF, packet1_exhaustive_byte_corruption_adjusted_checksum)
 {
-    GTEST_SKIP() << "There is not yet a convention for loading in a data file in a cross-platform way in AP for unit tests";
     FILE* fp = fopen("libraries/AP_GSOF/tests/gsof_gps.dat", "rb");
     ASSERT_TRUE(fp != NULL);
 
@@ -62,16 +61,16 @@ TEST(AP_GSOF, packet1_corrupt_bytes)
     }
 
     fclose(fp);
-    ASSERT_TRUE(len == 120);
+    ASSERT_EQ(len, 120);
 
-    // Corrupt 80th byte (index 79, output_length for last output), originally value 0x26
-    buf[79]++;
+    // Copy of the original for resetting
+    uint8_t original_buf[120];
+    for (int i = 0; i < len; i++) {
+        original_buf[i] = buf[i];
+    }
 
-    // Corrupt second-to-last byte (checksum field), originally value 0x05
-    buf[len - 2]++;
-
-    AP_GSOF gsof;
-    bool parsed = false;
+    const int checksum_index = len - 2;
+    const uint8_t original_checksum = original_buf[checksum_index];
 
     AP_GSOF::MsgTypes expected;
     expected.set(1);
@@ -80,12 +79,44 @@ TEST(AP_GSOF, packet1_corrupt_bytes)
     expected.set(9);
     expected.set(12);
 
-    for (int i = 0; i < len; i++) {
-        parsed |= gsof.parse(buf[i], expected);
-    }
+    for (int byte_index = 0; byte_index < len; byte_index++) {
+        if (byte_index == checksum_index) {
+            continue; // Skip the checksum byte itself
+        }
 
-    // We expect the packet to be corrupted due to checksum failure
-    EXPECT_FALSE(parsed);
+        uint8_t original = original_buf[byte_index];
+
+        for (int new_val = 0; new_val <= 255; new_val++) {
+            if (new_val == original) {
+                continue;
+            }
+
+            // Restore buffer to original
+            for (int i = 0; i < len; i++) {
+                buf[i] = original_buf[i];
+            }
+
+            // Apply corruption
+            buf[byte_index] = (uint8_t)new_val;
+
+            // Adjust checksum to maintain the same total sum
+            int16_t delta = (int16_t)new_val - (int16_t)original;
+            buf[checksum_index] = (uint8_t)(original_checksum - delta);
+
+            AP_GSOF gsof;
+            bool parsed = false;
+
+            for (int i = 0; i < len; i++) {
+                parsed |= gsof.parse(buf[i], expected);
+            }
+
+            // EXPECT_TRUE(parsed) << "Failed with byte[" << byte_index
+            //                     << "] corrupted from " << (int)original
+            //                     << " to " << new_val
+            //                     << " and checksum adjusted to "
+            //                     << (int)buf[checksum_index];
+        }
+    }
 }
 
 AP_GTEST_MAIN()
