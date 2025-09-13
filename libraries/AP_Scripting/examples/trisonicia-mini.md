@@ -22,6 +22,7 @@ Set the following parameters:
 |----------------|----------|--------------------------------|
 | `SCR_ENABLE`   | `1`      | Enable Lua scripting           |
 | `SERIALx_PROTOCOL` | `28` | Scripting protocol for SERIALx |
+| `SERIALx_BAUD` | `230400` | Scripting baud for SERIALx     |
 
 
 > Replace `SERIALx` with the appropriate serial port used on your hardware.
