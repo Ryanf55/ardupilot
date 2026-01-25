@@ -203,7 +203,7 @@ public:
      */
     void set_reference_location(void);
 
-private:
+// private:
     // allocate the terrain subsystem data
     bool allocate(void);
 
