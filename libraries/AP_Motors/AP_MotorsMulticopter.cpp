@@ -589,7 +589,11 @@ void AP_MotorsMulticopter::output_logic()
 
         // set limits flags
         // keep all limits set while in a low-energy or gated state
-        limit.set_all(true);
+        limit.roll = true;
+        limit.pitch = true;
+        limit.yaw = true;
+        limit.throttle_lower = true;
+        limit.throttle_upper = true;
         
         float spin_up_ground_idle_ratio = 0.0f;
         if ( is_positive(thr_lin.get_spin_min()) ) {
@@ -598,7 +602,7 @@ void AP_MotorsMulticopter::output_logic()
 
         if (_spin_up_ratio >= spin_up_ground_idle_ratio) {
             // Advance the idle-time delay only once the motors have reached ground-idle spin.
-            _idle_time = MIN(_idle_time_delay_s, _idle_time + _dt_s);
+            _idle_time = MIN(_idle_time_delay_s, _idle_time + _dt);
         }
 
         // set and increment ramp variables
@@ -620,7 +624,7 @@ void AP_MotorsMulticopter::output_logic()
             // While the idle-time delay is running, hold spin at ground idle to allow ESC startup.
             // After the delay, continue ramping to 1.0 and proceed when spool-up checks are clear.
 
-            const float spool_step = _dt_s / _spool_up_time;
+            const float spool_step = _dt / _spool_up_time;
             _spin_up_ratio += spool_step;
 
             // Hold at ground-idle spin until the configured idle-time delay has elapsed.
