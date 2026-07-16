@@ -58,14 +58,13 @@ class VirtualPortsLaunch:
         action = ExecuteProcess(
             cmd=[
                 [
-                    "exec ",  # take place of shell so socat gets signals
                     "socat ",
                     "-d -d ",
                     f"pty,raw,echo=0,link={tty0} ",
                     f"pty,raw,echo=0,link={tty1} ",
                 ]
             ],
-            shell=True,
+            shell=False,
             output="both",
             respawn=False,
             cached_output=True,
@@ -303,7 +302,6 @@ class MAVProxyLaunch:
         print(f"map:              {map}")
 
         cmd = [
-            "exec ",  # take place of shell so mavproxy (though not its subprocesses!) get signals
             f"{command} ",
             f"--out {out} ",
             "--out ",
@@ -322,7 +320,7 @@ class MAVProxyLaunch:
         # Create action.
         mavproxy_process = ExecuteProcess(
             cmd=cmd,
-            shell=True,
+            shell=False,
             output="both",
             respawn=False,
         )
@@ -410,11 +408,7 @@ class SITLLaunch:
 
         # Required arguments.
         cmd_args = [
-            # Use 'exec' so the /bin/sh -c wrapper is replaced by the
-            # arducopter process: the launch service then delivers its
-            # shutdown signals (SIGINT/SIGTERM) to arducopter directly
-            # rather than to the shell.
-            f"exec {command} ",
+            f"{command} ",
             f"--model {model} ",
             f"--speedup {speedup} ",
             f"--slave {slave} ",
@@ -502,7 +496,7 @@ class SITLLaunch:
         sitl_process = ExecuteProcess(
             cmd=[cmd_args],
             cwd=str(cwd),
-            shell=True,
+            shell=False,
             output="both",
             respawn=False,
         )
