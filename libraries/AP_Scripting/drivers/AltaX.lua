@@ -3,16 +3,18 @@
 
   Originally written here: https://github.com/magicrub/ardupilot/commit/550ba73fef998bfcc7fb94460f8214f242469a11
 
-  Params for CAN1
+  Params for CAN1 showing telem on BATT1
     * SCR_ENABLE = 1
     * CAN_P1_DRIVER = 1
     * CAN_D1_PROTOCOL 10 (scripting)
     * ALTAX_MOT_RO 0
+   And, configuration for ESC telem to inform battery measurements
+   https://ardupilot.org/copter/docs/common-esc-telemetry.html#use-as-battery-monitor
+    * BATT_MONITOR 9 # ESC 
+    * BATT_ESC_MASK 0 # use all connected ESC's
 
-    Then, set BATT_MONITOR TODO
-   
 
-   Wiring: On the freefly carrier, Motor CAN is CAN1 of Cube Orange+.
+   Wiring: On the freefly carrier, "Motor CAN" is CAN1 of Cube Orange+.
 
 
    IE:
@@ -169,8 +171,12 @@ function handle_frame(frame)
       local voltage = get_uint16(frame, 3, 2) * 0.1
       local rpm = get_uint16(frame, 5, 4)
       telem_data:voltage(voltage)
-      esc_telem:update_telem_data(esc_index, telem_data, TelemetryType.VOLTAGE)
-      esc_telem:update_rpm(esc_index, rpm, 0)
+      -- esc_telem's index is 0-based (ESC 1 = index 0, see AP_ESC_Telem.cpp's _rpm_data[esc_index]/
+      -- _telem_data[esc_index]), while our esc_index here is the 1-based value the AltaX CAN
+      -- protocol itself encodes - hence the -1. Confirmed via motortest: without it, commanding
+      -- motor 1 showed up as ESC 2 in ESC_TELEMETRY_1_TO_4 (one slot too high), with ESC 1 empty.
+      esc_telem:update_telem_data(esc_index - 1, telem_data, TelemetryType.VOLTAGE)
+      esc_telem:update_rpm(esc_index - 1, rpm, 0)
 
       esc_last_voltage[esc_index] = voltage
       esc_last_rpm[esc_index] = rpm
@@ -181,7 +187,7 @@ function handle_frame(frame)
        -- note: 16bit data is MSB first
       local current = get_uint16(frame, 1, 2) * 0.0001
       telem_data:current(current)
-      esc_telem:update_telem_data(esc_index, telem_data, TelemetryType.CURRENT)
+      esc_telem:update_telem_data(esc_index - 1, telem_data, TelemetryType.CURRENT)
 
       esc_last_current[esc_index] = current
       esc_has_current[esc_index] = true
